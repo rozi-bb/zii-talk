@@ -1,0 +1,347 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&amp;family=Nunito:wght@400;600;700;800&amp;display=swap">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; background: #FDF6F0; font-family: Nunito, 'Segoe UI', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: #7B3FE4; text-decoration: none; } a:hover { color: #5926B0; }
+    .dsp { font-family: 'Baloo 2', 'Trebuchet MS', system-ui, sans-serif; }
+    button { font: inherit; color: inherit; border: 0; background: none; padding: 0; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    .scroll { overflow-y: auto; scrollbar-width: none; }
+    .scroll::-webkit-scrollbar { display: none; }
+
+    .b3d { transition: transform .1s cubic-bezier(.34,1.56,.64,1), box-shadow .1s ease; }
+    .b3d:hover { transform: translateY(-2px); }
+    .b3d:active { transform: translateY(5px) !important; box-shadow: 0 1px 0 var(--sh) !important; }
+
+    .card { transition: transform .18s cubic-bezier(.34,1.56,.64,1), box-shadow .18s ease; }
+    .card:hover { transform: translateY(-4px); }
+    .card:active { transform: translateY(2px); }
+
+    @keyframes flick { 0%, 100% { transform: scale(1) rotate(-2deg); } 50% { transform: scale(1.13) rotate(3deg); } }
+    .flame { animation: flick 1.7s ease-in-out infinite; transform-origin: 50% 92%; }
+
+    @keyframes rise { from { opacity: 0; transform: translateY(16px) scale(.95); } to { opacity: 1; transform: none; } }
+    .rise { animation: rise .55s cubic-bezier(.34,1.4,.64,1) both; }
+    .g > *:nth-child(1) { animation-delay: .04s; }
+    .g > *:nth-child(2) { animation-delay: .1s; }
+    .g > *:nth-child(3) { animation-delay: .16s; }
+    .g > *:nth-child(4) { animation-delay: .22s; }
+
+    @keyframes shine { 0% { transform: translateX(-140%) rotate(16deg); } 55%, 100% { transform: translateX(420%) rotate(16deg); } }
+    .shine { animation: shine 4s ease-in-out infinite; }
+
+    @keyframes bob { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-5px) rotate(-4deg); } }
+    .bob { animation: bob 3.2s ease-in-out infinite; }
+
+    @keyframes tick { 0% { transform: scale(1); } 45% { transform: scale(1.3); } 100% { transform: scale(1); } }
+    .tick { animation: tick .4s cubic-bezier(.34,1.6,.64,1); }
+  </style>
+</helmet>
+
+<div style="width: 390px; height: 844px; background: #FDF6F0; color: #241B33; display: flex; flex-direction: column; overflow: hidden; position: relative">
+
+  <!-- ── status chips ─────────────────────────────── -->
+  <div style="display: flex; align-items: center; gap: 10px; padding: 44px 20px 12px; flex-shrink: 0">
+    <div style="display: flex; align-items: center; gap: 7px; background: #FFFFFF; border-radius: 999px; padding: 7px 14px 7px 10px; box-shadow: 0 2px 0 #EFE1DC">
+      <svg class="flame" width="19" height="19" viewBox="0 0 24 24" fill="none">
+        <path d="M12 2.5c0 0 6 4.6 6 9.6a6 6 0 1 1-12 0c0-5 6-9.6 6-9.6Z" fill="#FF7A3D"></path>
+        <path d="M12 11c0 0 2.6 2.2 2.6 4.4a2.6 2.6 0 1 1-5.2 0C9.4 13.2 12 11 12 11Z" fill="#FFD166"></path>
+      </svg>
+      <span class="dsp" style="font-size: 15px; font-weight: 800">5</span>
+      <span style="font-size: 11px; font-weight: 700; color: #9A8CA6">hari</span>
+    </div>
+
+    <div style="margin-left: auto; display: flex; align-items: center; gap: 7px; background: #FFFFFF; border-radius: 999px; padding: 7px 14px 7px 10px; box-shadow: 0 2px 0 #EFE1DC">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
+        <rect x="3.5" y="6.5" width="12" height="14" rx="2.6" fill="#FFD98A"></rect>
+        <rect x="7.5" y="3.5" width="12" height="14" rx="2.6" fill="#FFB524"></rect>
+        <path d="M10.6 10.5h5.8M10.6 13.6h3.6" stroke="#FFFFFF" stroke-width="1.7" stroke-linecap="round"></path>
+      </svg>
+      <span class="dsp tick" style="font-size: 15px; font-weight: 800">128</span>
+      <span style="font-size: 11px; font-weight: 700; color: #9A8CA6">frasa</span>
+    </div>
+
+    <button style="width: 34px; height: 34px; border-radius: 12px; background: #FFFFFF; box-shadow: 0 2px 0 #EFE1DC; display: flex; align-items: center; justify-content: center; color: #6B5F7D">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <circle cx="12" cy="12" r="3.2"></circle>
+        <path d="M12 3.5v2.2M12 18.3v2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M3.5 12h2.2M18.3 12h2.2M4.9 19.1l1.6-1.6M17.5 6.5l1.6-1.6"></path>
+      </svg>
+    </button>
+  </div>
+
+  <!-- ── scrollable body ──────────────────────────── -->
+  <div class="scroll" style="flex: 1; padding: 0 20px 18px">
+
+    <div style="padding: 6px 0 16px">
+      <div class="dsp" style="font-size: 27px; font-weight: 800; line-height: 1.08; letter-spacing: -.4px">Mau ngobrol apa<br>hari ini?</div>
+      <div style="font-size: 13px; font-weight: 600; color: #8B7E9B; margin-top: 6px">Pilih yang paling bikin kamu penasaran.</div>
+    </div>
+
+    <!-- pilihan hari ini -->
+    <button class="b3d rise" style="--sh: {{accentDark}}; display: block; width: 100%; position: relative; overflow: hidden; border-radius: 26px; background: {{accent}}; box-shadow: 0 7px 0 {{accentDark}}; padding: 15px 18px 18px; color: #FFFFFF">
+      <div class="shine" style="position: absolute; top: -50px; left: 0; width: 54px; height: 260px; background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.24), rgba(255,255,255,0)); pointer-events: none"></div>
+      <svg class="bob" style="position: absolute; right: -20px; bottom: -26px; opacity: .2" width="136" height="136" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.1" stroke-linecap="round">
+        <circle cx="12" cy="12" r="9.2"></circle>
+        <circle cx="12" cy="12" r="3.9"></circle>
+        <path d="M5.5 5.5 9.2 9.2M18.5 5.5 14.8 9.2M5.5 18.5 9.2 14.8M18.5 18.5 14.8 14.8"></path>
+      </svg>
+
+      <div style="display: flex; align-items: center; gap: 6px; opacity: .88">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="#FFFFFF">
+          <path d="M12 2.6l2.5 5.6 6.1.6-4.6 4.1 1.3 6-5.3-3.1-5.3 3.1 1.3-6L3.4 8.8l6.1-.6L12 2.6Z"></path>
+        </svg>
+        <span style="font-size: 9.5px; font-weight: 800; letter-spacing: 1.3px">PILIHAN HARI INI</span>
+      </div>
+
+      <div class="dsp" style="font-size: 24px; font-weight: 800; margin-top: 7px; line-height: 1.05">Saat Kamu Macet</div>
+      <div style="font-size: 12.5px; font-weight: 600; opacity: .9; margin-top: 5px; max-width: 208px; line-height: 1.45; text-wrap: pretty">8 kalimat penyelamat biar obrolan nggak mati di tengah jalan.</div>
+
+      <div style="display: flex; align-items: center; gap: 11px; margin-top: 15px">
+        <div class="dsp" style="background: #FFFFFF; color: {{accent}}; border-radius: 15px; padding: 9px 20px; font-size: 15px; font-weight: 800; box-shadow: 0 3px 0 rgba(0,0,0,.16)">Mulai</div>
+        <span style="font-size: 11.5px; font-weight: 700; opacity: .85">± 4 menit</span>
+      </div>
+    </button>
+
+    <!-- sehari-hari -->
+    <div style="display: flex; align-items: center; gap: 8px; margin: 26px 0 12px">
+      <span class="dsp" style="font-size: 16px; font-weight: 800">Sehari-hari</span>
+      <span style="font-size: 11px; font-weight: 700; color: #A99CB5; background: #F4EBF5; border-radius: 99px; padding: 3px 9px">4 topik</span>
+    </div>
+
+    <div class="g" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+
+      <button class="card rise" onClick="{{picks.kenalan}}" style="position: relative; background: #FFFFFF; border-radius: 22px; box-shadow: 0 3px 0 #EDE0E7; padding: 13px 13px 14px; overflow: hidden">
+        <sc-if value="{{sel.kenalan}}" hint-placeholder-val="{{false}}">
+          <div style="position: absolute; inset: 0; border-radius: 22px; border: 3px solid {{accent}}; pointer-events: none"></div>
+        </sc-if>
+        <div style="width: 38px; height: 38px; border-radius: 13px; background: #E9E1FF; display: flex; align-items: center; justify-content: center; color: #6B36D6">
+          <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 5.5h9.5a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H8.5L5 16.5V13.5H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2Z" transform="translate(1 -.5)"></path>
+            <path d="M18 9h2a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-1v3l-3.2-3H13"></path>
+          </svg>
+        </div>
+        <div class="dsp" style="font-size: 14.5px; font-weight: 800; margin-top: 9px; line-height: 1.15">Kenalan &amp;<br>Basa-basi</div>
+        <div style="display: flex; align-items: center; gap: 6px; margin-top: 10px">
+          <div style="flex: 1; height: 6px; border-radius: 99px; background: #F0E8F2; overflow: hidden">
+            <div style="width: 62%; height: 100%; border-radius: 99px; background: #10B981"></div>
+          </div>
+          <span style="font-size: 10px; font-weight: 800; color: #A99CB5">5/8</span>
+        </div>
+      </button>
+
+      <button class="card rise" onClick="{{picks.pesan}}" style="position: relative; background: #FFFFFF; border-radius: 22px; box-shadow: 0 3px 0 #EDE0E7; padding: 13px 13px 14px; overflow: hidden">
+        <sc-if value="{{sel.pesan}}" hint-placeholder-val="{{false}}">
+          <div style="position: absolute; inset: 0; border-radius: 22px; border: 3px solid {{accent}}; pointer-events: none"></div>
+        </sc-if>
+        <div style="width: 38px; height: 38px; border-radius: 13px; background: #FFE8D8; display: flex; align-items: center; justify-content: center; color: #E0630F">
+          <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4.5 7.5h11v6.5a4 4 0 0 1-4 4h-3a4 4 0 0 1-4-4V7.5Z"></path>
+            <path d="M15.5 9h2.2a2.3 2.3 0 0 1 0 4.6h-2.2"></path>
+            <path d="M3.5 21h13"></path>
+            <path d="M8 4.6c.7-.7.7-1.4 0-2.1M11.8 4.6c.7-.7.7-1.4 0-2.1"></path>
+          </svg>
+        </div>
+        <div class="dsp" style="font-size: 14.5px; font-weight: 800; margin-top: 9px; line-height: 1.15">Pesan &amp;<br>Beli</div>
+        <div style="display: flex; align-items: center; gap: 6px; margin-top: 10px">
+          <div style="flex: 1; height: 6px; border-radius: 99px; background: #F0E8F2; overflow: hidden">
+            <div style="width: 25%; height: 100%; border-radius: 99px; background: #10B981"></div>
+          </div>
+          <span style="font-size: 10px; font-weight: 800; color: #A99CB5">2/8</span>
+        </div>
+      </button>
+
+      <button class="card rise" onClick="{{picks.cerita}}" style="position: relative; background: #FFFFFF; border-radius: 22px; box-shadow: 0 3px 0 #EDE0E7; padding: 13px 13px 14px; overflow: hidden">
+        <sc-if value="{{sel.cerita}}" hint-placeholder-val="{{false}}">
+          <div style="position: absolute; inset: 0; border-radius: 22px; border: 3px solid {{accent}}; pointer-events: none"></div>
+        </sc-if>
+        <div style="width: 38px; height: 38px; border-radius: 13px; background: #DCEEFF; display: flex; align-items: center; justify-content: center; color: #1573C4">
+          <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3.6 8.4A9 9 0 1 1 3 12"></path>
+            <path d="M3.2 3.6v4.9h4.9"></path>
+            <path d="M12 8.4V12l2.8 1.8"></path>
+          </svg>
+        </div>
+        <div class="dsp" style="font-size: 14.5px; font-weight: 800; margin-top: 9px; line-height: 1.15">Cerita<br>Kejadian</div>
+        <div style="display: flex; align-items: center; gap: 6px; margin-top: 10px">
+          <div style="flex: 1; height: 6px; border-radius: 99px; background: #F0E8F2; overflow: hidden">
+            <div style="width: 0%; height: 100%; border-radius: 99px; background: #10B981"></div>
+          </div>
+          <span style="font-size: 10px; font-weight: 800; color: #A99CB5">baru</span>
+        </div>
+      </button>
+
+      <button class="card rise" onClick="{{picks.pendapat}}" style="position: relative; background: #FFFFFF; border-radius: 22px; box-shadow: 0 3px 0 #EDE0E7; padding: 13px 13px 14px; overflow: hidden">
+        <sc-if value="{{sel.pendapat}}" hint-placeholder-val="{{false}}">
+          <div style="position: absolute; inset: 0; border-radius: 22px; border: 3px solid {{accent}}; pointer-events: none"></div>
+        </sc-if>
+        <div style="width: 38px; height: 38px; border-radius: 13px; background: #FFE0EA; display: flex; align-items: center; justify-content: center; color: #D63A73">
+          <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 20.2s-7.6-4.6-7.6-9.7A4.4 4.4 0 0 1 12 7.6a4.4 4.4 0 0 1 7.6 2.9c0 5.1-7.6 9.7-7.6 9.7Z"></path>
+          </svg>
+        </div>
+        <div class="dsp" style="font-size: 14.5px; font-weight: 800; margin-top: 9px; line-height: 1.15">Pendapat &amp;<br>Rasa</div>
+        <div style="display: flex; align-items: center; gap: 6px; margin-top: 10px">
+          <div style="flex: 1; height: 6px; border-radius: 99px; background: #F0E8F2; overflow: hidden">
+            <div style="width: 12%; height: 100%; border-radius: 99px; background: #10B981"></div>
+          </div>
+          <span style="font-size: 10px; font-weight: 800; color: #A99CB5">1/8</span>
+        </div>
+      </button>
+    </div>
+
+    <!-- kerja -->
+    <div style="display: flex; align-items: center; gap: 8px; margin: 26px 0 12px">
+      <span class="dsp" style="font-size: 16px; font-weight: 800">Buat Kerja</span>
+      <span style="font-size: 11px; font-weight: 700; color: #A99CB5; background: #F4EBF5; border-radius: 99px; padding: 3px 9px">4 topik</span>
+    </div>
+
+    <div class="g" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+
+      <button class="card rise" onClick="{{picks.progres}}" style="position: relative; background: #FFFFFF; border-radius: 22px; box-shadow: 0 3px 0 #EDE0E7; padding: 13px 13px 14px; overflow: hidden">
+        <sc-if value="{{sel.progres}}" hint-placeholder-val="{{false}}">
+          <div style="position: absolute; inset: 0; border-radius: 22px; border: 3px solid {{accent}}; pointer-events: none"></div>
+        </sc-if>
+        <div style="width: 38px; height: 38px; border-radius: 13px; background: #D7F4E7; display: flex; align-items: center; justify-content: center; color: #0A8A61">
+          <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 20V13.5M10 20V8.5M16 20v-4M22 20V4.5" transform="translate(-1 0)"></path>
+          </svg>
+        </div>
+        <div class="dsp" style="font-size: 14.5px; font-weight: 800; margin-top: 9px; line-height: 1.15">Update<br>Progres</div>
+        <div style="display: flex; align-items: center; gap: 6px; margin-top: 10px">
+          <div style="flex: 1; height: 6px; border-radius: 99px; background: #F0E8F2; overflow: hidden">
+            <div style="width: 38%; height: 100%; border-radius: 99px; background: #10B981"></div>
+          </div>
+          <span style="font-size: 10px; font-weight: 800; color: #A99CB5">3/8</span>
+        </div>
+      </button>
+
+      <button class="card rise" onClick="{{picks.meeting}}" style="position: relative; background: #FFFFFF; border-radius: 22px; box-shadow: 0 3px 0 #EDE0E7; padding: 13px 13px 14px; overflow: hidden">
+        <sc-if value="{{sel.meeting}}" hint-placeholder-val="{{false}}">
+          <div style="position: absolute; inset: 0; border-radius: 22px; border: 3px solid {{accent}}; pointer-events: none"></div>
+        </sc-if>
+        <div style="width: 38px; height: 38px; border-radius: 13px; background: #E9E1FF; display: flex; align-items: center; justify-content: center; color: #6B36D6">
+          <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="9" cy="8.2" r="3.1"></circle>
+            <path d="M3.6 19.4a5.4 5.4 0 0 1 10.8 0"></path>
+            <path d="M16.2 5.6a3 3 0 0 1 0 5.6M18.4 19.4a5.6 5.6 0 0 0-2-4.3"></path>
+          </svg>
+        </div>
+        <div class="dsp" style="font-size: 14.5px; font-weight: 800; margin-top: 9px; line-height: 1.15">Meeting<br>Survival</div>
+        <div style="display: flex; align-items: center; gap: 6px; margin-top: 10px">
+          <div style="flex: 1; height: 6px; border-radius: 99px; background: #F0E8F2; overflow: hidden">
+            <div style="width: 0%; height: 100%; border-radius: 99px; background: #10B981"></div>
+          </div>
+          <span style="font-size: 10px; font-weight: 800; color: #A99CB5">baru</span>
+        </div>
+      </button>
+
+      <button class="card rise" onClick="{{picks.klien}}" style="position: relative; background: #FFFFFF; border-radius: 22px; box-shadow: 0 3px 0 #EDE0E7; padding: 13px 13px 14px; overflow: hidden">
+        <sc-if value="{{sel.klien}}" hint-placeholder-val="{{false}}">
+          <div style="position: absolute; inset: 0; border-radius: 22px; border: 3px solid {{accent}}; pointer-events: none"></div>
+        </sc-if>
+        <div style="width: 38px; height: 38px; border-radius: 13px; background: #FFF0CE; display: flex; align-items: center; justify-content: center; color: #B87C00">
+          <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2.8" y="7.2" width="18.4" height="12.6" rx="2.6"></rect>
+            <path d="M8.8 7.2V5.4a2 2 0 0 1 2-2h2.4a2 2 0 0 1 2 2v1.8"></path>
+            <path d="M2.8 12.4h18.4"></path>
+          </svg>
+        </div>
+        <div class="dsp" style="font-size: 14.5px; font-weight: 800; margin-top: 9px; line-height: 1.15">Ngomong<br>ke Klien</div>
+        <div style="display: flex; align-items: center; gap: 6px; margin-top: 10px">
+          <div style="flex: 1; height: 6px; border-radius: 99px; background: #F0E8F2; overflow: hidden">
+            <div style="width: 0%; height: 100%; border-radius: 99px; background: #10B981"></div>
+          </div>
+          <span style="font-size: 10px; font-weight: 800; color: #A99CB5">baru</span>
+        </div>
+      </button>
+
+      <button class="card rise" onClick="{{picks.interview}}" style="position: relative; background: #FFFFFF; border-radius: 22px; box-shadow: 0 3px 0 #EDE0E7; padding: 13px 13px 14px; overflow: hidden">
+        <sc-if value="{{sel.interview}}" hint-placeholder-val="{{false}}">
+          <div style="position: absolute; inset: 0; border-radius: 22px; border: 3px solid {{accent}}; pointer-events: none"></div>
+        </sc-if>
+        <div style="width: 38px; height: 38px; border-radius: 13px; background: #DCEEFF; display: flex; align-items: center; justify-content: center; color: #1573C4">
+          <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4.4" width="18" height="15.2" rx="2.6"></rect>
+            <circle cx="9.2" cy="10.4" r="2.2"></circle>
+            <path d="M5.8 16.6a3.6 3.6 0 0 1 6.8 0M15 9.6h3.2M15 13.2h2.2"></path>
+          </svg>
+        </div>
+        <div class="dsp" style="font-size: 14.5px; font-weight: 800; margin-top: 9px; line-height: 1.15">Interview &amp;<br>Kenalan Pro</div>
+        <div style="display: flex; align-items: center; gap: 6px; margin-top: 10px">
+          <div style="flex: 1; height: 6px; border-radius: 99px; background: #F0E8F2; overflow: hidden">
+            <div style="width: 0%; height: 100%; border-radius: 99px; background: #10B981"></div>
+          </div>
+          <span style="font-size: 10px; font-weight: 800; color: #A99CB5">baru</span>
+        </div>
+      </button>
+    </div>
+
+    <div style="height: 8px"></div>
+  </div>
+
+  <!-- ── sticky CTA ───────────────────────────────── -->
+  <div style="flex-shrink: 0; padding: 14px 20px 22px; background: linear-gradient(to top, #FDF6F0 62%, rgba(253,246,240,0))">
+    <button class="b3d" style="--sh: {{accentDark}}; display: flex; align-items: center; justify-content: center; gap: 9px; width: 100%; background: {{accent}}; color: #FFFFFF; border-radius: 20px; padding: 15px; box-shadow: 0 7px 0 {{accentDark}}">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="9" y="2.6" width="6" height="11" rx="3"></rect>
+        <path d="M5.4 11.4a6.6 6.6 0 0 0 13.2 0M12 18v3.4"></path>
+      </svg>
+      <span class="dsp" style="font-size: 16.5px; font-weight: 800">{{cta}}</span>
+    </button>
+    <div style="text-align: center; font-size: 11px; font-weight: 700; color: #A99CB5; margin-top: 9px">Ngobrolnya pakai suara — tekan &amp; tahan buat ngomong</div>
+  </div>
+
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"accent":{"editor":"color","default":"#7B3FE4","options":["#7B3FE4","#0E9F8E","#E8467C","#F27A0C"],"section":"Tema"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { picked: null };
+  }
+
+  dark(hex) {
+    var m = /^#([0-9a-f]{6})$/i.exec(String(hex || ''));
+    if (!m) return '#5926B0';
+    var n = parseInt(m[1], 16);
+    var r = Math.round(((n >> 16) & 255) * 0.66);
+    var g = Math.round(((n >> 8) & 255) * 0.66);
+    var b = Math.round((n & 255) * 0.66);
+    return '#' + [r, g, b].map(function (v) { return ('0' + v.toString(16)).slice(-2); }).join('');
+  }
+
+  renderVals() {
+    var accent = this.props.accent || '#7B3FE4';
+    var names = {
+      kenalan: 'Kenalan', pesan: 'Pesan & Beli', cerita: 'Cerita Kejadian', pendapat: 'Pendapat',
+      progres: 'Update Progres', meeting: 'Meeting Survival', klien: 'Ngomong ke Klien', interview: 'Interview'
+    };
+    var self = this;
+    var picks = {};
+    var sel = {};
+    Object.keys(names).forEach(function (k) {
+      picks[k] = function () { self.setState({ picked: self.state.picked === k ? null : k }); };
+      sel[k] = self.state.picked === k;
+    });
+
+    return {
+      accent: accent,
+      accentDark: this.dark(accent),
+      picks: picks,
+      sel: sel,
+      cta: this.state.picked ? 'Mulai: ' + names[this.state.picked] : 'Mulai Pilihan Hari Ini'
+    };
+  }
+}
+</script>
+</body>
+</html>

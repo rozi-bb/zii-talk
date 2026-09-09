@@ -1,0 +1,352 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&amp;family=Nunito:wght@400;600;700;800&amp;display=swap">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; background: #FDF6F0; font-family: Nunito, 'Segoe UI', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: #7B3FE4; text-decoration: none; } a:hover { color: #5926B0; }
+    .dsp { font-family: 'Baloo 2', 'Trebuchet MS', system-ui, sans-serif; }
+    button { font: inherit; color: inherit; border: 0; background: none; padding: 0; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    .scroll { overflow-y: auto; scrollbar-width: none; }
+    .scroll::-webkit-scrollbar { display: none; }
+
+    .b3d { transition: transform .1s cubic-bezier(.34,1.56,.64,1), box-shadow .1s ease; }
+    .b3d:hover { transform: translateY(-2px); }
+    .b3d:active { transform: translateY(4px) !important; box-shadow: 0 1px 0 var(--sh) !important; }
+
+    @keyframes breathe {
+      0%, 100% { border-radius: 49% 51% 54% 46% / 53% 47% 53% 47%; transform: scale(1) rotate(0deg); }
+      33%      { border-radius: 57% 43% 46% 54% / 44% 56% 44% 56%; transform: scale(1.07) rotate(6deg); }
+      66%      { border-radius: 44% 56% 53% 47% / 56% 44% 59% 41%; transform: scale(.97) rotate(-5deg); }
+    }
+    .orb { animation: breathe 2s ease-in-out infinite; }
+
+    @keyframes ripple { 0% { transform: scale(.7); opacity: .55; } 100% { transform: scale(1.4); opacity: 0; } }
+    .r1 { animation: ripple 1.5s ease-out infinite; }
+    .r2 { animation: ripple 1.5s ease-out infinite; animation-delay: .5s; }
+    .r3 { animation: ripple 1.5s ease-out infinite; animation-delay: 1s; }
+
+    @keyframes blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+    .cr { animation: blink .9s steps(1) infinite; }
+
+    @keyframes wiggleIn {
+      0%   { opacity: 0; transform: translateY(12px) rotate(-3deg) scale(.9); }
+      55%  { opacity: 1; transform: translateY(0) rotate(1.5deg) scale(1.02); }
+      100% { opacity: 1; transform: none; }
+    }
+    .wig { animation: wiggleIn .6s cubic-bezier(.34,1.5,.6,1) both; animation-delay: .35s; }
+
+    @keyframes fly {
+      0%   { opacity: 1; transform: translate(0, 0) scale(1) rotate(0deg); }
+      22%  { opacity: 1; transform: translate(-6px, 14px) scale(1.06) rotate(-4deg); }
+      100% { opacity: 0; transform: translate(226px, -392px) scale(.16) rotate(16deg); }
+    }
+    .fly { animation: fly .95s cubic-bezier(.5,-.15,.6,1) forwards; }
+
+    @keyframes popCount { 0% { transform: scale(1); } 30% { transform: scale(1.42) rotate(-4deg); } 100% { transform: scale(1); } }
+    .popCount { animation: popCount .55s cubic-bezier(.34,1.6,.5,1); }
+
+    @keyframes spark { 0% { opacity: 0; transform: rotate(var(--a)) translateY(0) scale(.3); } 25% { opacity: 1; } 100% { opacity: 0; transform: rotate(var(--a)) translateY(-30px) scale(1); } }
+    .sp { opacity: 0; }
+    .on .sp { animation: spark .8s ease-out .62s forwards; }
+
+    @keyframes grow { from { opacity: 0; max-height: 0; } to { opacity: 1; max-height: 120px; } }
+    .grow { animation: grow .34s ease-out both; overflow: hidden; }
+  </style>
+</helmet>
+
+<div style="width: 390px; height: 844px; background: #FDF6F0; color: #241B33; display: flex; flex-direction: column; overflow: hidden; position: relative">
+
+  <!-- ── header ───────────────────────────────────── -->
+  <div style="flex-shrink: 0; padding: 44px 16px 0">
+    <div style="display: flex; align-items: center; gap: 10px">
+      <button style="width: 38px; height: 38px; border-radius: 13px; background: #FFFFFF; box-shadow: 0 2px 0 #EFE1DC; display: flex; align-items: center; justify-content: center; color: #4A3E5C">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14.5 5 8 12l6.5 7"></path>
+        </svg>
+      </button>
+      <div style="flex: 1; text-align: center">
+        <div class="dsp" style="font-size: 15.5px; font-weight: 800; line-height: 1.1">Update Progres</div>
+        <div style="display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 2px">
+          <div style="width: 6px; height: 6px; border-radius: 50%; background: {{accent}}"></div>
+          <span style="font-size: 10.5px; font-weight: 800; color: {{accentDark}}">Zii ngomong</span>
+        </div>
+      </div>
+
+      <!-- collection counter (the reward target) -->
+      <div style="position: relative; flex-shrink: 0">
+        <div class="{{sparkCls}}" style="position: absolute; inset: 0; pointer-events: none">
+          <div class="sp" style="--a: 0deg; position: absolute; left: 50%; top: 50%; width: 5px; height: 5px; border-radius: 50%; background: #FFB524"></div>
+          <div class="sp" style="--a: 51deg; position: absolute; left: 50%; top: 50%; width: 5px; height: 5px; border-radius: 50%; background: #FF7A3D"></div>
+          <div class="sp" style="--a: 102deg; position: absolute; left: 50%; top: 50%; width: 5px; height: 5px; border-radius: 50%; background: #10B981"></div>
+          <div class="sp" style="--a: 153deg; position: absolute; left: 50%; top: 50%; width: 5px; height: 5px; border-radius: 50%; background: #FFB524"></div>
+          <div class="sp" style="--a: 204deg; position: absolute; left: 50%; top: 50%; width: 5px; height: 5px; border-radius: 50%; background: {{accent}}"></div>
+          <div class="sp" style="--a: 255deg; position: absolute; left: 50%; top: 50%; width: 5px; height: 5px; border-radius: 50%; background: #FF7A3D"></div>
+          <div class="sp" style="--a: 306deg; position: absolute; left: 50%; top: 50%; width: 5px; height: 5px; border-radius: 50%; background: #10B981"></div>
+        </div>
+        <div class="{{countCls}}" style="display: flex; align-items: center; gap: 5px; background: #FFF3D6; border-radius: 999px; padding: 6px 11px 6px 8px; box-shadow: 0 2px 0 #F2DFA9">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+            <rect x="4" y="6" width="12" height="14" rx="2.4" fill="#FFD98A"></rect>
+            <rect x="8" y="4" width="12" height="14" rx="2.4" fill="#FFB524"></rect>
+          </svg>
+          <span class="dsp" style="font-size: 13px; font-weight: 800; color: #8A5B00">{{frasa}}</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 5px; margin: 13px 4px 0">
+      <div style="flex: 1; height: 7px; border-radius: 99px; background: #10B981"></div>
+      <div style="flex: 1; height: 7px; border-radius: 99px; background: #10B981"></div>
+      <div style="flex: 1; height: 7px; border-radius: 99px; background: #10B981"></div>
+      <div style="flex: 1; height: 7px; border-radius: 99px; background: #10B981"></div>
+      <div style="flex: 1; height: 7px; border-radius: 99px; background: #EFE4EA"></div>
+      <div style="flex: 1; height: 7px; border-radius: 99px; background: #EFE4EA"></div>
+    </div>
+  </div>
+
+  <!-- ── AI speaking ──────────────────────────────── -->
+  <div style="flex-shrink: 0; height: 112px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px">
+    <div style="position: relative; width: 110px; height: 82px; display: flex; align-items: center; justify-content: center">
+      <div class="r1" style="position: absolute; width: 80px; height: 80px; border-radius: 50%; border: 2px solid {{accent}}"></div>
+      <div class="r2" style="position: absolute; width: 80px; height: 80px; border-radius: 50%; border: 2px solid {{accent}}"></div>
+      <div class="r3" style="position: absolute; width: 80px; height: 80px; border-radius: 50%; border: 2px solid {{accent}}"></div>
+      <div class="orb" style="width: 64px; height: 64px; background: radial-gradient(circle at 32% 26%, #D8C4FF, {{accent}} 56%, {{accentDark}} 100%); box-shadow: 0 10px 26px rgba(90,40,180,.4), inset 0 -7px 14px rgba(0,0,0,.14)"></div>
+    </div>
+    <div class="dsp" style="font-size: 12px; font-weight: 800; color: {{accentDark}}; letter-spacing: .3px">ZII</div>
+  </div>
+
+  <!-- ── transcript ───────────────────────────────── -->
+  <div class="scroll" style="flex: 1; padding: 0 18px 12px">
+
+    <!-- your turn + friendly correction -->
+    <div style="display: flex; justify-content: flex-end; margin-bottom: 9px">
+      <div style="max-width: 268px; background: {{accent}}; color: #FFFFFF; border-radius: 22px 22px 7px 22px; padding: 12px 15px; box-shadow: 0 3px 0 {{accentDark}}; font-size: 15px; font-weight: 600; line-height: 1.45">I've working on the payment feature since Monday.</div>
+    </div>
+
+    <div class="wig" style="display: flex; justify-content: flex-end; margin-bottom: 14px">
+      <div style="max-width: 296px; background: #FFF8E6; border: 2px solid #FFE0A3; border-radius: 20px; padding: 12px 14px 13px">
+
+        <div style="display: flex; align-items: center; gap: 7px">
+          <div style="width: 22px; height: 22px; border-radius: 8px; background: #FFB524; display: flex; align-items: center; justify-content: center; color: #FFFFFF; flex-shrink: 0">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5.5 12.5 10 17l8.5-9"></path>
+            </svg>
+          </div>
+          <span class="dsp" style="font-size: 14px; font-weight: 800; color: #8A5B00">Hampir bener!</span>
+        </div>
+
+        <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 7px; margin-top: 10px">
+          <span style="font-size: 14px; font-weight: 700; color: #B0A08A; text-decoration: line-through; text-decoration-thickness: 2px">I've working</span>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C79A2E" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h13M12.5 6.5 18 12l-5.5 5.5"></path>
+          </svg>
+          <span class="dsp" style="font-size: 16px; font-weight: 800; color: #0A8A61">I've been working</span>
+        </div>
+
+        <sc-if value="{{why}}" hint-placeholder-val="{{false}}">
+          <div class="grow" style="margin-top: 11px; padding-top: 11px; border-top: 2px dashed #FFE0A3">
+            <div style="font-size: 12.5px; font-weight: 600; color: #6B5F45; line-height: 1.5; text-wrap: pretty">Habis <strong>I've</strong>, kata kerjanya jadi <strong>been + -ing</strong> kalau kerjaannya masih jalan sampai sekarang. Pola ini kepakai terus di update kerjaan.</div>
+          </div>
+        </sc-if>
+
+        <div style="display: flex; align-items: center; gap: 8px; margin-top: 12px">
+          <button class="b3d" onClick="{{capture}}" style="--sh: {{capSh}}; display: flex; align-items: center; gap: 6px; background: {{capBg}}; color: #FFFFFF; border-radius: 14px; padding: 9px 14px; box-shadow: 0 4px 0 {{capSh}}">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="{{capFill}}" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6.4 3.6h11.2v17l-5.6-4.2-5.6 4.2v-17Z"></path>
+            </svg>
+            <span class="dsp" style="font-size: 13.5px; font-weight: 800">{{capLabel}}</span>
+          </button>
+
+          <button onClick="{{toggleWhy}}" style="display: flex; align-items: center; gap: 4px; color: #A98F55; padding: 8px 4px">
+            <span style="font-size: 12.5px; font-weight: 800">Kenapa?</span>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round" style="transform: rotate({{whyRot}}deg); transition: transform .22s ease">
+              <path d="M6.5 9.5 12 15l5.5-5.5"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Zii answering, streaming in -->
+    <div style="display: flex; justify-content: flex-start; margin-bottom: 13px">
+      <div style="max-width: 292px">
+        <div style="background: #FFFFFF; border-radius: 22px 22px 22px 7px; padding: 12px 15px; box-shadow: 0 3px 0 #EADFE6; font-size: 15px; font-weight: 600; line-height: 1.45; min-height: 44px; text-wrap: pretty">{{said}}<span class="cr" style="display: inline-block; width: 2px; height: 15px; background: {{caret}}; margin-left: 3px; vertical-align: -2px; border-radius: 1px"></span></div>
+
+        <sc-if value="{{doneTalking}}" hint-placeholder-val="{{false}}">
+          <div style="display: flex; gap: 6px; margin-top: 7px">
+            <button style="display: flex; align-items: center; gap: 5px; background: #FFFFFF; border-radius: 999px; padding: 5px 11px 5px 8px; box-shadow: 0 2px 0 #EADFE6; color: #6B5F7D">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M11 5.2 6.4 9H3.4v6h3l4.6 3.8V5.2Z"></path>
+                <path d="M15.4 9.4a3.6 3.6 0 0 1 0 5.2"></path>
+              </svg>
+              <span style="font-size: 11px; font-weight: 800">Ulangi</span>
+            </button>
+            <button style="display: flex; align-items: center; gap: 5px; background: #E8F4FF; border-radius: 999px; padding: 5px 11px 5px 8px; box-shadow: 0 2px 0 #CFE6FA; color: #1573C4">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3.4 6.6h7.8M7.3 4.4v2.2M5 12c1.4-3 2.3-4.4 2.3-4.4S8.2 9 9.6 12"></path>
+                <path d="M13.2 20l3.9-9.6L21 20M14.8 16.8h4.6"></path>
+              </svg>
+              <span style="font-size: 11px; font-weight: 800">Arti</span>
+            </button>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── dock while Zii talks ─────────────────────── -->
+  <div style="flex-shrink: 0; padding: 12px 20px 24px; background: #FDF6F0; border-top: 1px solid #F3E7E2">
+
+    <div style="height: 36px; display: flex; align-items: center; justify-content: center">
+      <span style="font-size: 12.5px; font-weight: 700; color: #A99CB5">{{hint}}</span>
+    </div>
+
+    <div style="display: flex; align-items: flex-start; justify-content: center; gap: 18px; margin-top: 6px">
+      <div style="width: 62px; display: flex; flex-direction: column; align-items: center; gap: 7px; padding-top: 19px">
+        <button class="b3d" style="--sh: #1573C4; width: 58px; height: 58px; border-radius: 50%; background: #2E9BF0; box-shadow: 0 5px 0 #1573C4; display: flex; align-items: center; justify-content: center; color: #FFFFFF">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M7.4 5.6v12.8M12 5.6v12.8"></path>
+            <path d="M16.4 8.2h4.2M18.5 6.4v1.8" stroke-width="2"></path>
+            <path d="M15.4 18.4l2.9-7.2 2.9 7.2M16.6 15.9h3.4" stroke-width="2"></path>
+          </svg>
+        </button>
+        <span style="font-size: 10px; font-weight: 800; color: #1573C4; text-align: center; line-height: 1.2">Jeda &amp;<br>Terjemah</span>
+      </div>
+
+      <div style="width: 100px; height: 100px; display: flex; align-items: center; justify-content: center; opacity: .38">
+        <div style="width: 100px; height: 100px; border-radius: 50%; background: #C9BCD6; box-shadow: 0 9px 0 #A899B8; display: flex; align-items: center; justify-content: center; color: #FFFFFF">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="2.4" width="6" height="11.2" rx="3"></rect>
+            <path d="M5.3 11.3a6.7 6.7 0 0 0 13.4 0M12 18.1v3.5M9 21.6h6"></path>
+          </svg>
+        </div>
+      </div>
+
+      <div style="width: 62px; display: flex; flex-direction: column; align-items: center; gap: 7px; padding-top: 19px">
+        <button class="b3d" onClick="{{cut}}" style="--sh: #E3D6DE; width: 58px; height: 58px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 5px 0 #E3D6DE; display: flex; align-items: center; justify-content: center; color: #6B5F7D">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="6.4" y="6.4" width="11.2" height="11.2" rx="2.4"></rect>
+          </svg>
+        </button>
+        <span style="font-size: 10px; font-weight: 800; color: #8B7E9B; text-align: center; line-height: 1.2">Potong</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── the phrase flying into the collection ────── -->
+  <sc-if value="{{flying}}" hint-placeholder-val="{{false}}">
+    <div class="fly" style="position: absolute; left: 96px; top: 452px; z-index: 9; pointer-events: none; display: flex; align-items: center; gap: 7px; background: #FFB524; border-radius: 14px; padding: 9px 13px; box-shadow: 0 5px 16px rgba(180,110,0,.4)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="#FFFFFF">
+        <path d="M6.4 3.6h11.2v17l-5.6-4.2-5.6 4.2v-17Z"></path>
+      </svg>
+      <span class="dsp" style="font-size: 14px; font-weight: 800; color: #FFFFFF; white-space: nowrap">I've been working on…</span>
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"accent":{"editor":"color","default":"#7B3FE4","options":["#7B3FE4","#0E9F8E","#E8467C","#F27A0C"],"section":"Tema"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.words = 'Nice — that one always trips people up. So what is left before you ship it?'.split(' ');
+    this.state = {
+      n: 0,
+      why: false,
+      captured: false,
+      flying: false,
+      burst: false,
+      frasa: 129
+    };
+    this.tos = [];
+  }
+
+  componentDidMount() {
+    var self = this;
+    this.later(function () {
+      self.sp = setInterval(function () {
+        var n = self.state.n + 1;
+        self.setState({ n: n });
+        if (n >= self.words.length) clearInterval(self.sp);
+      }, 95);
+    }, 900);
+  }
+
+  componentWillUnmount() {
+    clearInterval(this.sp);
+    this.tos.forEach(clearTimeout);
+  }
+
+  later(fn, ms) {
+    var id = setTimeout(fn, ms);
+    this.tos.push(id);
+    return id;
+  }
+
+  dark(hex) {
+    var m = /^#([0-9a-f]{6})$/i.exec(String(hex || ''));
+    if (!m) return '#5926B0';
+    var n = parseInt(m[1], 16);
+    var c = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(function (v) {
+      return ('0' + Math.round(v * 0.66).toString(16)).slice(-2);
+    });
+    return '#' + c.join('');
+  }
+
+  grab() {
+    if (this.state.captured) return;
+    var self = this;
+    this.setState({ captured: true, flying: true });
+    this.later(function () { self.setState({ frasa: self.state.frasa + 1, burst: true }); }, 780);
+    this.later(function () { self.setState({ flying: false }); }, 1000);
+    this.later(function () { self.setState({ burst: false }); }, 1900);
+  }
+
+  renderVals() {
+    var self = this;
+    var accent = this.props.accent || '#7B3FE4';
+    var shown = Math.min(this.state.n, this.words.length);
+    var talking = shown > 0 && shown < this.words.length;
+
+    return {
+      accent: accent,
+      accentDark: this.dark(accent),
+
+      said: this.words.slice(0, shown).join(' '),
+      caret: talking ? '#241B33' : 'transparent',
+      doneTalking: shown >= this.words.length,
+      hint: shown >= this.words.length ? 'Tekan & tahan buat jawab' : 'Zii lagi ngomong — bisa dipotong kapan aja',
+
+      why: this.state.why,
+      whyRot: this.state.why ? 180 : 0,
+
+      flying: this.state.flying,
+      frasa: this.state.frasa,
+      countCls: this.state.burst ? 'popCount' : '',
+      sparkCls: this.state.burst ? 'on' : '',
+
+      capLabel: this.state.captured ? 'Masuk koleksi!' : 'Tangkap frasa',
+      capBg: this.state.captured ? '#10B981' : '#FFB524',
+      capSh: this.state.captured ? '#0A8A61' : '#DE8F00',
+      capFill: this.state.captured ? '#FFFFFF' : 'none',
+
+      capture: function () { self.grab(); },
+      toggleWhy: function () { self.setState({ why: !self.state.why }); },
+      cut: function () {
+        clearInterval(self.sp);
+        self.setState({ n: self.words.length });
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

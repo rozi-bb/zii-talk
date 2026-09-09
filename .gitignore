@@ -1,0 +1,16 @@
+node_modules
+dist
+.DS_Store
+*.log
+
+# Rahasia — JANGAN pernah di-commit
+.env
+.env.local
+
+# Hasil generate / state lokal
+.bridge.json
+.langgraph_api
+
+# Canvas desain hasil seed (2,6 MB, isinya kode editor).
+# Sumbernya design/*.dc.html + design/canvas.json — itu yang di-track.
+design/zii-talk-ui.html

@@ -1,0 +1,415 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&amp;family=Nunito:wght@400;600;700;800&amp;display=swap">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; background: #FDF6F0; font-family: Nunito, 'Segoe UI', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: #7B3FE4; text-decoration: none; } a:hover { color: #5926B0; }
+    .dsp { font-family: 'Baloo 2', 'Trebuchet MS', system-ui, sans-serif; }
+    button { font: inherit; color: inherit; border: 0; background: none; padding: 0; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    input { font: inherit; color: inherit; }
+    .scroll { overflow-y: auto; scrollbar-width: none; }
+    .scroll::-webkit-scrollbar { display: none; }
+
+    .b3d { transition: transform .1s cubic-bezier(.34,1.56,.64,1), box-shadow .1s ease; }
+    .b3d:hover { transform: translateY(-2px); }
+    .b3d:active { transform: translateY(4px) !important; box-shadow: 0 1px 0 var(--sh) !important; }
+
+    .mic { transition: transform .12s cubic-bezier(.34,1.56,.64,1), box-shadow .12s ease, background .2s ease; touch-action: none; }
+    .mic:active { transform: translateY(4px) scale(1.05) !important; box-shadow: 0 2px 0 var(--sh) !important; }
+
+    .sheet { transition: transform .42s cubic-bezier(.5,-.2,.3,1.2); }
+    .sheet.gone { transform: translateY(94%); }
+
+    @keyframes blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+    .cr { animation: blink .9s steps(1) infinite; }
+
+    @keyframes throb { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+    .throb { animation: throb 1.3s ease-in-out infinite; }
+
+    @keyframes flipin {
+      0%   { opacity: 0; transform: perspective(700px) rotateX(-38deg) translateY(16px); }
+      60%  { opacity: 1; transform: perspective(700px) rotateX(6deg) translateY(0); }
+      100% { opacity: 1; transform: none; }
+    }
+    .flipin { animation: flipin .55s cubic-bezier(.3,1.3,.5,1) both; }
+
+    @keyframes arc { 0% { transform: scale(.5); opacity: 0; } 30% { opacity: .9; } 100% { transform: scale(1.5); opacity: 0; } }
+    .a1 { animation: arc 1s ease-out infinite; }
+    .a2 { animation: arc 1s ease-out infinite; animation-delay: .22s; }
+    .a3 { animation: arc 1s ease-out infinite; animation-delay: .44s; }
+
+    @keyframes bounceDown { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(4px); } }
+    .arrowDown { animation: bounceDown 1.8s ease-in-out infinite; }
+
+    @keyframes pausePulse { 0%, 100% { box-shadow: 0 3px 0 #D9531C, 0 0 0 0 rgba(255,122,61,.4); } 50% { box-shadow: 0 3px 0 #D9531C, 0 0 0 9px rgba(255,122,61,0); } }
+    .pausing { animation: pausePulse 2s ease-out infinite; }
+  </style>
+</helmet>
+
+<div style="width: 390px; height: 844px; background: #FDF6F0; color: #241B33; display: flex; flex-direction: column; overflow: hidden; position: relative">
+
+  <!-- ── frozen conversation behind ───────────────── -->
+  <div style="flex-shrink: 0; height: 272px; overflow: hidden; position: relative">
+
+    <div style="padding: 44px 16px 0; opacity: .3">
+      <div style="display: flex; align-items: center; gap: 10px">
+        <div style="width: 38px; height: 38px; border-radius: 13px; background: #FFFFFF; box-shadow: 0 2px 0 #EFE1DC"></div>
+        <div style="flex: 1; text-align: center">
+          <div class="dsp" style="font-size: 15.5px; font-weight: 800">Saat Kamu Macet</div>
+        </div>
+        <div style="width: 58px; height: 30px; border-radius: 999px; background: #FFF3D6"></div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 11px; margin-top: 22px; padding: 0 4px">
+        <div style="align-self: flex-start; max-width: 280px; background: #FFFFFF; border-radius: 20px 20px 20px 6px; padding: 11px 14px; box-shadow: 0 3px 0 #EADFE6; font-size: 14.5px; font-weight: 600; line-height: 1.45">So — anything you want to change about tomorrow's plan?</div>
+        <div style="align-self: flex-end; max-width: 250px; background: {{accent}}; color: #FFFFFF; border-radius: 20px 20px 6px 20px; padding: 11px 14px; font-size: 14.5px; font-weight: 600; line-height: 1.45">Yes, I want... uhh.</div>
+      </div>
+    </div>
+
+    <!-- paused band -->
+    <div style="position: absolute; left: 16px; right: 16px; bottom: 14px; display: flex; align-items: center; gap: 10px; background: {{bandBg}}; border-radius: 18px; padding: 11px 13px; box-shadow: 0 3px 0 {{bandSh}}; transition: background .3s ease" class="{{bandCls}}">
+      <div style="width: 30px; height: 30px; border-radius: 10px; background: rgba(255,255,255,.24); display: flex; align-items: center; justify-content: center; color: #FFFFFF; flex-shrink: 0">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round">
+          <path d="{{bandIcon}}"></path>
+        </svg>
+      </div>
+      <div style="flex: 1">
+        <div class="dsp" style="font-size: 14px; font-weight: 800; color: #FFFFFF; letter-spacing: .4px">{{bandTitle}}</div>
+        <div style="font-size: 10.5px; font-weight: 700; color: rgba(255,255,255,.82)">{{bandSub}}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── translate sheet ──────────────────────────── -->
+  <div class="sheet scroll {{sheetCls}}" style="flex: 1; background: #FFFFFF; border-radius: 30px 30px 0 0; box-shadow: 0 -10px 34px rgba(60,30,100,.14); padding: 10px 20px 22px">
+
+    <div style="display: flex; justify-content: center; padding-bottom: 10px">
+      <div style="width: 44px; height: 5px; border-radius: 99px; background: #E7DCEA"></div>
+    </div>
+
+    <div style="display: flex; align-items: flex-start; gap: 10px">
+      <div style="flex: 1">
+        <div class="dsp" style="font-size: 19px; font-weight: 800; line-height: 1.1">Bengkel Kalimat</div>
+        <div style="font-size: 11.5px; font-weight: 600; color: #8B7E9B; margin-top: 3px; line-height: 1.35">Ngomong pakai bahasa Indonesia — aku kasih versi Inggrisnya.</div>
+      </div>
+      <button style="width: 32px; height: 32px; border-radius: 11px; background: #F6F0F8; display: flex; align-items: center; justify-content: center; color: #8B7E9B; flex-shrink: 0">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round">
+          <path d="M6 6l12 12M18 6L6 18"></path>
+        </svg>
+      </button>
+    </div>
+
+    <!-- ID lane -->
+    <div style="display: flex; align-items: center; gap: 7px; margin: 16px 0 8px">
+      <span style="background: #2E9BF0; color: #FFFFFF; font-size: 9.5px; font-weight: 800; letter-spacing: .8px; border-radius: 6px; padding: 3px 6px">ID</span>
+      <span style="font-size: 11.5px; font-weight: 800; color: #1573C4">Bahasa Indonesia</span>
+      <span style="margin-left: auto; font-size: 10px; font-weight: 700; color: #A99CB5">{{idNote}}</span>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 12px; background: #F2F9FF; border: 2px solid #D7EBFC; border-radius: 22px; padding: 13px">
+      <button class="mic {{micThrob}}" onPointerDown="{{listenDown}}" onPointerUp="{{listenUp}}" onPointerLeave="{{listenUp}}" onPointerCancel="{{listenUp}}" style="--sh: {{skyDark}}; width: 58px; height: 58px; border-radius: 50%; background: {{skyBg}}; box-shadow: 0 5px 0 {{skyDark}}; display: flex; align-items: center; justify-content: center; color: #FFFFFF; flex-shrink: 0">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="2.4" width="6" height="11.2" rx="3"></rect>
+          <path d="M5.3 11.3a6.7 6.7 0 0 0 13.4 0M12 18.1v3.5M9 21.6h6"></path>
+        </svg>
+      </button>
+
+      <div style="flex: 1; min-height: 46px; display: flex; align-items: center">
+        <sc-if value="{{listening}}" hint-placeholder-val="{{false}}">
+          <div style="display: flex; align-items: center; gap: 3px; height: 34px">
+            <sc-for list="{{bars}}" as="b" hint-placeholder-count="14">
+              <div style="width: 4px; height: {{b.h}}; border-radius: 2px; background: #2E9BF0; transition: height .08s linear"></div>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{showText}}" hint-placeholder-val="{{true}}">
+          <div style="font-size: 14.5px; font-weight: 600; color: #24405C; line-height: 1.4; text-wrap: pretty">{{idText}}<span class="cr" style="display: inline-block; width: 2px; height: 14px; background: {{idCaret}}; margin-left: 2px; vertical-align: -2px; border-radius: 1px"></span></div>
+        </sc-if>
+
+        <sc-if value="{{typing}}" hint-placeholder-val="{{false}}">
+          <input value="{{idText}}" onChange="{{onId}}" placeholder="Ketik maksudmu di sini..." style="width: 100%; background: #FFFFFF; border: 2px solid #2E9BF0; border-radius: 12px; padding: 9px 11px; font-size: 14px; font-weight: 600; color: #24405C; outline: none">
+        </sc-if>
+      </div>
+    </div>
+
+    <!-- fix-it affordances -->
+    <div style="display: flex; gap: 8px; margin-top: 9px">
+      <button onClick="{{again}}" style="display: flex; align-items: center; gap: 6px; background: #F6F0F8; border-radius: 999px; padding: 7px 12px 7px 9px; color: #6B5F7D">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3.8 8.6A8.6 8.6 0 1 1 3.2 12"></path>
+          <path d="M3.4 4v4.6h4.6"></path>
+        </svg>
+        <span style="font-size: 11.5px; font-weight: 800">Ngomong ulang</span>
+      </button>
+      <button onClick="{{toType}}" style="display: flex; align-items: center; gap: 6px; background: {{typeBg}}; border-radius: 999px; padding: 7px 12px 7px 9px; color: {{typeFg}}">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2.4" y="6.4" width="19.2" height="12.2" rx="2.6"></rect>
+          <path d="M6.4 10h.1M9.6 10h.1M12.8 10h.1M16 10h.1M6.4 13.2h.1M9.6 13.2h.1M12.8 13.2h.1M16 13.2h.1M8.4 16.2h7.2"></path>
+        </svg>
+        <span style="font-size: 11.5px; font-weight: 800">Ketik aja</span>
+      </button>
+    </div>
+
+    <!-- transform arrow -->
+    <div style="display: flex; align-items: center; gap: 10px; margin: 14px 0 12px">
+      <div style="flex: 1; height: 2px; background: #F0E8F2; border-radius: 2px"></div>
+      <div class="arrowDown" style="width: 30px; height: 30px; border-radius: 50%; background: {{accent}}; display: flex; align-items: center; justify-content: center; color: #FFFFFF; box-shadow: 0 3px 0 {{accentDark}}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 5v13M6.5 12.5 12 18l5.5-5.5"></path>
+        </svg>
+      </div>
+      <div style="flex: 1; height: 2px; background: #F0E8F2; border-radius: 2px"></div>
+    </div>
+
+    <!-- EN lane -->
+    <div style="display: flex; align-items: center; gap: 7px; margin-bottom: 8px">
+      <span style="background: {{accent}}; color: #FFFFFF; font-size: 9.5px; font-weight: 800; letter-spacing: .8px; border-radius: 6px; padding: 3px 6px">EN</span>
+      <span style="font-size: 11.5px; font-weight: 800; color: {{accentDark}}">Ini yang kamu ucapkan</span>
+    </div>
+
+    <div class="{{enCls}}" style="background: #FAF6FF; border: 2px solid #E4D6FB; border-radius: 22px; padding: 15px">
+      <div class="dsp" style="font-size: 19.5px; font-weight: 700; line-height: 1.28; display: flex; flex-wrap: wrap; gap: 0 6px">
+        <sc-for list="{{enWords}}" as="w" hint-placeholder-count="8">
+          <span style="border-radius: 6px; padding: 0 2px; background: {{w.bg}}; color: {{w.fg}}; transition: background .12s linear">{{w.t}}</span>
+        </sc-for>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 8px; margin-top: 14px">
+        <div style="position: relative; width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; flex-shrink: 0">
+          <sc-if value="{{sounding}}" hint-placeholder-val="{{false}}">
+            <div class="a1" style="position: absolute; width: 46px; height: 46px; border-radius: 50%; border: 2px solid {{accent}}"></div>
+            <div class="a2" style="position: absolute; width: 46px; height: 46px; border-radius: 50%; border: 2px solid {{accent}}"></div>
+            <div class="a3" style="position: absolute; width: 46px; height: 46px; border-radius: 50%; border: 2px solid {{accent}}"></div>
+          </sc-if>
+          <button class="b3d" onClick="{{play}}" style="--sh: {{accentDark}}; position: relative; width: 46px; height: 46px; border-radius: 50%; background: {{accent}}; box-shadow: 0 4px 0 {{accentDark}}; display: flex; align-items: center; justify-content: center; color: #FFFFFF">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11.4 4.6 6.6 8.6H3.4v6.8h3.2l4.8 4V4.6Z"></path>
+              <path d="M15.4 9a4 4 0 0 1 0 6M18 6.4a7.4 7.4 0 0 1 0 11.2"></path>
+            </svg>
+          </button>
+        </div>
+
+        <button onClick="{{playSlow}}" style="display: flex; align-items: center; gap: 5px; background: #FFFFFF; border: 2px solid #E4D6FB; border-radius: 999px; padding: 7px 12px; color: {{accentDark}}">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="8.6"></circle>
+            <path d="M12 7.6V12l3 1.8"></path>
+          </svg>
+          <span style="font-size: 11.5px; font-weight: 800">Pelanin</span>
+        </button>
+
+        <button onClick="{{toggleAlt}}" style="margin-left: auto; display: flex; align-items: center; gap: 4px; color: #8B7E9B; padding: 6px 2px">
+          <span style="font-size: 11.5px; font-weight: 800">Versi santai</span>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="transform: rotate({{altRot}}deg); transition: transform .2s ease">
+            <path d="M6.5 9.5 12 15l5.5-5.5"></path>
+          </svg>
+        </button>
+      </div>
+
+      <sc-if value="{{altOpen}}" hint-placeholder-val="{{false}}">
+        <div style="margin-top: 12px; padding-top: 12px; border-top: 2px dashed #E4D6FB">
+          <div class="dsp" style="font-size: 16px; font-weight: 700; line-height: 1.3; color: #4A3E5C">Can we move tomorrow's meeting?</div>
+          <div style="font-size: 11px; font-weight: 700; color: #A99CB5; margin-top: 4px">Lebih pendek — enak buat chat sama rekan sendiri.</div>
+        </div>
+      </sc-if>
+    </div>
+
+    <!-- CTA -->
+    <button class="b3d" onClick="{{useIt}}" style="--sh: #0A8A61; display: flex; align-items: center; justify-content: center; gap: 9px; width: 100%; background: #10B981; color: #FFFFFF; border-radius: 20px; padding: 15px; box-shadow: 0 7px 0 #0A8A61; margin-top: 16px">
+      <span class="dsp" style="font-size: 16.5px; font-weight: 800">Pakai &amp; Lanjut Ngobrol</span>
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M5 12h13M12.5 6.5 18 12l-5.5 5.5"></path>
+      </svg>
+    </button>
+
+    <button onClick="{{save}}" style="display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 13px; color: {{saveFg}}">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="{{saveFill}}" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6.4 3.6h11.2v17l-5.6-4.2-5.6 4.2v-17Z"></path>
+      </svg>
+      <span style="font-size: 12.5px; font-weight: 800">{{saveLabel}}</span>
+    </button>
+
+    <div style="height: 6px"></div>
+  </div>
+
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"accent":{"editor":"color","default":"#7B3FE4","options":["#7B3FE4","#0E9F8E","#E8467C","#F27A0C"],"section":"Tema"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.ID = 'gimana ya bilang aku mau minta ganti jadwal meeting besok';
+    this.EN = "Could we move tomorrow's meeting to another time?";
+    this.state = {
+      stage: 'done',
+      idText: this.ID,
+      levels: new Array(14).fill(6),
+      lit: -1,
+      sounding: false,
+      altOpen: false,
+      saved: false,
+      flash: false,
+      enCls: '',
+      typedCaret: false
+    };
+    this.tos = [];
+  }
+
+  componentWillUnmount() {
+    clearInterval(this.iv);
+    clearInterval(this.tp);
+    clearInterval(this.sp);
+    this.tos.forEach(clearTimeout);
+  }
+
+  later(fn, ms) {
+    var id = setTimeout(fn, ms);
+    this.tos.push(id);
+    return id;
+  }
+
+  dark(hex) {
+    var m = /^#([0-9a-f]{6})$/i.exec(String(hex || ''));
+    if (!m) return '#5926B0';
+    var n = parseInt(m[1], 16);
+    var c = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(function (v) {
+      return ('0' + Math.round(v * 0.66).toString(16)).slice(-2);
+    });
+    return '#' + c.join('');
+  }
+
+  beginListen() {
+    var self = this;
+    clearInterval(this.tp);
+    this.setState({ stage: 'listening', idText: '', lit: -1, enCls: '' });
+    clearInterval(this.iv);
+    this.iv = setInterval(function () {
+      var lv = [];
+      for (var i = 0; i < 14; i++) {
+        var mid = 1 - Math.abs(i - 6.5) / 8.5;
+        lv.push(Math.round(5 + Math.random() * 26 * mid));
+      }
+      self.setState({ levels: lv });
+    }, 90);
+  }
+
+  endListen() {
+    if (this.state.stage !== 'listening') return;
+    clearInterval(this.iv);
+    var self = this;
+    var i = 0;
+    this.setState({ stage: 'writing', typedCaret: true });
+    clearInterval(this.tp);
+    this.tp = setInterval(function () {
+      i += 2;
+      self.setState({ idText: self.ID.slice(0, i) });
+      if (i >= self.ID.length) {
+        clearInterval(self.tp);
+        self.setState({ idText: self.ID, typedCaret: false });
+        self.later(function () { self.setState({ stage: 'done', enCls: 'flipin' }); }, 260);
+        self.later(function () { self.setState({ enCls: '' }); }, 1100);
+      }
+    }, 26);
+  }
+
+  playIt(gap) {
+    var self = this;
+    var total = this.EN.split(' ').length;
+    clearInterval(this.sp);
+    this.setState({ sounding: true, lit: 0 });
+    var n = 0;
+    this.sp = setInterval(function () {
+      n++;
+      if (n >= total) {
+        clearInterval(self.sp);
+        self.later(function () { self.setState({ sounding: false, lit: -1 }); }, 320);
+      } else {
+        self.setState({ lit: n });
+      }
+    }, gap);
+  }
+
+  renderVals() {
+    var self = this;
+    var accent = this.props.accent || '#7B3FE4';
+    var accentDark = this.dark(accent);
+    var st = this.state.stage;
+    var flash = this.state.flash;
+
+    var words = this.EN.split(' ').map(function (t, i) {
+      var on = self.state.lit >= 0 && i <= self.state.lit;
+      return { t: t, bg: on ? '#FFE9A8' : 'transparent', fg: '#241B33' };
+    });
+
+    return {
+      accent: accent,
+      accentDark: accentDark,
+
+      bandBg: flash ? '#10B981' : '#FF7A3D',
+      bandSh: flash ? '#0A8A61' : '#D9531C',
+      bandCls: flash ? '' : 'pausing',
+      bandTitle: flash ? 'LANJUT' : 'DIJEDA',
+      bandSub: flash ? 'Obrolan jalan lagi — ayo ucapkan.' : 'Obrolan nggak jalan. Santai aja.',
+      bandIcon: flash ? 'M7 5.5l11 6.5-11 6.5v-13Z' : 'M9 5.5v13M15 5.5v13',
+
+      sheetCls: flash ? 'gone' : '',
+
+      listening: st === 'listening',
+      typing: st === 'typing',
+      showText: st === 'writing' || st === 'done',
+      idText: this.state.idText,
+      idCaret: this.state.typedCaret ? '#1573C4' : 'transparent',
+      idNote: st === 'listening' ? 'ngedengerin...' : (st === 'typing' ? 'mode ketik' : 'hasil suara kamu'),
+
+      skyBg: st === 'listening' ? '#1573C4' : '#2E9BF0',
+      skyDark: st === 'listening' ? '#0F5A99' : '#1573C4',
+      micThrob: st === 'listening' ? 'throb' : '',
+
+      typeBg: st === 'typing' ? '#E8F4FF' : '#F6F0F8',
+      typeFg: st === 'typing' ? '#1573C4' : '#6B5F7D',
+
+      enWords: words,
+      enCls: this.state.enCls,
+      sounding: this.state.sounding,
+      altOpen: this.state.altOpen,
+      altRot: this.state.altOpen ? 180 : 0,
+
+      saveLabel: this.state.saved ? 'Tersimpan di koleksi frasa' : 'Simpan ke koleksi frasa',
+      saveFg: this.state.saved ? '#B87C00' : '#A99CB5',
+      saveFill: this.state.saved ? '#FFB524' : 'none',
+
+      listenDown: function () { self.beginListen(); },
+      listenUp: function () { self.endListen(); },
+      again: function () {
+        self.beginListen();
+        self.later(function () { self.endListen(); }, 1300);
+      },
+      toType: function () {
+        clearInterval(self.iv);
+        clearInterval(self.tp);
+        self.setState({ stage: self.state.stage === 'typing' ? 'done' : 'typing', typedCaret: false });
+      },
+      onId: function (e) { self.setState({ idText: e.target.value }); },
+      play: function () { self.playIt(230); },
+      playSlow: function () { self.playIt(460); },
+      toggleAlt: function () { self.setState({ altOpen: !self.state.altOpen }); },
+      save: function () { self.setState({ saved: !self.state.saved }); },
+      useIt: function () {
+        self.setState({ flash: true });
+        self.later(function () { self.setState({ flash: false }); }, 1900);
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

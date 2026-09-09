@@ -1,0 +1,59 @@
+{
+  "pages": [
+    { "id": "page-1", "name": "Mobile" },
+    { "id": "page-2", "name": "Desktop" }
+  ],
+  "artboards": [
+    { "file": "Home.dc.html",     "x": 0,    "y": 0, "w": 390, "h": 844, "page": "page-1", "title": "1 · Home — Pilih Topik",              "is_interactive": true },
+    { "file": "Main.dc.html",     "x": 470,  "y": 0, "w": 390, "h": 844, "page": "page-1", "title": "2 · Ngobrol — Siap (coba mic-nya)",   "is_interactive": true },
+    { "file": "Ngomong.dc.html",  "x": 940,  "y": 0, "w": 390, "h": 844, "page": "page-1", "title": "3 · Ngobrol — Kamu Ngomong",          "is_interactive": true },
+    { "file": "Terjemah.dc.html", "x": 1410, "y": 0, "w": 390, "h": 844, "page": "page-1", "title": "4 · DIJEDA + Bengkel Kalimat",         "is_interactive": true },
+    { "file": "Koreksi.dc.html",  "x": 1880, "y": 0, "w": 390, "h": 844, "page": "page-1", "title": "5 · Zii Jawab + Koreksi Halus",       "is_interactive": true },
+
+    { "file": "Desktop.dc.html",         "x": 0,    "y": 0, "w": 1440, "h": 900, "page": "page-2", "title": "6 · Desktop — Ngobrol (tahan SPASI)", "is_interactive": true },
+    { "file": "DesktopTerjemah.dc.html", "x": 1560, "y": 0, "w": 1440, "h": 900, "page": "page-2", "title": "7 · Desktop — DIJEDA + Panel Samping", "is_interactive": true }
+  ],
+  "annotations": [
+    {
+      "id": "brief",
+      "x": 0,
+      "y": -300,
+      "w": 860,
+      "page": "page-1",
+      "text": "ZII TALK — layout HP\n\nLatihan ngobrol Inggris pakai suara. Semua artboard di sini HIDUP — bisa dipencet.\n\nCoba ini dulu:\n• Artboard 2 → tekan & TAHAN mic ungu, ngomong, lepas. Zii bakal jawab streaming.\n• Artboard 4 → tahan mic biru (ID), lepas. Terus pencet tombol speaker & \"Pakai & Lanjut\".\n• Artboard 5 → pencet \"Tangkap frasa\" dan \"Kenapa?\".\n\nGanti warna tema lewat chip tweak di atas tiap artboard.\nLayout desktop ada di page \"Desktop\" (menu pages di toolbar)."
+    },
+    {
+      "id": "note-nagih",
+      "x": 0,
+      "y": 900,
+      "w": 390,
+      "page": "page-1",
+      "text": "MESIN NAGIH (interest-based, bukan guilt)\n\n1. Api momentum mengecil pelan, nggak mati dalam sehari — nggak ada layar \"streak kamu hilang\".\n2. Counter FRASA di kanan atas: itu koleksi yang tumbuh, bukan nilai. Appeal ke rasa penasaran.\n3. Semua topik kebuka dari awal, nggak dikunci berurutan — kamu bebas nurutin minat hari itu.\n4. \"Pilihan Hari Ini\" ada biar kamu nggak lumpuh milih."
+    },
+    {
+      "id": "note-duamic",
+      "x": 1410,
+      "y": 900,
+      "w": 390,
+      "page": "page-1",
+      "text": "DUA MIC NGGAK BOLEH KETUKER\n\nMic utama (ungu) = ngomong Inggris ke Zii.\nMic bengkel (biru + label ID) = ngomong Indonesia ke penerjemah.\n\nBeda warna, beda tempat, dan saat dijeda mic utama mati total. Pita DIJEDA oranye bikin jelas obrolan nggak jalan.\n\n\"Ketik aja\" cuma jaring penyelamat kalau speech-to-text salah dengar — bukan cara utama."
+    },
+    {
+      "id": "note-koreksi",
+      "x": 1880,
+      "y": 900,
+      "w": 390,
+      "page": "page-1",
+      "text": "KOREKSI YANG NGGAK BIKIN TAKUT\n\nNggak ada warna merah, nggak ada \"SALAH\". Kuning + \"Hampir bener!\", versi benernya hijau dan lebih gede.\n\n\"Kenapa?\" itu opsional — penjelasan cuma muncul kalau kamu penasaran.\n\nKoreksi bisa langsung di-\"Tangkap\" jadi kartu koleksi. Jadi salah = dapat sesuatu, bukan kehilangan sesuatu."
+    },
+    {
+      "id": "note-desktop",
+      "x": 0,
+      "y": 960,
+      "w": 1440,
+      "page": "page-2",
+      "text": "DESKTOP — 1440×900. Bukan layout HP yang dilebarin, tapi memanfaatkan yang cuma bisa ada di layar besar.\n\nCOBA: klik dulu di dalam artboard 6, terus TAHAN SPASI, ngomong, lepas. Mic-nya juga tetap bisa diklik-tahan.\n\nTiga hal yang beda dari HP:\n1. TAHAN SPASI jadi cara utama push-to-talk. Nahan tombol pakai mouse selama 10 detik itu nyiksa — spasi enggak. (Artboard 7: pas dijeda, spasi dimatiin & ikon mic-nya disilang, biar nggak salah pencet.)\n2. Panel kanan punya DUA nyawa: default = Koleksi Frasa (mesin penasaran kamu, keliatan terus tanpa perlu dibuka), pas dijeda = Bengkel Kalimat.\n3. Bengkel jadi panel SAMPING, bukan sheet yang nutupin. Jadi kamu tetep lihat transkrip & kalimat yang bikin kamu mentok sambil nerjemahin — ini justru lebih enak daripada di HP.\n\nRail kiri nampung topik + momentum, jadi header tengah bisa lega buat obrolan."
+    }
+  ],
+  "launch": { "view": "canvas", "page": "page-2" }
+}

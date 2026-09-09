@@ -1,0 +1,239 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&amp;family=Nunito:wght@400;600;700;800&amp;display=swap">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; background: #FDF6F0; font-family: Nunito, 'Segoe UI', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: #7B3FE4; text-decoration: none; } a:hover { color: #5926B0; }
+    .dsp { font-family: 'Baloo 2', 'Trebuchet MS', system-ui, sans-serif; }
+    button { font: inherit; color: inherit; border: 0; background: none; padding: 0; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    .scroll { overflow-y: auto; scrollbar-width: none; }
+    .scroll::-webkit-scrollbar { display: none; }
+
+    @keyframes breathe {
+      0%, 100% { border-radius: 49% 51% 54% 46% / 53% 47% 53% 47%; transform: scale(1); }
+      50%      { border-radius: 56% 44% 47% 53% / 45% 55% 45% 55%; transform: scale(1.03); }
+    }
+    .orb { animation: breathe 9s ease-in-out infinite; }
+
+    @keyframes blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+    .cr { animation: blink .9s steps(1) infinite; }
+
+    @keyframes halo { 0% { transform: scale(1); opacity: .5; } 100% { transform: scale(1.62); opacity: 0; } }
+    .h1 { animation: halo 1.35s ease-out infinite; }
+    .h2 { animation: halo 1.35s ease-out infinite; animation-delay: .45s; }
+    .h3 { animation: halo 1.35s ease-out infinite; animation-delay: .9s; }
+
+    @keyframes float { 0%, 100% { transform: translateY(0); opacity: .55; } 50% { transform: translateY(-6px); opacity: 1; } }
+    .float { animation: float 1.7s ease-in-out infinite; }
+
+    @keyframes throb { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.04); } }
+    .throb { animation: throb 1.35s ease-in-out infinite; }
+
+    @keyframes dashmove { to { background-position: 26px 0, 0 26px, 0 0, 0 0; } }
+    .live { animation: dashmove 1.1s linear infinite; }
+  </style>
+</helmet>
+
+<div style="width: 390px; height: 844px; background: #FDF6F0; color: #241B33; display: flex; flex-direction: column; overflow: hidden">
+
+  <!-- ── header ───────────────────────────────────── -->
+  <div style="flex-shrink: 0; padding: 44px 16px 0">
+    <div style="display: flex; align-items: center; gap: 10px">
+      <button style="width: 38px; height: 38px; border-radius: 13px; background: #FFFFFF; box-shadow: 0 2px 0 #EFE1DC; display: flex; align-items: center; justify-content: center; color: #4A3E5C">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14.5 5 8 12l6.5 7"></path>
+        </svg>
+      </button>
+      <div style="flex: 1; text-align: center">
+        <div class="dsp" style="font-size: 15.5px; font-weight: 800; line-height: 1.1">Saat Kamu Macet</div>
+        <div style="display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 2px">
+          <div style="width: 7px; height: 7px; border-radius: 50%; background: #FF7A3D" class="throb"></div>
+          <span style="font-size: 10.5px; font-weight: 800; color: #D9531C">kamu ngomong...</span>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 5px; background: #FFF3D6; border-radius: 999px; padding: 6px 11px 6px 8px; box-shadow: 0 2px 0 #F2DFA9">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+          <rect x="4" y="6" width="12" height="14" rx="2.4" fill="#FFD98A"></rect>
+          <rect x="8" y="4" width="12" height="14" rx="2.4" fill="#FFB524"></rect>
+        </svg>
+        <span class="dsp" style="font-size: 13px; font-weight: 800; color: #8A5B00">129</span>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 5px; margin: 13px 4px 0">
+      <div style="flex: 1; height: 7px; border-radius: 99px; background: #10B981"></div>
+      <div style="flex: 1; height: 7px; border-radius: 99px; background: #10B981"></div>
+      <div style="flex: 1; height: 7px; border-radius: 99px; background: #10B981"></div>
+      <div style="flex: 1; height: 7px; border-radius: 99px; background: #EFE4EA"></div>
+      <div style="flex: 1; height: 7px; border-radius: 99px; background: #EFE4EA"></div>
+      <div style="flex: 1; height: 7px; border-radius: 99px; background: #EFE4EA"></div>
+    </div>
+  </div>
+
+  <!-- ── AI presence: hushed while you speak ──────── -->
+  <div style="flex-shrink: 0; height: 100px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px">
+    <div class="orb" style="width: 46px; height: 46px; opacity: .42; background: radial-gradient(circle at 32% 26%, #CBB2FF, {{accent}} 58%, {{accentDark}} 100%)"></div>
+    <div style="font-size: 10px; font-weight: 800; color: #BCAEC6; letter-spacing: .4px">ZII NDENGERIN</div>
+  </div>
+
+  <!-- ── transcript ───────────────────────────────── -->
+  <div class="scroll" style="flex: 1; padding: 0 18px 12px">
+
+    <div style="display: flex; justify-content: flex-start; margin-bottom: 13px; opacity: .5">
+      <div style="max-width: 290px; background: #FFFFFF; border-radius: 22px 22px 22px 7px; padding: 12px 15px; box-shadow: 0 3px 0 #EADFE6; font-size: 15px; font-weight: 600; line-height: 1.45">And if the word runs away from you, just say "how do you say..." — I got you.</div>
+    </div>
+
+    <!-- live transcription of what you are saying right now -->
+    <div style="display: flex; justify-content: flex-end">
+      <div style="max-width: 300px">
+        <div style="display: flex; align-items: center; justify-content: flex-end; gap: 6px; margin-bottom: 6px">
+          <span style="font-size: 10px; font-weight: 800; color: #D9531C; letter-spacing: .6px">SEDANG DITULIS</span>
+          <div style="width: 6px; height: 6px; border-radius: 50%; background: #FF7A3D" class="throb"></div>
+        </div>
+        <div class="live" style="border-radius: 22px 22px 7px 22px; padding: 13px 16px; font-size: 15.5px; font-weight: 600; line-height: 1.45; color: #4A3E5C; background-color: #FFF1E8; background-image: repeating-linear-gradient(90deg, #FFB08A 0 13px, transparent 13px 26px), repeating-linear-gradient(180deg, #FFB08A 0 13px, transparent 13px 26px), repeating-linear-gradient(90deg, #FFB08A 0 13px, transparent 13px 26px), repeating-linear-gradient(180deg, #FFB08A 0 13px, transparent 13px 26px); background-size: 26px 2px, 2px 26px, 26px 2px, 2px 26px; background-position: 0 0, 100% 0, 0 100%, 0 0; background-repeat: repeat-x, repeat-y, repeat-x, repeat-y; text-wrap: pretty">{{said}}<span class="cr" style="display: inline-block; width: 2px; height: 16px; background: #D9531C; margin-left: 2px; vertical-align: -3px; border-radius: 1px"></span></div>
+      </div>
+    </div>
+
+    <div style="height: 10px"></div>
+  </div>
+
+  <!-- ── dock in recording state ──────────────────── -->
+  <div style="flex-shrink: 0; padding: 10px 20px 24px; background: #FDF6F0; border-top: 1px solid #F3E7E2">
+
+    <!-- slide-up-to-cancel affordance -->
+    <div class="float" style="display: flex; align-items: center; justify-content: center; gap: 5px; height: 22px; color: #B3A5BE">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 14l6-6 6 6"></path>
+      </svg>
+      <span style="font-size: 11px; font-weight: 800">geser ke atas buat batal</span>
+    </div>
+
+    <!-- live waveform + timer -->
+    <div style="display: flex; align-items: center; justify-content: center; gap: 13px; height: 40px">
+      <div style="display: flex; align-items: center; gap: 3px; height: 38px">
+        <sc-for list="{{bars}}" as="b" hint-placeholder-count="19">
+          <div style="width: 5px; height: {{b.h}}; border-radius: 3px; background: {{b.c}}; transition: height .08s linear"></div>
+        </sc-for>
+      </div>
+      <span class="dsp" style="font-size: 17px; font-weight: 800; color: #D9531C; min-width: 38px">{{clock}}</span>
+    </div>
+
+    <div style="display: flex; align-items: flex-start; justify-content: center; gap: 18px; margin-top: 4px">
+
+      <div style="width: 62px; display: flex; flex-direction: column; align-items: center; gap: 7px; padding-top: 19px; opacity: .34">
+        <div style="width: 58px; height: 58px; border-radius: 50%; background: #D8CFE0; box-shadow: 0 5px 0 #C4B8CE; display: flex; align-items: center; justify-content: center; color: #FFFFFF">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M7.4 5.6v12.8M12 5.6v12.8"></path>
+            <path d="M16.4 8.2h4.2M18.5 6.4v1.8" stroke-width="2"></path>
+            <path d="M15.4 18.4l2.9-7.2 2.9 7.2M16.6 15.9h3.4" stroke-width="2"></path>
+          </svg>
+        </div>
+        <span style="font-size: 10px; font-weight: 800; color: #A99CB5; text-align: center; line-height: 1.2">Jeda &amp;<br>Terjemah</span>
+      </div>
+
+      <div style="position: relative; width: 108px; height: 108px; display: flex; align-items: center; justify-content: center">
+        <div class="h1" style="position: absolute; width: 104px; height: 104px; border-radius: 50%; background: #FF7A3D; opacity: .3"></div>
+        <div class="h2" style="position: absolute; width: 104px; height: 104px; border-radius: 50%; background: #FF7A3D; opacity: .3"></div>
+        <div class="h3" style="position: absolute; width: 104px; height: 104px; border-radius: 50%; background: #FF7A3D; opacity: .3"></div>
+        <div class="throb" style="position: relative; width: 104px; height: 104px; border-radius: 50%; background: #FF7A3D; box-shadow: 0 4px 0 #D9531C, 0 0 0 5px rgba(255,122,61,.2); display: flex; align-items: center; justify-content: center; color: #FFFFFF">
+          <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="2.4" width="6" height="11.2" rx="3"></rect>
+            <path d="M5.3 11.3a6.7 6.7 0 0 0 13.4 0M12 18.1v3.5M9 21.6h6"></path>
+          </svg>
+        </div>
+      </div>
+
+      <div style="width: 62px; display: flex; flex-direction: column; align-items: center; gap: 7px; padding-top: 19px; opacity: .34">
+        <div style="width: 58px; height: 58px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 5px 0 #E3D6DE; display: flex; align-items: center; justify-content: center; color: #A99CB5">
+          <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3.8 8.6A8.6 8.6 0 1 1 3.2 12"></path>
+            <path d="M3.4 4v4.6h4.6"></path>
+          </svg>
+        </div>
+        <span style="font-size: 10px; font-weight: 800; color: #A99CB5; text-align: center; line-height: 1.2">Ulang<br>Kalimat</span>
+      </div>
+    </div>
+
+    <div style="text-align: center; margin-top: 9px">
+      <span class="dsp" style="font-size: 13.5px; font-weight: 800; color: #D9531C">Lepas buat kirim</span>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"accent":{"editor":"color","default":"#7B3FE4","options":["#7B3FE4","#0E9F8E","#E8467C","#F27A0C"],"section":"Tema"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.words = 'We just, uh... how do you say nongkrong in English?'.split(' ');
+    this.state = {
+      levels: new Array(19).fill(7),
+      ms: 0,
+      n: 3
+    };
+  }
+
+  componentDidMount() {
+    var self = this;
+    this.iv = setInterval(function () {
+      var lv = [];
+      for (var i = 0; i < 19; i++) {
+        var mid = 1 - Math.abs(i - 9) / 11;
+        lv.push(Math.round(6 + Math.random() * 30 * mid));
+      }
+      self.setState({ levels: lv, ms: self.state.ms + 90 });
+    }, 90);
+
+    this.wv = setInterval(function () {
+      var n = self.state.n + 1;
+      if (n > self.words.length + 4) {
+        self.setState({ n: 2, ms: 0 });
+      } else {
+        self.setState({ n: n });
+      }
+    }, 340);
+  }
+
+  componentWillUnmount() {
+    clearInterval(this.iv);
+    clearInterval(this.wv);
+  }
+
+  dark(hex) {
+    var m = /^#([0-9a-f]{6})$/i.exec(String(hex || ''));
+    if (!m) return '#5926B0';
+    var n = parseInt(m[1], 16);
+    var c = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(function (v) {
+      return ('0' + Math.round(v * 0.66).toString(16)).slice(-2);
+    });
+    return '#' + c.join('');
+  }
+
+  renderVals() {
+    var accent = this.props.accent || '#7B3FE4';
+    var secs = Math.floor(this.state.ms / 1000);
+    var shown = Math.min(this.state.n, this.words.length);
+
+    return {
+      accent: accent,
+      accentDark: this.dark(accent),
+      said: this.words.slice(0, shown).join(' '),
+      clock: '0:' + (secs < 10 ? '0' : '') + secs,
+      bars: this.state.levels.map(function (h, i) {
+        return { h: h + 'px', c: h > 20 ? '#FF7A3D' : '#FFB08A' };
+      })
+    };
+  }
+}
+</script>
+</body>
+</html>
