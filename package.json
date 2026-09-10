@@ -9,6 +9,7 @@
     "start": "tsx server/index.ts",
     "serve": "npm run build && tsx server/index.ts",
     "studio": "langgraphjs dev",
+    "studio:tailnet": "BRIDGE_TARGET=2024 node scripts/bridge.mjs on && langgraphjs dev --host 0.0.0.0 --port 2024 --no-browser",
     "bridge": "node scripts/bridge.mjs on",
     "bridge:off": "node scripts/bridge.mjs off",
     "bridge:status": "node scripts/bridge.mjs status",
