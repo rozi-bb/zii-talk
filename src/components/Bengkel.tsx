@@ -104,6 +104,32 @@ export function Bengkel({
     await go(text);
   }
 
+  /* SPASI = tahan buat ngomong, sama kayak di layar obrolan utama —
+     biar konsistensinya kejaga, nggak beda kelakuan pas kabur ke sini. */
+  useEffect(() => {
+    const isField = (t: EventTarget | null) => {
+      const el = t as HTMLElement | null;
+      return !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
+    };
+    const down = (e: KeyboardEvent) => {
+      if (e.code !== 'Space' || isField(e.target) || stage === 'typing') return;
+      e.preventDefault();
+      if (e.repeat) return;
+      void startListen();
+    };
+    const up = (e: KeyboardEvent) => {
+      if (e.code !== 'Space' || isField(e.target) || stage === 'typing') return;
+      e.preventDefault();
+      void stopListen();
+    };
+    window.addEventListener('keydown', down);
+    window.addEventListener('keyup', up);
+    return () => {
+      window.removeEventListener('keydown', down);
+      window.removeEventListener('keyup', up);
+    };
+  }, [speechReady, stage, busy]);
+
   async function play(rate: number) {
     if (!res || !speechReady) return;
     setSounding(true);
@@ -177,7 +203,11 @@ export function Bengkel({
             />
           ) : (
             <div className="said">
-              {said || <span style={{ color: 'var(--muted)' }}>Tahan mic biru, ngomong bebas.</span>}
+              {said || (
+                <span style={{ color: 'var(--muted)' }}>
+                  Tahan mic biru atau <span className="kbd">SPASI</span>, ngomong bebas.
+                </span>
+              )}
             </div>
           )}
         </div>
