@@ -221,20 +221,58 @@ export function Session({
     await send(text.trim());
   }, [partial, send]);
 
-  /* spasi = push to talk (desktop) */
+  /* Batalin rekaman dan BUANG teksnya. Beda sama stopRec yang ngirim ke
+     Zii — ini buat waktu kita kabur ke Bengkel di tengah kalimat: kalimat
+     separuh ("I want to... ummm") nggak boleh nyampe ke Zii. */
+  const cancelRec = useCallback(async () => {
+    if (phaseRef.current !== 'rec') return;
+    if (tick.current) clearInterval(tick.current);
+    setLevels(flat());
+    const l = listener.current;
+    listener.current = null;
+    setPartial('');
+    /* ditulis langsung juga, bukan cuma setPhase: handler keyup bisa
+       nembak duluan sebelum React sempat render ulang. */
+    phaseRef.current = 'idle';
+    setPhase('idle');
+    await l?.stop(); // hasilnya sengaja dibuang
+  }, []);
+
+  const openBengkel = useCallback(() => {
+    voiceRef.current?.kill();
+    void cancelRec(); // lagi ngerekam? batalin, jangan dikirim
+    if (phaseRef.current === 'talking') setPhase('idle');
+    setSavedBK(false);
+    setPaused(true);
+  }, [cancelRec]);
+
+  /* spasi = push to talk (desktop), M = kabur ke Bengkel */
   useEffect(() => {
     const isField = (t: EventTarget | null) => {
       const el = t as HTMLElement | null;
       return !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
     };
     const down = (e: KeyboardEvent) => {
-      if (e.code !== 'Space' || isField(e.target) || paused) return;
+      if (isField(e.target) || paused) return;
+
+      /* M sengaja dipilih karena sebaris sama spasi: lagi nahan spasi terus
+         blank, jempol tinggal geser — nggak usah raih mouse. */
+      if (e.code === 'KeyM') {
+        e.preventDefault();
+        if (e.repeat) return;
+        openBengkel();
+        return;
+      }
+
+      if (e.code !== 'Space') return;
       e.preventDefault();
       if (e.repeat) return;
       void startRec();
     };
     const up = (e: KeyboardEvent) => {
-      if (e.code !== 'Space' || isField(e.target)) return;
+      /* `paused` wajib dicek: kalau spasi masih ketahan waktu Bengkel kebuka,
+         tanpa ini lepas spasi bakal ngirim kalimat separuh ke Zii. */
+      if (e.code !== 'Space' || isField(e.target) || paused) return;
       e.preventDefault();
       void stopRec();
     };
@@ -249,7 +287,7 @@ export function Session({
       window.removeEventListener('keyup', up);
       window.removeEventListener('keydown', esc);
     };
-  }, [startRec, stopRec, paused]);
+  }, [startRec, stopRec, openBengkel, paused]);
 
   /* ── tangkap frasa: animasi terbang ke counter ───────── */
   function grab(i: number, p: Phrase, e: React.MouseEvent) {
@@ -277,13 +315,6 @@ export function Session({
       window.setTimeout(() => setBump(false), 600);
     }
   }
-
-  const openBengkel = () => {
-    voiceRef.current?.kill();
-    if (phaseRef.current === 'talking') setPhase('idle');
-    setSavedBK(false);
-    setPaused(true);
-  };
 
   const status =
     phase === 'rec'
@@ -465,7 +496,8 @@ export function Session({
               ) : phase === 'idle' ? (
                 speechReady ? (
                   <span className="txt">
-                    Tahan <span className="kbd live">SPASI</span> atau klik &amp; tahan mic
+                    Tahan <span className="kbd live">SPASI</span> atau mic &middot;{' '}
+                    <span className="kbd">M</span> kalau blank
                   </span>
                 ) : (
                   <span className="txt">Azure Speech belum aktif — isi AZURE_SPEECH_KEY di .env</span>
