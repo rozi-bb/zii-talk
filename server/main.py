@@ -76,3 +76,19 @@ async def on_startup() -> None:
     except (FileNotFoundError, json.JSONDecodeError):
         pass  # bridge belum nyala
     print("")
+
+
+if __name__ == "__main__":
+    # Jalan lewat `python -m server.main` (dipakai npm run dev/start) biar HOST & PORT
+    # dari .env beneran kepakai. `uvicorn server.main:app` langsung nggak baca .env
+    # buat host/port — dulu HOST=0.0.0.0 cuma ngubah banner, servernya tetap 127.0.0.1.
+    import sys
+
+    import uvicorn
+
+    uvicorn.run(
+        "server.main:app",
+        host=os.environ.get("HOST", "127.0.0.1"),
+        port=int(os.environ.get("PORT", "8787")),
+        reload="--reload" in sys.argv,
+    )

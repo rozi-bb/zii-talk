@@ -29,16 +29,18 @@ npm run serve           # buka http://localhost:8787
 |---|---|---|
 | `DEEPSEEK_API_KEY` | model **DeepSeek V4 Flash** | salah satu |
 | `OPENAI_API_KEY` | model **GPT-5.6 Luna** | salah satu |
-| `AZURE_SPEECH_KEY` | dengerin + ngomong | ya, buat mode suara |
+| `AZURE_SPEECH_KEY` | dengerin + ngomong | **ya** — tanpa ini nggak bisa ngobrol |
 | `AZURE_SPEECH_REGION` | region Azure, mis. `southeastasia` | ya |
 | `AZURE_TTS_VOICE` | suara Zii, default `en-US-AriaNeural` | opsional |
 | `LANGSMITH_API_KEY` | trace + Studio | buat observability |
 | `LANGSMITH_TRACING` | `true` buat nyalain trace | opsional |
 | `LANGSMITH_PROJECT` | nama project trace | opsional |
 
-Nggak perlu isi semua sekaligus. Yang belum keisi bakal ketahuan di layar Home,
-lengkap sama nama variabel yang kurang. Kalau Azure belum diisi, app tetap jalan
-dalam **mode ketik**.
+Yang belum keisi bakal ketahuan di layar Home ("LLM & Azure Speech belum
+kebaca"). Minimal satu key LLM **plus** Azure Speech: obrolan utama sengaja
+**nggak punya kotak ketik** — biar tetap latihan ngomong, bukan ngetik — jadi
+tanpa Azure mic-nya mati dan obrolannya nggak bisa jalan. Bengkel Kalimat masih
+bisa dipakai lewat ketik.
 
 ## Kenapa ada server sendiri
 
@@ -52,15 +54,20 @@ otomatis ada di `/docs` — 4 grup: Config, Speech, Chat, Bengkel Kalimat.
 ## Model LLM
 
 Dropdown-nya cuma nampung dua, dan ini hasil **pengukuran nyata**, bukan tebakan
-dari tabel harga:
+dari tabel harga (backend Python, 6 giliran per model, 11 Sep 2026 — angkanya
+naik-turun ikut kondisi jaringan & provider):
 
-| Model | Token pertama (stream) | Hasil | Catatan |
-|---|---|---|---|
-| `gpt-5.6-luna` **(default)** | 1,0–1,3 s | natural | paling stabil |
-| `deepseek-v4-flash` | 1,1–1,8 s | bener, agak kaku | paling murah |
+| Model | Token pertama | Koreksi nyampe | Hasil | Catatan |
+|---|---|---|---|---|
+| `gpt-5.6-luna` **(default)** | 1,5–3,0 s | 1,7–3,3 s | natural | koreksinya konsisten |
+| `deepseek-v4-flash` | 0,9–2,1 s | biasanya ~1,5 s, **kadang 9–11 s** | bener, agak kaku | paling murah |
 
-Di **ngobrol** dua-duanya setara sekarang. Bedanya kelihatan di **Bengkel
-Kalimat** (yang masih JSON, jadi nggak bisa di-stream): di situ DeepSeek
+DeepSeek sering nyaut **lebih cepat**, tapi kartu koreksinya sesekali telat
+banget: node `review` kena beban mikir model penalaran. Balasan Zii-nya sendiri
+nggak ketahan (dia di node lain, jalan paralel), cuma kartu kuningnya yang
+nyusul belakangan. GPT lebih lambat mulai, tapi stabil.
+
+Di **Bengkel Kalimat** (masih JSON, jadi nggak bisa di-stream) DeepSeek juga
 kena beban mikir dan hasil Inggrisnya lebih kaku.
 
 **Jangan ketipu kata "Flash".** DeepSeek V4 Flash itu model **penalaran** — dia
@@ -81,12 +88,26 @@ DeepSeek — jangan dipakai lagi.
 
 ## Cara pakainya
 
-- **Tahan mic** — atau **tahan SPASI** di laptop — buat ngomong. Lepas = kirim.
-- **Jeda & Terjemah** buka *Bengkel Kalimat*: ngomong Indonesia, dapet dua
-  versi Inggris (sopan + santai), bisa didengerin, bisa dipelanin. Kalau
-  speech-to-text-nya salah dengar, benerin lewat **Ketik aja**.
-- Koreksi muncul kuning, nggak merah, dan bisa di-**Tangkap** jadi kartu koleksi.
-- **Esc** nutup bengkel.
+Semuanya bisa lewat keyboard, dan **SPASI** artinya selalu "ngomong" — cuma
+berubah sesuai kondisi:
+
+| Kondisi | Tombol | Yang terjadi |
+|---|---|---|
+| Siap | tahan **SPASI** / mic | ngomong; lepas = kirim |
+| Lagi ngomong, tiba-tiba blank | **M** | kalimat yang udah diucapin **ditahan** (nggak dibuang, nggak dikirim), Bengkel kebuka |
+| Zii lagi mikir | ketuk **SPASI** | **betulin** — kalau speech-to-text salah dengar, giliranmu ditarik balik ke kotak edit sebelum Zii sempat nyaut |
+| Kotak betulin | **Enter** / **Esc** | kirim / jadiin draft biar bisa lanjut ngomong |
+| Zii lagi ngomong | tahan **SPASI** / mic | **nyela** — suara Zii dimatiin, kamu langsung ngomong. Teks balasannya tetap di layar & riwayat |
+| Di Bengkel | tahan **SPASI** / **Esc** | ngomong bahasa Indonesia / tutup Bengkel |
+
+- **Jeda & Terjemah** (atau **M**) buka *Bengkel Kalimat*: ngomong Indonesia,
+  dapet dua versi Inggris (sopan + santai), bisa didengerin, bisa dipelanin.
+  Kalau speech-to-text-nya salah dengar, benerin lewat **Ketik aja**.
+- Kalimat yang ditahan pakai **M** nongol sebagai bubble putus-putus. Balik dari
+  Bengkel, tahan SPASI lagi buat nyambung — Zii nerima satu giliran utuh.
+- **Zii nggak ngoreksi di obrolan.** Koreksi cuma muncul di kartu kuning, dan
+  bisa di-**Tangkap** jadi kartu koleksi. Kalau kamu mentok/lari ke bahasa
+  Indonesia, Zii tetap nyodorin frasa yang kamu cari — itu nolong, bukan ngoreksi.
 
 ## Otak AI-nya: LangGraph
 
@@ -113,8 +134,9 @@ Hasilnya, dua-duanya keluar lewat **satu stream** ke browser:
 {"done": true}
 ```
 
-Angka nyatanya: token pertama **1,5 s**, koreksi nyampe **2,3 s**
-(sebelum pakai graph: koreksi baru dateng 4,3 s karena nunggu).
+Efeknya: koreksi nyampe hampir barengan sama token pertama (lihat tabel di
+atas), bukan setelah balasan Zii kelar. Waktu dua langkah ini masih berurutan,
+koreksi baru dateng ~4,3 s.
 
 ### Kenapa LangGraph, bukan LangChain saja
 
@@ -152,6 +174,19 @@ Studio-nya buka di:
 Di situ kelihatan dua graph (`conversation`, `workshop`), bisa dijalanin
 manual, dan tiap node bisa diinspeksi input/output-nya.
 
+**Buka Studio dari device lain** (misal server-nya di Ubuntu, browser-nya di
+Mac)? `http://100.x.x.x:2024` **nggak akan nyambung** — Studio itu halaman
+HTTPS, dan Chrome (Private Network Access) nolak halaman HTTPS manggil server
+HTTP di alamat jaringan privat. Pakai bridge-nya:
+
+```bash
+npm run studio:tailnet   # Agent Server + bridge HTTPS Tailscale
+```
+
+Terus buka `https://smith.langchain.com/studio?baseUrl=https://<nama-mesin>.<tailnet>.ts.net:<port>`
+(URL persisnya dicetak waktu start). Pertama kali nyambung, Studio bakal minta
+domain `*.ts.net`-nya ditambahin ke **Allowed Origins** — itu normal.
+
 Trace ke LangSmith **nggak butuh** Agent Server — cukup env var:
 
 ```bash
@@ -164,10 +199,9 @@ Jadi obrolan dari app produksi (`npm run tailnet`) ikut ke-trace juga.
 Server nampilin statusnya waktu start, dan `/api/config` ngasih
 `tracing: {on, project}`.
 
-<Warning>
-Dengan tracing ON, isi obrolan (kalimat Inggris kamu, terjemahan, koreksi)
-dikirim ke server LangSmith. Set `LANGSMITH_TRACING=false` kalau nggak mau.
-</Warning>
+> [!WARNING]
+> Dengan tracing ON, isi obrolan (kalimat Inggris kamu, terjemahan, koreksi)
+> dikirim ke server LangSmith. Set `LANGSMITH_TRACING=false` kalau nggak mau.
 
 Kalau akun LangSmith kamu bukan region US, wajib set `LANGSMITH_ENDPOINT` —
 tanpa itu key-nya nggak dikenali.

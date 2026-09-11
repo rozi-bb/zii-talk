@@ -4,9 +4,9 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently -n api,web -c magenta,cyan \"PYTHONUNBUFFERED=1 uv run uvicorn server.main:app --reload --port 8787\" \"vite\"",
+    "dev": "concurrently -n api,web -c magenta,cyan \"PYTHONUNBUFFERED=1 uv run python -m server.main --reload\" \"vite\"",
     "build": "tsc --noEmit && vite build",
-    "start": "PYTHONUNBUFFERED=1 uv run uvicorn server.main:app --port 8787",
+    "start": "PYTHONUNBUFFERED=1 uv run python -m server.main",
     "serve": "npm run build && npm run start",
     "studio": "uv run --group dev langgraph dev",
     "studio:tailnet": "BRIDGE_TARGET=2024 node scripts/bridge.mjs on && uv run --group dev langgraph dev --host 0.0.0.0 --port 2024 --no-browser",
