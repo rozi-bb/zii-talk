@@ -53,7 +53,6 @@ export function Session({
   const [partial, setPartial] = useState('');
   const [paused, setPaused] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [typed, setTyped] = useState('');
   const [grabbed, setGrabbed] = useState<Record<number, boolean>>({});
   const [savedBK, setSavedBK] = useState(false);
   const [flier, setFlier] = useState<{ x: number; y: number; fx: number; fy: number; text: string } | null>(
@@ -469,7 +468,7 @@ export function Session({
                     Tahan <span className="kbd live">SPASI</span> atau klik &amp; tahan mic
                   </span>
                 ) : (
-                  <span className="txt">Azure Speech belum aktif — ketik aja di bawah</span>
+                  <span className="txt">Azure Speech belum aktif — isi AZURE_SPEECH_KEY di .env</span>
                 )
               ) : (
                 <span className="txt">
@@ -519,32 +518,6 @@ export function Session({
                 <span style={{ color: 'var(--ink-soft)' }}>Potong</span>
               </div>
             </div>
-
-            <form
-              className="typebar"
-              onSubmit={(e) => {
-                e.preventDefault();
-                const t = typed.trim();
-                if (!t || phase !== 'idle') return;
-                setTyped('');
-                void send(t);
-              }}
-            >
-              <input
-                value={typed}
-                placeholder={speechReady ? 'Atau ketik di sini...' : 'Ketik jawabanmu...'}
-                onChange={(e) => setTyped(e.target.value)}
-              />
-              <button
-                className="round sky b3d"
-                style={{ width: 46, height: 46 }}
-                type="submit"
-                disabled={!typed.trim() || phase !== 'idle'}
-                aria-label="Kirim"
-              >
-                <Icon name="send" size={19} />
-              </button>
-            </form>
           </div>
         )}
       </div>

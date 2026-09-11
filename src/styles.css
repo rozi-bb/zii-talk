@@ -252,10 +252,6 @@ input, select, textarea { font: inherit; color: inherit; }
 .kbd { display: inline-block; background: var(--card); border: 2px solid #eadfe6; border-radius: 9px; padding: 3px 14px; font-family: var(--dsp); font-size: 12px; font-weight: 800; color: var(--ink-soft); }
 .kbd.live { animation: keypress 2.1s ease-in-out infinite; }
 
-.typebar { display: flex; gap: 9px; align-items: center; margin-top: 10px; }
-.typebar input { flex: 1; min-width: 0; background: var(--card); border: 2px solid var(--line); border-radius: 16px; padding: 12px 14px; font-size: 14px; font-weight: 600; outline: none; }
-.typebar input:focus { border-color: var(--violet); }
-
 /* ── pita DIJEDA ──────────────────────────────────────── */
 .band { display: flex; align-items: center; gap: 10px; background: var(--tang); border-radius: 18px; padding: 11px 13px; box-shadow: 0 3px 0 var(--tang-dark); margin: 0 18px 12px; }
 .band.go { background: var(--teal); box-shadow: 0 3px 0 var(--teal-dark); }
