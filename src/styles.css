@@ -209,6 +209,18 @@ input, select, textarea { font: inherit; color: inherit; }
 .turn.me .bubble.draft { background: #FFF1E8; color: #4A3E5C; box-shadow: none; border: 2px dashed #FFB08A; }
 .draft-foot { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 11.5px; font-weight: 700; color: var(--ink-soft); }
 .draft-foot button { background: none; border: none; padding: 0; font: inherit; color: var(--tang-dark); text-decoration: underline; cursor: pointer; }
+
+/* kotak betulin — nongol di posisi bubble yang barusan ditarik balik */
+.edit-wrap { display: flex; flex-direction: column; align-items: flex-end; animation: pullback .26s cubic-bezier(.2,.9,.3,1.2); }
+.edit-box { max-width: 290px; width: 290px; border-radius: 22px 22px 7px 22px; background: var(--card); border: 2px solid var(--violet); padding: 12px 15px; font-size: 15px; font-weight: 600; line-height: 1.45; color: var(--ink); outline: none; box-shadow: 0 3px 0 var(--violet-dark); }
+.edit-foot { margin-top: 7px; font-size: 11.5px; font-weight: 700; color: var(--ink-soft); }
+.edit-foot .kbd { padding: 2px 8px; font-size: 10.5px; }
+
+/* ketarik balik: bubungnya mundur dikit ke kanan lalu mendarat */
+@keyframes pullback {
+  0%   { opacity: 0; transform: translateX(26px) scale(.94); }
+  100% { opacity: 1; transform: translateX(0) scale(1); }
+}
 .chip { display: inline-flex; align-items: center; gap: 5px; background: var(--card); border-radius: 999px; padding: 5px 11px 5px 8px; box-shadow: 0 2px 0 #eadfe6; color: var(--ink-soft); font-size: 11px; font-weight: 800; }
 .chip.sky { background: #e8f4ff; box-shadow: 0 2px 0 #cfe6fa; color: var(--sky-dark); }
 .gloss { font-size: 12.5px; font-weight: 600; color: var(--sky-dark); background: #e8f4ff; border-radius: 14px; padding: 9px 12px; margin-top: 7px; line-height: 1.45; }

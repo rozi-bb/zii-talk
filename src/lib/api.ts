@@ -38,11 +38,13 @@ export async function chatStream(
   p: { model: string; topic: string; situation: string; history: Turn[] },
   onDelta: (chunk: string) => void,
   onReview?: (r: ReviewOut) => void,
+  signal?: AbortSignal,
 ): Promise<string> {
   const r = await fetch('/api/chat/stream', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(p),
+    signal,
   });
 
   if (!r.ok) {

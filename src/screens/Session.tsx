@@ -54,6 +54,8 @@ export function Session({
   /* kalimat yang udah diucapin tapi sengaja ditahan — nunggu kamu balik
      dari Bengkel buat nyambung. Kekirim ke Zii cuma waktu kamu lepas mic. */
   const [draft, setDraft] = useState('');
+  /* null = lagi nggak ngedit. Isinya teks yang lagi dibetulin. */
+  const [editing, setEditing] = useState<string | null>(null);
   const [paused, setPaused] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [grabbed, setGrabbed] = useState<Record<number, boolean>>({});
@@ -72,9 +74,16 @@ export function Session({
   const counter = useRef<HTMLDivElement | null>(null);
   const phaseRef = useRef<Phase>('thinking');
   const linesRef = useRef<Line[]>([]);
+  /* buat "betulin": request yang lagi jalan, layar sebelum bubble-ku nongol,
+     dan teks yang barusan dikirim. */
+  const abort = useRef<AbortController | null>(null);
+  const before = useRef<Line[]>([]);
+  const sent = useRef('');
+  const editRef = useRef<string | null>(null);
 
   phaseRef.current = phase;
   linesRef.current = lines;
+  editRef.current = editing;
 
   const myTurns = lines.filter((l) => l.role === 'me').length;
 
@@ -98,6 +107,13 @@ export function Session({
      nyampe lewat SATU stream: teks dulu, koreksi nyusul. */
   const send = useCallback(
     async (mine: string | null) => {
+      /* titik balik buat "betulin": kondisi layar SEBELUM bubble-ku nongol,
+         plus teks yang barusan dikirim biar bisa ditaruh di kotak edit. */
+      before.current = linesRef.current;
+      sent.current = mine ?? '';
+      const ac = new AbortController();
+      abort.current = ac;
+
       const base = mine
         ? [...linesRef.current, { role: 'me' as const, text: mine }]
         : linesRef.current;
@@ -153,10 +169,14 @@ export function Session({
             chunks.push(delta);
           },
           attach,
+          ac.signal,
         );
         chunks.flush();
       } catch (e) {
         v.kill();
+        /* dibatalin sengaja lewat "betulin" — bukan error, dan layarnya
+           udah diurus di sana. Jangan timpa apa pun. */
+        if (e instanceof Error && e.name === 'AbortError') return;
         setErr(e instanceof Error ? e.message : String(e));
         setLines(base); // buang slot balasan yang kosong
         setPhase('idle');
@@ -189,7 +209,7 @@ export function Session({
 
   /* ── push to talk ────────────────────────────────────── */
   const startRec = useCallback(async () => {
-    if (phaseRef.current !== 'idle' || paused || !speechReady) return;
+    if (phaseRef.current !== 'idle' || paused || !speechReady || editRef.current !== null) return;
     setErr(null);
     setPartial('');
     setMs(0);
@@ -261,7 +281,28 @@ export function Session({
     setPaused(true);
   }, [holdRec]);
 
-  /* spasi = push to talk (desktop), M = kabur ke Bengkel */
+  /* Tarik balik giliran yang barusan dikirim, sebelum Zii sempat nyaut.
+     Dipicu waktu kamu ketuk SPASI lagi pas Zii masih mikir — biasanya
+     karena kamu lihat speech-to-text-nya salah dengar. */
+  const betulin = useCallback(() => {
+    const mine = sent.current;
+    if (!mine) return; // giliran pembuka: nggak ada kalimatku buat dibetulin
+
+    abort.current?.abort();
+    voiceRef.current?.kill();
+    stopSpeaking();
+
+    setLines(before.current); // buang bubble-ku + slot balasan Zii
+    phaseRef.current = 'idle';
+    setPhase('idle');
+    setErr(null);
+    setPartial('');
+    sent.current = '';
+    setEditing(mine);
+  }, []);
+
+  /* spasi = push to talk (desktop), M = kabur ke Bengkel,
+     SPASI lagi pas Zii mikir = betulin */
   useEffect(() => {
     const isField = (t: EventTarget | null) => {
       const el = t as HTMLElement | null;
@@ -282,6 +323,15 @@ export function Session({
       if (e.code !== 'Space') return;
       e.preventDefault();
       if (e.repeat) return;
+
+      /* Jendela "betulin": dari kamu lepas spasi sampai Zii mulai bersuara.
+         Di periode ini mic emang udah mati, jadi spasi nganggur — aman
+         dipakai buat narik balik kalimat yang salah didengar. */
+      if (phaseRef.current === 'thinking') {
+        betulin();
+        return;
+      }
+
       void startRec();
     };
     const up = (e: KeyboardEvent) => {
@@ -302,7 +352,7 @@ export function Session({
       window.removeEventListener('keyup', up);
       window.removeEventListener('keydown', esc);
     };
-  }, [startRec, stopRec, openBengkel, paused]);
+  }, [startRec, stopRec, openBengkel, betulin, paused]);
 
   /* ── tangkap frasa: animasi terbang ke counter ───────── */
   function grab(i: number, p: Phrase, e: React.MouseEvent) {
@@ -500,6 +550,40 @@ export function Session({
                 </div>
               </div>
             )}
+
+            {editing !== null && (
+              <div className="turn me">
+                <div className="edit-wrap">
+                  <input
+                    className="edit-box"
+                    autoFocus
+                    value={editing}
+                    onChange={(e) => setEditing(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const t = editing.trim();
+                        setEditing(null);
+                        if (t) void send(t);
+                        return;
+                      }
+                      if (e.key === 'Escape') {
+                        e.preventDefault();
+                        /* jadiin draft — biar bisa lanjut ngomong nyambung
+                           dari kalimat yang udah dibetulin */
+                        e.stopPropagation();
+                        setDraft(editing.trim());
+                        setEditing(null);
+                      }
+                    }}
+                  />
+                  <div className="edit-foot">
+                    <span className="kbd">ENTER</span> kirim &middot;{' '}
+                    <span className="kbd">ESC</span> lanjut ngomong
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -529,6 +613,13 @@ export function Session({
                 ) : (
                   <span className="txt">Azure Speech belum aktif — isi AZURE_SPEECH_KEY di .env</span>
                 )
+              ) : phase === 'thinking' && sent.current ? (
+                /* jendela betulin — cuma ditawarin kalau emang ada kalimatku
+                   yang barusan kekirim (giliran pembuka nggak ada) */
+                <span className="txt">
+                  Zii nyusun jawaban &middot; <span className="kbd live">SPASI</span> kalau salah
+                  dengar
+                </span>
               ) : (
                 <span className="txt">
                   {phase === 'thinking' ? 'Zii nyusun jawaban...' : 'Zii lagi ngomong'}
