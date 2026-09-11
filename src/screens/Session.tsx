@@ -80,6 +80,9 @@ export function Session({
   const before = useRef<Line[]>([]);
   const sent = useRef('');
   const editRef = useRef<string | null>(null);
+  /* nomor giliran terbaru. Stream lama yang masih jalan di belakang (karena
+     Zii disela) ngecek ini biar nggak ngacak-ngacak giliran yang lebih baru. */
+  const turnRef = useRef(0);
 
   phaseRef.current = phase;
   linesRef.current = lines;
@@ -107,7 +110,8 @@ export function Session({
       goPhase('talking');
       v.push(text);
       await v.drain();
-      goPhase('idle');
+      // disela di tengah? jangan timpa fase yang baru
+      if (voiceRef.current === v && phaseRef.current === 'talking') goPhase('idle');
     },
     [speechReady, voice],
   );
@@ -131,6 +135,12 @@ export function Session({
       /* Koreksi nempel by INDEX, bukan "kalimat-ku terakhir" — dia dateng
          belakangan, dan kalau user udah ngomong lagi "terakhir" udah pindah. */
       const myIndex = mine ? base.length - 1 : -1;
+      /* Sama buat teks balasan: stream ini boleh disela dan tetap jalan di
+         belakang sampai habis. Kalau user udah kirim giliran baru, "bubble AI
+         terakhir" itu udah punya giliran baru — jadi tulis ke slot SENDIRI. */
+      const aiIndex = base.length;
+      const turn = ++turnRef.current;
+      const live = () => turnRef.current === turn;
 
       setErr(null);
       goPhase('thinking');
@@ -166,17 +176,16 @@ export function Session({
           (delta) => {
             if (!opened) {
               opened = true;
-              goPhase('talking');
+              if (live() && phaseRef.current === 'thinking') goPhase('talking');
             }
             setLines((prev) => {
+              const slot = prev[aiIndex];
+              if (!slot || slot.role !== 'ai') return prev;
               const next = [...prev];
-              const last = next[next.length - 1];
-              if (last && last.role === 'ai') {
-                next[next.length - 1] = { ...last, text: last.text + delta };
-              }
+              next[aiIndex] = { ...slot, text: slot.text + delta };
               return next;
             });
-            chunks.push(delta);
+            chunks.push(delta); // suara yang udah di-kill diem aja, teksnya tetap nambah
           },
           attach,
           ac.signal,
@@ -187,14 +196,25 @@ export function Session({
         /* dibatalin sengaja lewat "betulin" — bukan error, dan layarnya
            udah diurus di sana. Jangan timpa apa pun. */
         if (e instanceof Error && e.name === 'AbortError') return;
+        if (!live()) return; // udah ada giliran baru — jangan diganggu
         setErr(e instanceof Error ? e.message : String(e));
-        setLines(base); // buang slot balasan yang kosong
-        goPhase('idle');
+        // buang slot balasan kalau masih kosong; kalau udah sempat keisi, biarin
+        setLines((prev) =>
+          prev[aiIndex]?.role === 'ai' && !prev[aiIndex].text
+            ? prev.filter((_, i) => i !== aiIndex)
+            : prev,
+        );
+        if (phaseRef.current === 'thinking' || phaseRef.current === 'talking') goPhase('idle');
         return;
       }
 
       await v.drain();
-      goPhase('idle');
+      /* Cuma balik ke idle kalau fase-nya masih punya giliran ini. Kalau Zii
+         udah disela dan kamu lagi ngomong ('rec'), jangan ditimpa — dulu ini
+         bikin omongan kamu hilang di tengah jalan. */
+      if (live() && (phaseRef.current === 'thinking' || phaseRef.current === 'talking')) {
+        goPhase('idle');
+      }
     },
     [model, topic.name, voice, speechReady],
   );
@@ -219,6 +239,13 @@ export function Session({
 
   /* ── push to talk ────────────────────────────────────── */
   const startRec = useCallback(async () => {
+    /* Nyela: Zii lagi ngomong, kamu mulai ngomong -> suaranya dimatiin, kamu
+       langsung jalan. Teks balasannya tetap di layar & riwayat — yang dipotong
+       cuma suaranya. */
+    if (phaseRef.current === 'talking' && !paused && speechReady && editRef.current === null) {
+      voiceRef.current?.kill();
+      goPhase('idle');
+    }
     if (phaseRef.current !== 'idle' || paused || !speechReady || editRef.current !== null) return;
     /* goPhase duluan, sebelum `await openMeter()` / `await listen()`: tanpa
        itu spasi yang diketuk cepat dua kali bisa lolos guard barengan dan
@@ -310,7 +337,11 @@ export function Session({
     voiceRef.current?.kill();
     stopSpeaking();
 
-    setLines(before.current); // buang bubble-ku + slot balasan Zii
+    /* buang bubble-ku + slot balasan Zii. Potong by panjang, bukan balik ke
+       snapshot: balasan Zii sebelumnya bisa masih nambah teks di belakang
+       (kalau tadi disela), dan itu jangan ikut kebuang. */
+    const keep = before.current.length;
+    setLines((prev) => prev.slice(0, keep));
     goPhase('idle');
     setErr(null);
     setPartial('');
@@ -639,7 +670,13 @@ export function Session({
                 </span>
               ) : (
                 <span className="txt">
-                  {phase === 'thinking' ? 'Zii nyusun jawaban...' : 'Zii lagi ngomong'}
+                  {phase === 'thinking' ? (
+                    'Zii nyusun jawaban...'
+                  ) : (
+                    <>
+                      Zii lagi ngomong &middot; <span className="kbd live">SPASI</span> buat nyela
+                    </>
+                  )}
                 </span>
               )}
             </div>
@@ -659,7 +696,7 @@ export function Session({
                 {phase === 'idle' && speechReady && <div className="mic-halo" />}
                 <button
                   className={`mic${phase === 'rec' ? ' rec' : ''}`}
-                  disabled={phase === 'thinking' || phase === 'talking' || !speechReady}
+                  disabled={phase === 'thinking' || !speechReady}
                   onPointerDown={startRec}
                   onPointerUp={stopRec}
                   onPointerLeave={stopRec}
@@ -670,20 +707,9 @@ export function Session({
                 </button>
               </div>
 
-              <div className="dock-col">
-                <button
-                  className="round plain b3d"
-                  disabled={phase !== 'talking'}
-                  onClick={() => {
-                    voiceRef.current?.kill();
-                    goPhase('idle');
-                  }}
-                  aria-label="Potong"
-                >
-                  <Icon name="stop" size={22} />
-                </button>
-                <span style={{ color: 'var(--ink-soft)' }}>Potong</span>
-              </div>
+              {/* pengganti tombol Potong yang udah dihapus — cuma ngimbangin
+                  kolom "Jeda & Terjemah" biar mic tetap persis di tengah */}
+              <div className="dock-col" aria-hidden="true" />
             </div>
           </div>
         )}
