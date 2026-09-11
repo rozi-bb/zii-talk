@@ -87,6 +87,16 @@ export function Session({
 
   const myTurns = lines.filter((l) => l.role === 'me').length;
 
+  /* Pindah fase HARUS lewat sini. phaseRef cuma disinkronin waktu render,
+     padahal fungsi-fungsi di bawah nunggu I/O (Azure nutup rekaman, LLM
+     streaming) di tengah jalan — dan guard mereka baca phaseRef. Kalau cuma
+     setPhase, ada jendela di mana ref-nya masih nilai lama dan event kedua
+     lolos guard: itu yang dulu bikin satu giliran kekirim dua kali. */
+  const goPhase = useCallback((p: Phase) => {
+    phaseRef.current = p;
+    setPhase(p);
+  }, []);
+
   /* ── ucapin satu teks utuh (buat tombol Ulangi) ─────── */
   const replay = useCallback(
     async (text: string) => {
@@ -94,10 +104,10 @@ export function Session({
       voiceRef.current?.kill();
       const v = new Voice(voice);
       voiceRef.current = v;
-      setPhase('talking');
+      goPhase('talking');
       v.push(text);
       await v.drain();
-      setPhase('idle');
+      goPhase('idle');
     },
     [speechReady, voice],
   );
@@ -123,7 +133,7 @@ export function Session({
       const myIndex = mine ? base.length - 1 : -1;
 
       setErr(null);
-      setPhase('thinking');
+      goPhase('thinking');
       setLines([...base, { role: 'ai', text: '' }]);
 
       voiceRef.current?.kill();
@@ -156,7 +166,7 @@ export function Session({
           (delta) => {
             if (!opened) {
               opened = true;
-              setPhase('talking');
+              goPhase('talking');
             }
             setLines((prev) => {
               const next = [...prev];
@@ -179,12 +189,12 @@ export function Session({
         if (e instanceof Error && e.name === 'AbortError') return;
         setErr(e instanceof Error ? e.message : String(e));
         setLines(base); // buang slot balasan yang kosong
-        setPhase('idle');
+        goPhase('idle');
         return;
       }
 
       await v.drain();
-      setPhase('idle');
+      goPhase('idle');
     },
     [model, topic.name, voice, speechReady],
   );
@@ -210,10 +220,13 @@ export function Session({
   /* ── push to talk ────────────────────────────────────── */
   const startRec = useCallback(async () => {
     if (phaseRef.current !== 'idle' || paused || !speechReady || editRef.current !== null) return;
+    /* goPhase duluan, sebelum `await openMeter()` / `await listen()`: tanpa
+       itu spasi yang diketuk cepat dua kali bisa lolos guard barengan dan
+       bikin dua sesi Azure — yang satu bakal bocor. */
+    goPhase('rec');
     setErr(null);
     setPartial('');
     setMs(0);
-    setPhase('rec');
     try {
       meter.current = meter.current ?? (await openMeter());
       tick.current = window.setInterval(() => {
@@ -225,12 +238,19 @@ export function Session({
       if (tick.current) clearInterval(tick.current);
       setLevels(flat());
       setErr(e instanceof Error ? e.message : String(e));
-      setPhase('idle');
+      goPhase('idle');
     }
   }, [paused, speechReady]);
 
   const stopRec = useCallback(async () => {
     if (phaseRef.current !== 'rec') return;
+    /* Kunci DULUAN, sebelum `await l.stop()`. Tanpa ini, spasi yang diketuk
+       berkali-kali bisa masuk lagi ke sini selagi Azure masih nutup rekaman:
+       guard-nya lolos (phaseRef belum keburu berubah), `listener` udah null,
+       jadi dia jatuh ke `partial` dan ngirim giliran yang sama untuk kedua
+       kalinya — versi live-nya, tanpa tanda baca final. */
+    goPhase('thinking');
+    sent.current = ''; // belum ada yang beneran kekirim: jangan tawarin "betulin" dulu
     if (tick.current) clearInterval(tick.current);
     setLevels(flat());
     const l = listener.current;
@@ -241,7 +261,7 @@ export function Session({
        di depan, jadi Zii nerima satu giliran utuh, bukan potongan. */
     const whole = [draft, text.trim()].filter(Boolean).join(' ');
     if (!whole) {
-      setPhase('idle');
+      goPhase('idle');
       return;
     }
     setDraft('');
@@ -254,14 +274,12 @@ export function Session({
      nyambung dari tempat yang sama. */
   const holdRec = useCallback(async () => {
     if (phaseRef.current !== 'rec') return;
-    /* ditulis langsung, bukan nunggu setPhase: handler keyup bisa nembak
-       duluan sebelum React sempat render ulang. */
-    phaseRef.current = 'idle';
+    /* goPhase duluan: handler keyup bisa nembak sebelum React render ulang. */
+    goPhase('idle');
     if (tick.current) clearInterval(tick.current);
     setLevels(flat());
     const l = listener.current;
     listener.current = null;
-    setPhase('idle');
     /* stop() cuma balikin segmen yang udah difinalisasi Azure. Di sini kita
        sering motong persis di tengah kata, jadi ekor kalimatnya bisa ketinggal
        — `partial` (hasil recognizing) biasanya lebih panjang. Ambil yang
@@ -276,7 +294,7 @@ export function Session({
   const openBengkel = useCallback(() => {
     voiceRef.current?.kill();
     void holdRec(); // lagi ngerekam? tahan dulu, jangan hilang
-    if (phaseRef.current === 'talking') setPhase('idle');
+    if (phaseRef.current === 'talking') goPhase('idle');
     setSavedBK(false);
     setPaused(true);
   }, [holdRec]);
@@ -293,8 +311,7 @@ export function Session({
     stopSpeaking();
 
     setLines(before.current); // buang bubble-ku + slot balasan Zii
-    phaseRef.current = 'idle';
-    setPhase('idle');
+    goPhase('idle');
     setErr(null);
     setPartial('');
     sent.current = '';
@@ -659,7 +676,7 @@ export function Session({
                   disabled={phase !== 'talking'}
                   onClick={() => {
                     voiceRef.current?.kill();
-                    setPhase('idle');
+                    goPhase('idle');
                   }}
                   aria-label="Potong"
                 >
