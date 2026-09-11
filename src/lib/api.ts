@@ -6,7 +6,8 @@ export type AppConfig = {
 
 export type Correction = { wrong: string; right: string; why: string };
 export type Phrase = { en: string; id: string };
-export type Translation = { formal: string; casual: string; note: string };
+/* Bengkel: tiap gaya dapet beberapa pilihan (biasanya 3), yang pertama paling natural */
+export type Translation = { formal: string[]; casual: string[]; note: string };
 export type Turn = { role: 'ai' | 'me'; text: string };
 
 async function post<T>(url: string, body: unknown): Promise<T> {

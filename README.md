@@ -67,8 +67,9 @@ banget: node `review` kena beban mikir model penalaran. Balasan Zii-nya sendiri
 nggak ketahan (dia di node lain, jalan paralel), cuma kartu kuningnya yang
 nyusul belakangan. GPT lebih lambat mulai, tapi stabil.
 
-Di **Bengkel Kalimat** (masih JSON, jadi nggak bisa di-stream) DeepSeek juga
-kena beban mikir dan hasil Inggrisnya lebih kaku.
+Di **Bengkel Kalimat** (masih JSON, jadi nggak bisa di-stream) bedanya paling
+kerasa: satu terjemahan = 6 kalimat (3 formal + 3 santai). GPT **2–3 s**,
+DeepSeek **5–8 s** karena mikir dulu.
 
 **Jangan ketipu kata "Flash".** DeepSeek V4 Flash itu model **penalaran** — dia
 mikir dulu, dan token mikirnya ikut kepotong `max_tokens`. Kalau budget-nya
@@ -101,8 +102,11 @@ berubah sesuai kondisi:
 | Di Bengkel | tahan **SPASI** / **Esc** | ngomong bahasa Indonesia / tutup Bengkel |
 
 - **Jeda & Terjemah** (atau **M**) buka *Bengkel Kalimat*: ngomong Indonesia,
-  dapet dua versi Inggris (sopan + santai), bisa didengerin, bisa dipelanin.
-  Kalau speech-to-text-nya salah dengar, benerin lewat **Ketik aja**.
+  dapet dua kartu — **Formal** dan **Santai** — masing-masing **3 pilihan**
+  yang bisa digeser (swipe di HP; panah, titik, atau ←/→ di laptop). Tiap
+  pilihan bisa didengerin & dipelanin. Kalimat yang lagi kelihatan di kartu
+  yang dipilih itu yang disimpan ke koleksi. Kalau speech-to-text-nya salah
+  dengar, benerin lewat **Ketik aja**.
 - Kalimat yang ditahan pakai **M** nongol sebagai bubble putus-putus. Balik dari
   Bengkel, tahan SPASI lagi buat nyambung — Zii nerima satu giliran utuh.
 - **Zii nggak ngoreksi di obrolan.** Koreksi cuma muncul di kartu kuning, dan

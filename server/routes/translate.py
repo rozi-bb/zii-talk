@@ -1,4 +1,4 @@
-"""Bengkel Kalimat — Indonesia -> Inggris (formal + casual), sekali jalan."""
+"""Bengkel Kalimat — Indonesia -> Inggris: 3 pilihan formal + 3 santai, sekali jalan."""
 
 from __future__ import annotations
 
@@ -14,12 +14,20 @@ router = APIRouter(prefix="/api", tags=["Bengkel Kalimat"])
 
 
 class TranslateOut(BaseModel):
-    formal: str
-    casual: str
+    formal: list[str]
+    casual: list[str]
     note: str
 
 
-@router.post("/translate", response_model=TranslateOut, summary="Terjemah Indonesia -> Inggris, formal & casual")
+def _clean_all(xs: object) -> list[str]:
+    return [t for t in (clean(x, 240) for x in (xs or [])) if t] if isinstance(xs, list) else []
+
+
+@router.post(
+    "/translate",
+    response_model=TranslateOut,
+    summary="Terjemah Indonesia -> Inggris, 3 pilihan formal & 3 santai",
+)
 async def translate_endpoint(req: Request):
     body = await req.json()
     said = clean(body.get("text"), 500)
@@ -39,9 +47,11 @@ async def translate_endpoint(req: Request):
     except Exception as e:  # noqa: BLE001
         return JSONResponse(status_code=502, content={"error": str(e)})
 
-    formal = clean(out.get("formal"), 240)
+    formal = _clean_all(out.get("formal"))
+    if not formal:
+        return JSONResponse(status_code=502, content={"error": "Terjemahannya kosong. Coba lagi atau ganti model."})
     return TranslateOut(
         formal=formal,
-        casual=clean(out.get("casual"), 240) or formal,
+        casual=_clean_all(out.get("casual")) or formal,
         note=clean(out.get("note"), 200),
     )

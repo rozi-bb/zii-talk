@@ -11,7 +11,7 @@ type Stage = 'empty' | 'listening' | 'done' | 'typing';
 type Ver = 'formal' | 'casual';
 
 const VERS: { key: Ver; label: string; hint: string }[] = [
-  { key: 'formal', label: 'Sopan', hint: 'klien, atasan, orang baru' },
+  { key: 'formal', label: 'Formal', hint: 'klien, atasan, orang baru' },
   { key: 'casual', label: 'Santai', hint: 'teman, rekan kerja' },
 ];
 
@@ -38,11 +38,17 @@ export function Bengkel({
   const [err, setErr] = useState<string | null>(null);
   const [levels, setLevels] = useState<number[]>(flat);
   const [lit, setLit] = useState(-1);
-  /* versi yang dipilih buat dipakai & disimpan, dan versi yang lagi bunyi */
+  /* kartu yang dipilih (Formal/Santai), posisi geser tiap kartu, dan kalimat
+     yang lagi bunyi. Yang dipakai & disimpan = kalimat yang lagi kelihatan
+     di kartu yang dipilih. */
   const [pick, setPick] = useState<Ver>('formal');
-  const [playing, setPlaying] = useState<Ver | null>(null);
-  /* per versi: nyimpen Sopan nggak bikin Santai ikut dianggap tersimpan */
-  const [savedVers, setSavedVers] = useState<Ver[]>([]);
+  const [slide, setSlide] = useState<Record<Ver, number>>({ formal: 0, casual: 0 });
+  const [playing, setPlaying] = useState<{ v: Ver; i: number } | null>(null);
+  /* per kalimat: nyimpen Formal #1 nggak bikin pilihan lain ikut "tersimpan" */
+  const [savedTexts, setSavedTexts] = useState<string[]>([]);
+  /* naik tiap hasil baru -> kartu di-remount, geserannya balik ke pilihan pertama */
+  const [gen, setGen] = useState(0);
+  const tracks = useRef<Partial<Record<Ver, HTMLDivElement | null>>>({});
   const [fresh, setFresh] = useState(false);
 
   const ses = useRef<Session | null>(null);
@@ -81,7 +87,9 @@ export function Bengkel({
       const out = await translate({ model, text: clean, topic });
       setRes(out);
       setPick('formal');
-      setSavedVers([]);
+      setSlide({ formal: 0, casual: 0 });
+      setSavedTexts([]);
+      setGen((g) => g + 1);
       setFresh(true);
       setStage('done');
       window.setTimeout(() => setFresh(false), 900);
@@ -148,14 +156,22 @@ export function Bengkel({
     };
   }, [speechReady, stage, busy]);
 
+  function hush() {
+    playTok.current++;
+    stopSpeaking();
+    setPlaying(null);
+    setLit(-1);
+  }
+
   async function play(v: Ver, rate: number) {
     if (!res || !speechReady) return;
+    const i = slide[v];
     const tok = ++playTok.current;
     const mine = () => playTok.current === tok;
-    setPlaying(v);
+    setPlaying({ v, i });
     setLit(0);
     try {
-      await speak(res[v], voice, { rate, onWord: (i) => mine() && setLit(i) });
+      await speak(res[v][i], voice, { rate, onWord: (n) => mine() && setLit(n) });
     } catch (e) {
       if (mine()) setErr(e instanceof Error ? e.message : String(e));
     }
@@ -164,13 +180,32 @@ export function Bengkel({
     setLit(-1);
   }
 
-  /* kalau dua versinya sama persis, nggak usah pura-pura ada pilihan */
+  /* geser ke pilihan ke-i di kartu v (dari panah, titik, atau tombol ←/→).
+     State-nya diupdate lewat onScroll, jadi swipe jari & klik sama jalurnya. */
+  function goSlide(v: Ver, i: number) {
+    const el = tracks.current[v];
+    if (!el || !res) return;
+    const n = res[v].length;
+    const to = Math.max(0, Math.min(n - 1, i));
+    el.scrollTo({ left: to * el.clientWidth, behavior: 'smooth' });
+  }
+
+  function onTrackScroll(v: Ver, el: HTMLDivElement) {
+    const i = Math.round(el.scrollLeft / Math.max(1, el.clientWidth));
+    if (i === slide[v]) return;
+    setSlide((s) => ({ ...s, [v]: i }));
+    setPick(v); // lagi lihat-lihat pilihan di kartu ini = lagi milih gaya ini
+    if (playing?.v === v) hush(); // kalimat yang bunyi udah digeser keluar
+  }
+
+  /* kalau pilihan santainya sama persis kayak formal, nggak usah pura-pura ada dua gaya */
   const vers =
-    res && res.casual && res.casual !== res.formal
+    res && res.casual.join('|') !== res.formal.join('|')
       ? VERS
-      : [{ key: 'formal' as Ver, label: 'Sopan & santai', hint: 'kalimatnya sama aja' }];
-  const pickLabel = vers.find((v) => v.key === pick)?.label ?? 'Sopan';
-  const saved = savedVers.includes(pick);
+      : [{ key: 'formal' as Ver, label: 'Formal & santai', hint: 'kalimatnya sama aja' }];
+  const pickLabel = vers.find((v) => v.key === pick)?.label ?? 'Formal';
+  const current = res ? (res[pick][slide[pick]] ?? res[pick][0]) : '';
+  const saved = savedTexts.includes(current);
 
   return (
     <div className="bengkel">
@@ -285,41 +320,73 @@ export function Bengkel({
       </div>
 
       {res ? (
-        <div className={`verbox${fresh ? ' in' : ''}`}>
+        <div key={gen} className={`verbox${fresh ? ' in' : ''}`}>
           {vers.map((v) => {
             const on = pick === v.key;
-            const sounding = playing === v.key;
+            const opts = res[v.key];
+            const at = Math.min(slide[v.key], opts.length - 1);
+            const many = opts.length > 1;
             return (
               <div
                 key={v.key}
                 role="button"
                 tabIndex={0}
                 aria-pressed={on}
+                aria-label={`Gaya ${v.label}, pilihan ${at + 1} dari ${opts.length}`}
                 className={`ver${on ? ' on' : ''}`}
                 onClick={() => setPick(v.key)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') setPick(v.key);
+                  if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    goSlide(v.key, at + 1);
+                  }
+                  if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    goSlide(v.key, at - 1);
+                  }
                 }}
               >
                 <div className="ver-head">
                   <span className={`ver-tag ${v.key}`}>{v.label}</span>
                   <span className="ver-hint">{v.hint}</span>
+                  {many && (
+                    <span className="ver-count">
+                      {at + 1}/{opts.length}
+                    </span>
+                  )}
                   {vers.length > 1 && (
                     <span className="ver-check">{on && <Icon name="check" size={12} />}</span>
                   )}
                 </div>
 
-                <div className="entext">
-                  {res[v.key].split(' ').map((w, i) => (
-                    <span key={i} className={sounding && lit >= 0 && i < lit ? 'lit' : ''}>
-                      {w}
-                    </span>
-                  ))}
+                {/* digeser kanan-kiri: swipe di HP, trackpad / panah / titik / ←→ di laptop */}
+                <div
+                  className="ver-track"
+                  ref={(el) => {
+                    tracks.current[v.key] = el;
+                  }}
+                  onScroll={(e) => onTrackScroll(v.key, e.currentTarget)}
+                >
+                  {opts.map((sentence, i) => {
+                    const sounding = playing?.v === v.key && playing.i === i;
+                    return (
+                      <div key={i} className="ver-slide" aria-hidden={i !== at}>
+                        <div className="entext">
+                          {sentence.split(' ').map((w, j) => (
+                            <span key={j} className={sounding && lit >= 0 && j < lit ? 'lit' : ''}>
+                              {w}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
 
                 <div className="en-acts">
                   <div className="spk-wrap">
-                    {sounding && (
+                    {playing?.v === v.key && (
                       <>
                         <div className="spk-arc" />
                         <div className="spk-arc b" />
@@ -333,7 +400,7 @@ export function Bengkel({
                         e.stopPropagation(); // dengerin nggak otomatis milih
                         void play(v.key, 1);
                       }}
-                      aria-label={`Dengerin versi ${v.label.toLowerCase()}`}
+                      aria-label={`Dengerin ${v.label.toLowerCase()} pilihan ${at + 1}`}
                     >
                       <Icon name="speaker" size={18} />
                     </button>
@@ -350,6 +417,37 @@ export function Bengkel({
                     <Icon name="clock2" size={13} />
                     Pelanin
                   </button>
+
+                  {many && (
+                    <div className="ver-nav" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        className="ver-arrow"
+                        disabled={at === 0}
+                        onClick={() => goSlide(v.key, at - 1)}
+                        aria-label="Pilihan sebelumnya"
+                      >
+                        <Icon name="back" size={14} />
+                      </button>
+                      <div className="ver-dots">
+                        {opts.map((_, i) => (
+                          <button
+                            key={i}
+                            className={`ver-dot${i === at ? ' on' : ''}`}
+                            onClick={() => goSlide(v.key, i)}
+                            aria-label={`Pilihan ${i + 1}`}
+                          />
+                        ))}
+                      </div>
+                      <button
+                        className="ver-arrow"
+                        disabled={at === opts.length - 1}
+                        onClick={() => goSlide(v.key, at + 1)}
+                        aria-label="Pilihan berikutnya"
+                      >
+                        <Icon name="back" size={14} className="flip" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             );
@@ -375,8 +473,8 @@ export function Bengkel({
           className={`save${saved ? ' on' : ''}`}
           onClick={() => {
             if (saved) return;
-            onSave(res[pick], said);
-            setSavedVers((s) => [...s, pick]);
+            onSave(current, said);
+            setSavedTexts((s) => [...s, current]);
           }}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill={saved ? 'var(--amber)' : 'none'} stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -385,7 +483,7 @@ export function Bengkel({
           {saved
             ? 'Tersimpan di koleksi frasa'
             : vers.length > 1
-              ? `Simpan versi ${pickLabel.toLowerCase()} ke koleksi frasa`
+              ? `Simpan ${pickLabel.toLowerCase()} ${slide[pick] + 1} ke koleksi frasa`
               : 'Simpan ke koleksi frasa'}
         </button>
       )}

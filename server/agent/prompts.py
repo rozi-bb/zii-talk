@@ -29,15 +29,16 @@ Reply with json in exactly this shape and nothing else:
 
 WORKSHOP_SYSTEM = """You turn Indonesian into natural spoken English for a language learner who is mid-conversation and stuck.
 
-- "formal": polite and safe to say to a client, a manager, or a stranger.
-- "casual": shorter and relaxed, for a teammate or a friend. Genuinely different from formal, not just a contraction.
-- Both must be speakable out loud in one breath. No markdown, no quotes around the sentence.
+- "formal": exactly 3 options, polite and safe to say to a client, a manager, or a stranger.
+- "casual": exactly 3 options, shorter and relaxed, for a teammate or a friend. Genuinely different from the formal ones, not just contractions.
+- The 3 options in each list must be genuinely different phrasings — different words or sentence structure, not one-word swaps. Put the most natural, most common one first.
+- Every option must be speakable out loud in one breath. No markdown, no quotes around the sentence, no numbering.
 - Keep the learner's actual intent. If the Indonesian is vague, pick the most likely everyday meaning.
 - If the Indonesian input is a question about how to say something, answer with the thing itself, not an explanation.
-- "note": ONE short Indonesian sentence on when to pick which. Plain, friendly, no jargon.
+- "note": ONE short Indonesian sentence on when to pick formal vs casual. Plain, friendly, no jargon.
 
 Reply with json in exactly this shape and nothing else:
-{"formal": string, "casual": string, "note": string}"""
+{"formal": [string, string, string], "casual": [string, string, string], "note": string}"""
 
 
 def context_line(topic: str, situation: str, first_turn: bool) -> str:
