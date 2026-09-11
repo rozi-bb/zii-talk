@@ -9,9 +9,13 @@ Desain aslinya ada di `design/` (canvas 7 artboard).
 
 ```bash
 cp .env.example .env    # isi key-nya
-npm install
+npm install             # frontend (React + Vite)
+uv sync --group dev     # backend (Python + FastAPI)
 npm run dev             # buka http://localhost:5173
 ```
+
+Backend-nya Python, frontend-nya React — makanya dua perintah install.
+Butuh [uv](https://docs.astral.sh/uv/) dan Python ≥ 3.11.
 
 Produksi (satu proses, frontend + API):
 
@@ -38,9 +42,12 @@ dalam **mode ketik**.
 
 ## Kenapa ada server sendiri
 
-API key **nggak pernah** nyampe ke browser. Server (`server/index.js`) yang
-manggil LLM, dan buat Azure dia cuma nyetak token sementara (umur 10 menit)
+API key **nggak pernah** nyampe ke browser. Server (`server/main.py`, FastAPI)
+yang manggil LLM, dan buat Azure dia cuma nyetak token sementara (umur 10 menit)
 yang aman dipegang browser. Jangan pindahin panggilan ini ke frontend.
+
+Endpoint-nya kekelompok per fitur di `server/routes/`, dan Swagger-nya
+otomatis ada di `/docs` — 4 grup: Config, Speech, Chat, Bengkel Kalimat.
 
 ## Model LLM
 
@@ -60,14 +67,14 @@ kena beban mikir dan hasil Inggrisnya lebih kaku.
 mikir dulu, dan token mikirnya ikut kepotong `max_tokens`. Kalau budget-nya
 pas-pasan, `content` balik **kosong** (`finish_reason: "length"`,
 `reasoning_tokens` habis semua). Makanya di `MODELS` dia punya
-`reasonBudget: 900` yang ditambahin ke jatah jawaban.
+`reason_budget: 900` yang ditambahin ke jatah jawaban.
 
 Mikirnya juga **jangan dimatiin**: dengan `thinking: {"type":"disabled"}` dia
 memang turun ke 1,8 s, tapi berhenti nerjemahin — outputnya balik jadi bahasa
 Indonesia. Cepat tapi salah.
 
-Mau nambah model? Satu entri di `MODELS` (atas `server/index.js`) — UI-nya ngikut
-sendiri. Yang lebih pinter & lebih berat: `deepseek-v4-pro`, `gpt-5.6-terra`.
+Mau nambah model? Satu entri di `MODELS` (`server/agent/models.py`) — UI-nya
+ngikut sendiri. Yang lebih pinter & lebih berat: `deepseek-v4-pro`, `gpt-5.6-terra`.
 
 Catatan: `deepseek-chat` / `deepseek-reasoner` **legacy** dan sedang dimatikan
 DeepSeek — jangan dipakai lagi.
@@ -83,15 +90,15 @@ DeepSeek — jangan dipakai lagi.
 
 ## Otak AI-nya: LangGraph
 
-Lapisan AI-nya jalan di atas **LangGraph** (`@langchain/langgraph`), bukan
-panggilan HTTP mentahan. Ada dua graph:
+Lapisan AI-nya jalan di atas **LangGraph** (Python), bukan panggilan HTTP
+mentahan. Ada dua graph:
 
 | Graph | Isinya | Node |
 |---|---|---|
 | `conversation` | satu giliran ngobrol | `respond` + `review`, **paralel** |
 | `workshop` | Bengkel Kalimat | `translate` |
 
-`src/agent/conversation.ts` itu jantungnya. `respond` nulis balasan Zii;
+`server/agent/conversation.py` itu jantungnya. `respond` nulis balasan Zii;
 `review` nyari koreksi + frasa. Dua-duanya dijalanin **paralel dari START**,
 bukan berurutan — `review` cuma butuh kalimat si murid, jadi nggak ada alasan
 bikin dia nunggu balasan Zii selesai.
@@ -128,8 +135,8 @@ cukup. Alasan sebenarnya:
 - **Output terstruktur beda cara per provider.** DeepSeek nolak
   `response_format: json_schema` ("This response_format type is unavailable
   now"), DAN mode thinking-nya nolak `tool_choice` yang dipaksa. Satu-satunya
-  jalan: `jsonMode` + bentuk JSON-nya ditulis di prompt. Itu kenapa
-  `MODELS[].structured` ada di `src/agent/models.ts`.
+  jalan: `json_mode` + bentuk JSON-nya ditulis di prompt. Itu kenapa
+  `MODELS[].structured` ada di `server/agent/models.py`.
 
 ## Trace & Studio (LangSmith)
 
@@ -189,7 +196,7 @@ Bridge-nya nyari port HTTPS yang bebas sendiri dan **nggak nimpa** mapping
 `tailscale serve reset` — reset bakal ngapus mapping app lain kamu.
 
 Server sengaja cuma dengerin `127.0.0.1`. Yang jadi pintu ke tailnet itu
-Tailscale, bukan Express — jadi nggak ada apa pun yang nongol di Wi-Fi kafe.
+Tailscale, bukan Uvicorn — jadi nggak ada apa pun yang nongol di Wi-Fi kafe.
 Mau ekspos langsung ke LAN? `HOST=0.0.0.0` — tapi ingat, tanpa HTTPS mic-nya
 tetap mati.
 
@@ -206,8 +213,11 @@ npm run dev:tailnet    # HMR-nya lewat wss di port bridge
 ## Struktur
 
 ```
-server/index.ts     Express: stream graph + token Azure
-src/agent/          graph LangGraph (conversation, workshop)
+server/main.py      FastAPI: rakit router + serve frontend build
+server/routes/      endpoint per fitur (config, speech, chat, translate)
+server/agent/       graph LangGraph (conversation, workshop)
+server/util.py      helper: bersihin teks, riwayat -> BaseMessage
+pyproject.toml      dependency Python (dikelola uv)
 langgraph.json      config Agent Server buat Studio
 src/lib/speech.ts   Azure STT/TTS + antrean suara per kalimat
 src/lib/api.ts      client ke server

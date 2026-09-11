@@ -3,6 +3,11 @@ dist
 .DS_Store
 *.log
 
+# Python
+.venv
+__pycache__
+*.pyc
+
 # Rahasia — JANGAN pernah di-commit
 .env
 .env.local

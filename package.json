@@ -4,38 +4,29 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently -n api,web -c magenta,cyan \"tsx watch server/index.ts\" \"vite\"",
+    "dev": "concurrently -n api,web -c magenta,cyan \"PYTHONUNBUFFERED=1 uv run uvicorn server.main:app --reload --port 8787\" \"vite\"",
     "build": "tsc --noEmit && vite build",
-    "start": "tsx server/index.ts",
-    "serve": "npm run build && tsx server/index.ts",
-    "studio": "langgraphjs dev",
-    "studio:tailnet": "BRIDGE_TARGET=2024 node scripts/bridge.mjs on && langgraphjs dev --host 0.0.0.0 --port 2024 --no-browser",
+    "start": "PYTHONUNBUFFERED=1 uv run uvicorn server.main:app --port 8787",
+    "serve": "npm run build && npm run start",
+    "studio": "uv run --group dev langgraph dev",
+    "studio:tailnet": "BRIDGE_TARGET=2024 node scripts/bridge.mjs on && uv run --group dev langgraph dev --host 0.0.0.0 --port 2024 --no-browser",
     "bridge": "node scripts/bridge.mjs on",
     "bridge:off": "node scripts/bridge.mjs off",
     "bridge:status": "node scripts/bridge.mjs status",
-    "tailnet": "npm run build && node scripts/bridge.mjs on && tsx server/index.ts",
+    "tailnet": "npm run build && node scripts/bridge.mjs on && npm run start",
     "dev:tailnet": "BRIDGE_TARGET=5173 node scripts/bridge.mjs on && ZII_TUNNEL=1 npm run dev"
   },
   "dependencies": {
-    "@langchain/core": "^1.2.9",
-    "@langchain/langgraph": "^1.4.14",
-    "@langchain/openai": "^1.5.11",
-    "dotenv": "^17.2.3",
-    "express": "^5.1.0",
     "microsoft-cognitiveservices-speech-sdk": "^1.48.0",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "zod": "^4.5.4"
+    "react-dom": "^19.2.0"
   },
   "devDependencies": {
-    "@langchain/langgraph-cli": "^1.4.5",
-    "@types/express": "^5.0.6",
     "@types/node": "^26.5.0",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.1.0",
     "concurrently": "^9.2.1",
-    "tsx": "^4.23.13",
     "typescript": "^5.9.3",
     "vite": "^7.1.0"
   }

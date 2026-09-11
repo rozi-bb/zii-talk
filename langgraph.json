@@ -1,9 +1,8 @@
 {
-  "node_version": "22",
   "dependencies": ["."],
   "graphs": {
-    "conversation": "./src/agent/conversation.ts:graph",
-    "workshop": "./src/agent/workshop.ts:graph"
+    "conversation": "./server/agent/conversation.py:graph",
+    "workshop": "./server/agent/workshop.py:graph"
   },
   "env": ".env"
 }
