@@ -59,7 +59,6 @@ export function Session({
   const [paused, setPaused] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [grabbed, setGrabbed] = useState<Record<number, boolean>>({});
-  const [savedBK, setSavedBK] = useState(false);
   const [flier, setFlier] = useState<{ x: number; y: number; fx: number; fy: number; text: string } | null>(
     null,
   );
@@ -322,7 +321,6 @@ export function Session({
     voiceRef.current?.kill();
     void holdRec(); // lagi ngerekam? tahan dulu, jangan hilang
     if (phaseRef.current === 'talking') goPhase('idle');
-    setSavedBK(false);
     setPaused(true);
   }, [holdRec]);
 
@@ -723,10 +721,8 @@ export function Session({
             topic={topic.name}
             voice={voice}
             speechReady={speechReady}
-            saved={savedBK}
             onSave={(en, id) => {
               onPhrase({ en, id });
-              setSavedBK(true);
               setBump(true);
               window.setTimeout(() => setBump(false), 600);
             }}

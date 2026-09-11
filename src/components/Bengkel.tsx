@@ -8,6 +8,12 @@ const BARS = 14;
 const flat = () => new Array(BARS).fill(6) as number[];
 
 type Stage = 'empty' | 'listening' | 'done' | 'typing';
+type Ver = 'formal' | 'casual';
+
+const VERS: { key: Ver; label: string; hint: string }[] = [
+  { key: 'formal', label: 'Sopan', hint: 'klien, atasan, orang baru' },
+  { key: 'casual', label: 'Santai', hint: 'teman, rekan kerja' },
+];
 
 export function Bengkel({
   model,
@@ -16,7 +22,6 @@ export function Bengkel({
   speechReady,
   onClose,
   onSave,
-  saved,
 }: {
   model: string;
   topic: string;
@@ -24,7 +29,6 @@ export function Bengkel({
   speechReady: boolean;
   onClose: () => void;
   onSave: (en: string, id: string) => void;
-  saved: boolean;
 }) {
   const [stage, setStage] = useState<Stage>(speechReady ? 'empty' : 'typing');
   const [said, setSaid] = useState('');
@@ -34,11 +38,18 @@ export function Bengkel({
   const [err, setErr] = useState<string | null>(null);
   const [levels, setLevels] = useState<number[]>(flat);
   const [lit, setLit] = useState(-1);
-  const [sounding, setSounding] = useState(false);
-  const [alt, setAlt] = useState(false);
+  /* versi yang dipilih buat dipakai & disimpan, dan versi yang lagi bunyi */
+  const [pick, setPick] = useState<Ver>('formal');
+  const [playing, setPlaying] = useState<Ver | null>(null);
+  /* per versi: nyimpen Sopan nggak bikin Santai ikut dianggap tersimpan */
+  const [savedVers, setSavedVers] = useState<Ver[]>([]);
   const [fresh, setFresh] = useState(false);
 
   const ses = useRef<Session | null>(null);
+  /* speak() nutup player lama, tapi promise & event kata-nya bisa nyusul
+     belakangan. Tanpa penanda ini, dengerin kartu A lalu B bikin sisa
+     suara A nimpa highlight & status kartu B. */
+  const playTok = useRef(0);
   const meter = useRef<Meter | null>(null);
   const timer = useRef<number | null>(null);
 
@@ -60,10 +71,17 @@ export function Bengkel({
     setSaid(clean);
     setBusy(true);
     setErr(null);
+    // hasil lama masih bunyi? matiin, biar highlight-nya nggak nempel ke hasil baru
+    playTok.current++;
+    stopSpeaking();
+    setPlaying(null);
+    setLit(-1);
     setRes(null);
     try {
       const out = await translate({ model, text: clean, topic });
       setRes(out);
+      setPick('formal');
+      setSavedVers([]);
       setFresh(true);
       setStage('done');
       window.setTimeout(() => setFresh(false), 900);
@@ -130,20 +148,29 @@ export function Bengkel({
     };
   }, [speechReady, stage, busy]);
 
-  async function play(rate: number) {
+  async function play(v: Ver, rate: number) {
     if (!res || !speechReady) return;
-    setSounding(true);
+    const tok = ++playTok.current;
+    const mine = () => playTok.current === tok;
+    setPlaying(v);
     setLit(0);
     try {
-      await speak(res.formal, voice, { rate, onWord: (i) => setLit(i) });
+      await speak(res[v], voice, { rate, onWord: (i) => mine() && setLit(i) });
     } catch (e) {
-      setErr(e instanceof Error ? e.message : String(e));
+      if (mine()) setErr(e instanceof Error ? e.message : String(e));
     }
-    setSounding(false);
+    if (!mine()) return; // udah ada yang diputer setelahnya
+    setPlaying(null);
     setLit(-1);
   }
 
-  const words = res ? res.formal.split(' ') : [];
+  /* kalau dua versinya sama persis, nggak usah pura-pura ada pilihan */
+  const vers =
+    res && res.casual && res.casual !== res.formal
+      ? VERS
+      : [{ key: 'formal' as Ver, label: 'Sopan & santai', hint: 'kalimatnya sama aja' }];
+  const pickLabel = vers.find((v) => v.key === pick)?.label ?? 'Sopan';
+  const saved = savedVers.includes(pick);
 
   return (
     <div className="bengkel">
@@ -252,68 +279,91 @@ export function Bengkel({
 
       <div className="lane" style={{ margin: '0 0 8px' }}>
         <span className="tag en">EN</span>
-        <b style={{ color: 'var(--violet-dark)' }}>Ini yang kamu ucapkan</b>
+        <b style={{ color: 'var(--violet-dark)' }}>
+          {res && vers.length > 1 ? 'Pilih yang mau kamu ucapkan' : 'Ini yang kamu ucapkan'}
+        </b>
       </div>
 
-      <div className={`enbox${fresh ? ' in' : ''}`}>
-        {res ? (
-          <>
-            <div className="entext">
-              {words.map((w, i) => (
-                <span key={i} className={lit >= 0 && i < lit ? 'lit' : ''}>
-                  {w}
-                </span>
-              ))}
-            </div>
+      {res ? (
+        <div className={`verbox${fresh ? ' in' : ''}`}>
+          {vers.map((v) => {
+            const on = pick === v.key;
+            const sounding = playing === v.key;
+            return (
+              <div
+                key={v.key}
+                role="button"
+                tabIndex={0}
+                aria-pressed={on}
+                className={`ver${on ? ' on' : ''}`}
+                onClick={() => setPick(v.key)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') setPick(v.key);
+                }}
+              >
+                <div className="ver-head">
+                  <span className={`ver-tag ${v.key}`}>{v.label}</span>
+                  <span className="ver-hint">{v.hint}</span>
+                  {vers.length > 1 && (
+                    <span className="ver-check">{on && <Icon name="check" size={12} />}</span>
+                  )}
+                </div>
 
-            <div className="en-acts">
-              <div className="spk-wrap">
-                {sounding && (
-                  <>
-                    <div className="spk-arc" />
-                    <div className="spk-arc b" />
-                    <div className="spk-arc c" />
-                  </>
-                )}
-                <button className="spk b3d" disabled={!speechReady} onClick={() => void play(1)} aria-label="Dengerin">
-                  <Icon name="speaker" size={21} />
-                </button>
+                <div className="entext">
+                  {res[v.key].split(' ').map((w, i) => (
+                    <span key={i} className={sounding && lit >= 0 && i < lit ? 'lit' : ''}>
+                      {w}
+                    </span>
+                  ))}
+                </div>
+
+                <div className="en-acts">
+                  <div className="spk-wrap">
+                    {sounding && (
+                      <>
+                        <div className="spk-arc" />
+                        <div className="spk-arc b" />
+                        <div className="spk-arc c" />
+                      </>
+                    )}
+                    <button
+                      className="spk b3d"
+                      disabled={!speechReady}
+                      onClick={(e) => {
+                        e.stopPropagation(); // dengerin nggak otomatis milih
+                        void play(v.key, 1);
+                      }}
+                      aria-label={`Dengerin versi ${v.label.toLowerCase()}`}
+                    >
+                      <Icon name="speaker" size={18} />
+                    </button>
+                  </div>
+
+                  <button
+                    className="outline"
+                    disabled={!speechReady}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void play(v.key, 0.7);
+                    }}
+                  >
+                    <Icon name="clock2" size={13} />
+                    Pelanin
+                  </button>
+                </div>
               </div>
+            );
+          })}
 
-              <button className="outline" disabled={!speechReady} onClick={() => void play(0.7)}>
-                <Icon name="clock2" size={13} />
-                Pelanin
-              </button>
-
-              {res.casual && res.casual !== res.formal && (
-                <button
-                  className="ghost"
-                  style={{ marginLeft: 'auto', color: 'var(--ink-soft)' }}
-                  onClick={() => setAlt(!alt)}
-                >
-                  Versi santai
-                  <Icon
-                    name="chevron"
-                    size={13}
-                    className={alt ? 'rot' : ''}
-                  />
-                </button>
-              )}
-            </div>
-
-            {alt && res.casual && (
-              <div className="alt">
-                <b>{res.casual}</b>
-                {res.note && <span>{res.note}</span>}
-              </div>
-            )}
-          </>
-        ) : (
+          {res.note && vers.length > 1 && <p className="ver-note">{res.note}</p>}
+        </div>
+      ) : (
+        <div className="enbox">
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted)', lineHeight: 1.5 }}>
             {busy ? 'Nyusun kalimatnya...' : 'Hasil Inggrisnya muncul di sini.'}
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       <button className="use b3d" onClick={onClose}>
         <b>Pakai &amp; Lanjut Ngobrol</b>
@@ -323,12 +373,20 @@ export function Bengkel({
       {res && (
         <button
           className={`save${saved ? ' on' : ''}`}
-          onClick={() => onSave(res.formal, said)}
+          onClick={() => {
+            if (saved) return;
+            onSave(res[pick], said);
+            setSavedVers((s) => [...s, pick]);
+          }}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill={saved ? 'var(--amber)' : 'none'} stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M6.4 3.6h11.2v17l-5.6-4.2-5.6 4.2v-17Z" />
           </svg>
-          {saved ? 'Tersimpan di koleksi frasa' : 'Simpan ke koleksi frasa'}
+          {saved
+            ? 'Tersimpan di koleksi frasa'
+            : vers.length > 1
+              ? `Simpan versi ${pickLabel.toLowerCase()} ke koleksi frasa`
+              : 'Simpan ke koleksi frasa'}
         </button>
       )}
     </div>
