@@ -51,6 +51,9 @@ export function Session({
   const [levels, setLevels] = useState<number[]>(flat);
   const [ms, setMs] = useState(0);
   const [partial, setPartial] = useState('');
+  /* kalimat yang udah diucapin tapi sengaja ditahan — nunggu kamu balik
+     dari Bengkel buat nyambung. Kekirim ke Zii cuma waktu kamu lepas mic. */
+  const [draft, setDraft] = useState('');
   const [paused, setPaused] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [grabbed, setGrabbed] = useState<Record<number, boolean>>({});
@@ -214,37 +217,49 @@ export function Session({
     listener.current = null;
     const text = l ? await l.stop() : partial;
     setPartial('');
-    if (!text.trim()) {
+    /* draft = kalimat yang tadi ketahan waktu mampir ke Bengkel. Disambung
+       di depan, jadi Zii nerima satu giliran utuh, bukan potongan. */
+    const whole = [draft, text.trim()].filter(Boolean).join(' ');
+    if (!whole) {
       setPhase('idle');
       return;
     }
-    await send(text.trim());
-  }, [partial, send]);
+    setDraft('');
+    await send(whole);
+  }, [partial, draft, send]);
 
-  /* Batalin rekaman dan BUANG teksnya. Beda sama stopRec yang ngirim ke
-     Zii — ini buat waktu kita kabur ke Bengkel di tengah kalimat: kalimat
-     separuh ("I want to... ummm") nggak boleh nyampe ke Zii. */
-  const cancelRec = useCallback(async () => {
+  /* TAHAN rekaman: mic dimatiin, tapi yang udah diucapin disimpen di draft
+     — bukan dibuang, bukan dikirim. Ini yang bikin kamu bisa ngomong dua
+     kalimat, mentok di kalimat ketiga, kabur ke Bengkel, terus balik lagi
+     nyambung dari tempat yang sama. */
+  const holdRec = useCallback(async () => {
     if (phaseRef.current !== 'rec') return;
+    /* ditulis langsung, bukan nunggu setPhase: handler keyup bisa nembak
+       duluan sebelum React sempat render ulang. */
+    phaseRef.current = 'idle';
     if (tick.current) clearInterval(tick.current);
     setLevels(flat());
     const l = listener.current;
     listener.current = null;
-    setPartial('');
-    /* ditulis langsung juga, bukan cuma setPhase: handler keyup bisa
-       nembak duluan sebelum React sempat render ulang. */
-    phaseRef.current = 'idle';
     setPhase('idle');
-    await l?.stop(); // hasilnya sengaja dibuang
-  }, []);
+    /* stop() cuma balikin segmen yang udah difinalisasi Azure. Di sini kita
+       sering motong persis di tengah kata, jadi ekor kalimatnya bisa ketinggal
+       — `partial` (hasil recognizing) biasanya lebih panjang. Ambil yang
+       terpanjang biar nggak ada yang hilang. */
+    const settled = l ? await l.stop() : '';
+    const text = settled.length >= partial.length ? settled : partial;
+    setPartial('');
+    const t = text.trim();
+    if (t) setDraft((d) => (d ? `${d} ${t}` : t));
+  }, [partial]);
 
   const openBengkel = useCallback(() => {
     voiceRef.current?.kill();
-    void cancelRec(); // lagi ngerekam? batalin, jangan dikirim
+    void holdRec(); // lagi ngerekam? tahan dulu, jangan hilang
     if (phaseRef.current === 'talking') setPhase('idle');
     setSavedBK(false);
     setPaused(true);
-  }, [cancelRec]);
+  }, [holdRec]);
 
   /* spasi = push to talk (desktop), M = kabur ke Bengkel */
   useEffect(() => {
@@ -465,19 +480,23 @@ export function Session({
               );
             })}
 
-            {phase === 'rec' && partial && (
+            {(draft || (phase === 'rec' && partial)) && (
               <div className="turn me">
-                <div
-                  className="bubble"
-                  style={{
-                    background: '#FFF1E8',
-                    color: '#4A3E5C',
-                    boxShadow: 'none',
-                    border: '2px dashed #FFB08A',
-                  }}
-                >
-                  {partial}
-                  <span className="caret" style={{ background: 'var(--tang-dark)' }} />
+                <div className="draft-wrap">
+                  <div className="bubble draft">
+                    {[draft, partial].filter(Boolean).join(' ')}
+                    {phase === 'rec' && (
+                      <span className="caret" style={{ background: 'var(--tang-dark)' }} />
+                    )}
+                  </div>
+                  {draft && phase !== 'rec' && (
+                    <div className="draft-foot">
+                      <span>ketahan &mdash; lanjut ngomong buat nyambung</span>
+                      <button type="button" onClick={() => setDraft('')}>
+                        buang
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -496,8 +515,16 @@ export function Session({
               ) : phase === 'idle' ? (
                 speechReady ? (
                   <span className="txt">
-                    Tahan <span className="kbd live">SPASI</span> atau mic &middot;{' '}
-                    <span className="kbd">M</span> kalau blank
+                    {draft ? (
+                      <>
+                        Tahan <span className="kbd live">SPASI</span> buat nerusin kalimatmu
+                      </>
+                    ) : (
+                      <>
+                        Tahan <span className="kbd live">SPASI</span> atau mic &middot;{' '}
+                        <span className="kbd">M</span> kalau blank
+                      </>
+                    )}
                   </span>
                 ) : (
                   <span className="txt">Azure Speech belum aktif — isi AZURE_SPEECH_KEY di .env</span>
