@@ -222,6 +222,11 @@ export function Session({
   useEffect(() => {
     void send(null);
     return () => {
+      /* Batalin stream-nya juga, bukan cuma suaranya. StrictMode (dev) jalanin
+         efek ini dua kali: tanpa abort, dua salam pembuka jalan barengan dan
+         nulis ke bubble yang sama ("...so far?Hi, I'm glad..."). Keluar sesi
+         pas Zii masih nulis juga jadi berhenti makan token. */
+      abort.current?.abort();
       voiceRef.current?.kill();
       stopSpeaking();
       if (tick.current) clearInterval(tick.current);
