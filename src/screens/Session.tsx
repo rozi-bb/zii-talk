@@ -641,59 +641,24 @@ export function Session({
         {/* dock */}
         {!paused && (
           <div className="dock">
-            <div className="dock-status">
-              {phase === 'rec' ? (
-                <>
-                  <Wave levels={levels} />
-                  <span className="clock">{`0:${secs < 10 ? '0' : ''}${secs}`}</span>
-                </>
-              ) : phase === 'idle' ? (
-                speechReady ? (
-                  <span className="txt">
-                    {draft ? (
-                      <>
-                        Tahan <span className="kbd live">SPASI</span> buat nerusin kalimatmu
-                      </>
-                    ) : (
-                      <>
-                        Tahan <span className="kbd live">SPASI</span> atau mic &middot;{' '}
-                        <span className="kbd">M</span> kalau blank
-                      </>
-                    )}
-                  </span>
-                ) : (
-                  <span className="txt">Azure Speech belum aktif — isi AZURE_SPEECH_KEY di .env</span>
-                )
-              ) : phase === 'thinking' && sent.current ? (
-                /* jendela betulin — cuma ditawarin kalau emang ada kalimatku
-                   yang barusan kekirim (giliran pembuka nggak ada) */
-                <span className="txt">
-                  Zii nyusun jawaban &middot; <span className="kbd live">SPASI</span> kalau salah
-                  dengar
-                </span>
-              ) : (
-                <span className="txt">
-                  {phase === 'thinking' ? (
-                    'Zii nyusun jawaban...'
-                  ) : (
-                    <>
-                      Zii lagi ngomong &middot; <span className="kbd live">SPASI</span> buat nyela
-                    </>
-                  )}
-                </span>
-              )}
-            </div>
+            {!speechReady && (
+              <div className="dock-warn">Azure Speech belum aktif — isi AZURE_SPEECH_KEY di .env</div>
+            )}
 
-            <div className="dock-row">
-              <div className="dock-col">
-                <button className="round sky b3d" onClick={openBengkel} aria-label="Jeda dan terjemah">
-                  <Icon name="pauseTranslate" size={24} />
-                </button>
-                <span style={{ color: 'var(--sky-dark)' }}>
-                  Jeda &amp;<br />
-                  Terjemah
+            {/* kapsul: kiri kabur ke Bengkel, tengah mic, kanan status.
+                Shortcut keyboard nempel di tombolnya masing-masing (M & SPASI),
+                dan disembunyiin di layar sentuh. */}
+            <div className={`dock-bar ${phase}`}>
+              <button className="dock-side jeda b3d" onClick={openBengkel} aria-label="Jeda dan terjemah">
+                <i>
+                  <Icon name="pauseTranslate" size={22} />
+                  <span className="kbd key">M</span>
+                </i>
+                <span className="lbl">
+                  <b>Blank?</b>
+                  Jeda &amp; Terjemah
                 </span>
-              </div>
+              </button>
 
               <div className="mic-wrap">
                 {phase === 'idle' && speechReady && <div className="mic-halo" />}
@@ -706,13 +671,37 @@ export function Session({
                   onPointerCancel={stopRec}
                   aria-label="Tahan buat ngomong"
                 >
-                  <Icon name={speechReady ? 'mic' : 'micOff'} size={40} />
+                  <Icon name={speechReady ? 'mic' : 'micOff'} size={38} />
                 </button>
               </div>
 
-              {/* pengganti tombol Potong yang udah dihapus — cuma ngimbangin
-                  kolom "Jeda & Terjemah" biar mic tetap persis di tengah */}
-              <div className="dock-col" aria-hidden="true" />
+              <div className="dock-side info" aria-live="polite">
+                {phase === 'rec' ? (
+                  <>
+                    <Wave levels={levels} />
+                    <span className="clock">{`0:${secs < 10 ? '0' : ''}${secs}`}</span>
+                  </>
+                ) : phase === 'idle' ? (
+                  speechReady ? (
+                    <Status
+                      title="Tahan"
+                      sub={draft ? 'buat nerusin' : 'buat ngomong'}
+                      touchSub={draft ? 'mic buat nerusin' : 'mic buat ngomong'}
+                      space
+                    />
+                  ) : (
+                    <Status title="Mic mati" sub="cek .env dulu" />
+                  )
+                ) : phase === 'thinking' && sent.current ? (
+                  /* jendela betulin — cuma ditawarin kalau emang ada kalimatku
+                     yang barusan kekirim (giliran pembuka nggak ada) */
+                  <Status title="Zii mikir…" sub="salah dengar?" touchSub="bentar ya" space />
+                ) : phase === 'thinking' ? (
+                  <Status title="Zii mikir…" sub="bentar ya" />
+                ) : (
+                  <Status title="Zii ngomong" sub="ketuk buat nyela" touchSub="dengerin dulu" space />
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -754,6 +743,38 @@ export function Session({
         </div>
       )}
     </div>
+  );
+}
+
+/* teks status di kanan dock. `space` nampilin tuts SPASI (keyboard doang);
+   `touchSub` gantiin `sub` di layar sentuh kalau `sub` cuma masuk akal
+   buat yang pegang keyboard */
+function Status({
+  title,
+  sub,
+  touchSub,
+  space = false,
+}: {
+  title: string;
+  sub: string;
+  touchSub?: string;
+  space?: boolean;
+}) {
+  return (
+    <>
+      <span className="lbl">
+        <b>{title}</b>
+        {touchSub ? (
+          <>
+            <span className="kb-only">{sub}</span>
+            <span className="touch-only">{touchSub}</span>
+          </>
+        ) : (
+          sub
+        )}
+      </span>
+      {space && <span className="kbd key live kb-only">SPASI</span>}
+    </>
   );
 }
 

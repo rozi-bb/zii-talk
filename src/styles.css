@@ -241,34 +241,83 @@ input, select, textarea { font: inherit; color: inherit; }
 .flier { position: fixed; z-index: 60; pointer-events: none; display: flex; align-items: center; gap: 7px; background: var(--amber); border-radius: 14px; padding: 9px 13px; box-shadow: 0 5px 16px rgba(180, 110, 0, 0.4); color: #fff; font-family: var(--dsp); font-size: 14px; font-weight: 800; white-space: nowrap; animation: flyaway 0.95s cubic-bezier(0.5, -0.15, 0.6, 1) forwards; }
 
 /* ── dock ─────────────────────────────────────────────── */
-.dock { flex-shrink: 0; padding: 10px 20px calc(16px + env(safe-area-inset-bottom)); background: var(--paper); border-top: 1px solid var(--line); }
-.dock-status { height: 36px; display: flex; align-items: center; justify-content: center; gap: 12px; }
-.dock-status .txt { font-size: 12.5px; font-weight: 700; color: var(--muted); text-align: center; }
+/* z-index bikin stacking context sendiri, biar lingkaran "punuk" di belakang
+   mic bisa nyelip di bawah kapsul tapi tetap di atas latar dock */
+.dock { position: relative; z-index: 0; flex-shrink: 0; padding: 40px 14px calc(14px + env(safe-area-inset-bottom)); background: var(--paper); border-top: 1px solid var(--line); }
+.dock-warn { margin: -24px auto 36px; max-width: 520px; text-align: center; font-size: 12px; font-weight: 700; color: var(--tang-dark); }
 .clock { font-family: var(--dsp); font-size: 16px; font-weight: 800; color: var(--tang-dark); min-width: 36px; }
 .wave { display: flex; align-items: center; gap: 3px; height: 34px; }
 .wave i { width: 5px; border-radius: 3px; background: var(--tang); transition: height 0.07s linear; }
 .wave.sky i { background: var(--sky); width: 4px; }
 
-.dock-row { display: flex; align-items: flex-start; justify-content: center; gap: 18px; margin-top: 4px; }
-.dock-col { width: 66px; display: flex; flex-direction: column; align-items: center; gap: 7px; padding-top: 19px; }
-.dock-col span { font-size: 10px; font-weight: 800; text-align: center; line-height: 1.2; }
 .round { width: 58px; height: 58px; border-radius: 50%; display: grid; place-items: center; color: #fff; flex-shrink: 0; }
 .round.sky { background: var(--sky); --sh: var(--sky-dark); box-shadow: 0 5px 0 var(--sky-dark); }
 .round.plain { background: var(--card); --sh: #e3d6de; box-shadow: 0 5px 0 #e3d6de; color: var(--ink-soft); }
 
-.mic-wrap { position: relative; width: 100px; height: 100px; display: grid; place-items: center; }
-.mic-halo { position: absolute; inset: 0; border-radius: 50%; background: var(--violet); opacity: 0.2; animation: halo 1.6s ease-out infinite; pointer-events: none; }
+.dock-bar {
+  position: relative; width: 100%; max-width: 580px; margin: 0 auto; padding: 7px;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; column-gap: 10px;
+  background: var(--card); border: 2px solid var(--line-soft); border-radius: 28px; box-shadow: 0 5px 0 var(--line-soft);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.dock-bar.rec { border-color: #ffd6c2; box-shadow: 0 5px 0 #ffd6c2; }
+.dock-side { display: flex; align-items: center; gap: 10px; min-width: 0; height: 58px; }
+.dock-side .lbl { display: flex; flex-direction: column; min-width: 0; font-size: 11px; font-weight: 700; line-height: 1.25; color: var(--muted); white-space: nowrap; }
+.dock-side .lbl b { font-family: var(--dsp); font-size: 15px; font-weight: 800; line-height: 1.1; color: var(--ink); }
+
+.dock-side.jeda { justify-self: start; padding: 0 16px 0 8px; border-radius: 21px; background: var(--sky-wash); --sh: #d3e8fa; box-shadow: 0 4px 0 #d3e8fa; }
+.dock-side.jeda:hover { background: #e8f4fe; }
+.dock-side.jeda i { position: relative; width: 42px; height: 42px; border-radius: 14px; display: grid; place-items: center; flex-shrink: 0; background: var(--sky); color: #fff; box-shadow: 0 3px 0 var(--sky-dark); }
+.dock-side.jeda .lbl { color: #5f9bcf; }
+.dock-side.jeda .lbl b { color: var(--sky-dark); }
+.dock-side.jeda .kbd.key { position: absolute; right: -9px; bottom: -8px; color: var(--sky-dark); border-color: #cfe4f7; }
+
+.dock-side.info { justify-self: end; padding: 0 8px 0 4px; }
+.dock-side.info .lbl { align-items: flex-end; text-align: right; }
+.dock-side.info .wave { height: 30px; }
+
+.mic-wrap { position: relative; width: 92px; height: 92px; display: grid; place-items: center; margin: -36px 0 2px; }
+/* punuk: ::before bawa garis tepi & nyelip di bawah kapsul, ::after nutup garis
+   atas kapsul yang kebetulan lewat di dalam punuk */
+.mic-wrap::before, .mic-wrap::after { content: ''; position: absolute; border-radius: 50%; background: var(--card); pointer-events: none; }
+.mic-wrap::before { inset: -9px; z-index: -1; border: 2px solid var(--line-soft); }
+.mic-wrap::after { inset: -7px; }
+.dock-bar.rec .mic-wrap::before { border-color: #ffd6c2; }
+.mic-halo { position: absolute; inset: 0; z-index: 1; border-radius: 50%; background: var(--violet); opacity: 0.2; animation: halo 1.8s ease-out infinite; pointer-events: none; }
 .mic {
-  position: relative; width: 100px; height: 100px; border-radius: 50%; display: grid; place-items: center;
-  color: #fff; background: var(--violet); --sh: var(--violet-dark); box-shadow: 0 9px 0 var(--violet-dark);
+  position: relative; z-index: 2; width: 92px; height: 92px; border-radius: 50%; display: grid; place-items: center;
+  color: #fff; background: var(--violet); --sh: var(--violet-dark); box-shadow: 0 7px 0 var(--violet-dark);
   touch-action: none; user-select: none;
   transition: transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.12s ease, background 0.18s ease;
 }
 .mic:hover:not(:disabled) { transform: translateY(-2px); }
-.mic.rec { background: var(--tang); --sh: var(--tang-dark); box-shadow: 0 5px 0 var(--tang-dark), 0 0 0 5px rgba(255, 122, 61, 0.2); transform: translateY(4px) scale(1.03); }
-.mic:disabled { background: #c9bcd6; --sh: #a899b8; box-shadow: 0 9px 0 #a899b8; opacity: 0.55; cursor: not-allowed; }
+.mic.rec { background: var(--tang); --sh: var(--tang-dark); box-shadow: 0 3px 0 var(--tang-dark), 0 0 0 6px rgba(255, 122, 61, 0.22); transform: translateY(4px) scale(1.03); }
+.mic:disabled { background: #cdbfdb; --sh: #ad9ebd; box-shadow: 0 7px 0 #ad9ebd; cursor: not-allowed; }
 .kbd { display: inline-block; background: var(--card); border: 2px solid #eadfe6; border-radius: 9px; padding: 3px 14px; font-family: var(--dsp); font-size: 12px; font-weight: 800; color: var(--ink-soft); }
 .kbd.live { animation: keypress 2.1s ease-in-out infinite; }
+.kbd.key { padding: 1px 8px; border-width: 1.5px; border-radius: 7px; font-size: 10.5px; line-height: 1.5; box-shadow: 0 2px 0 #e3d6de; }
+
+/* shortcut keyboard nggak ada artinya di layar sentuh */
+.touch-only { display: none; }
+@media (hover: none) and (pointer: coarse) {
+  .kb-only { display: none !important; }
+  .touch-only { display: inline; }
+}
+@media (max-width: 440px) {
+  .dock-bar { column-gap: 6px; padding: 6px; }
+  .dock-side { gap: 8px; }
+  .dock-side.jeda { padding: 0 10px 0 6px; }
+  .dock-side.jeda i { width: 36px; height: 36px; border-radius: 12px; }
+  .dock-side .lbl { font-size: 10px; white-space: normal; }
+  .dock-side .lbl b { font-size: 13.5px; white-space: nowrap; }
+  .dock-side.info { padding: 0 4px; }
+  .dock-side.info .kbd.key { display: none; }
+  .dock-bar .wave { gap: 2px; }
+  .dock-bar .wave i { width: 3px; }
+  .dock-bar .clock { font-size: 14px; min-width: 30px; }
+  .mic-wrap, .mic { width: 84px; height: 84px; }
+  .mic-wrap { margin-top: -28px; }
+}
 
 /* ── pita DIJEDA ──────────────────────────────────────── */
 .band { display: flex; align-items: center; gap: 10px; background: var(--tang); border-radius: 18px; padding: 11px 13px; box-shadow: 0 3px 0 var(--tang-dark); margin: 0 18px 12px; }
@@ -409,7 +458,7 @@ input, select, textarea { font: inherit; color: inherit; }
   .bubble { max-width: 520px; font-size: 16px; padding: 14px 18px; border-radius: 24px 24px 24px 8px; }
   .turn.me .bubble { border-radius: 24px 24px 8px 24px; }
   .fix { max-width: 520px; }
-  .dock { padding: 14px 34px 24px; display: flex; flex-direction: column; align-items: center; }
+  .dock { padding: 50px 34px 24px; display: flex; flex-direction: column; align-items: center; }
   .band { margin: 0 34px 12px; }
   .err { margin: 0 34px 10px; }
 
@@ -427,8 +476,8 @@ input, select, textarea { font: inherit; color: inherit; }
   /* bengkel: sheet → panel, animasi & posisi diganti */
   .bengkel { position: static; max-height: none; border-radius: 0; box-shadow: none; padding: 0; animation: none; }
   .bengkel .handle { display: none; }
-  .dock-row { gap: 24px; }
-  .mic-wrap, .mic { width: 108px; height: 108px; }
+  .mic-wrap, .mic { width: 100px; height: 100px; }
+  .mic-wrap { margin-top: -44px; }
 }
 
 /* ── util kecil ───────────────────────────────────────── */
