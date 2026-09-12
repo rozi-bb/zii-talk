@@ -2,7 +2,15 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Icon, Cards } from '../components/icons';
 import { Orb, Wave, Beats } from '../components/bits';
 import { Bengkel } from '../components/Bengkel';
-import { chatStream, type AppConfig, type Correction, type Phrase } from '../lib/api';
+import {
+  chatStream,
+  rewindRun,
+  type AppConfig,
+  type Correction,
+  type Phrase,
+  type SavedRun,
+  type Topic,
+} from '../lib/api';
 import {
   listen,
   stopSpeaking,
@@ -13,7 +21,6 @@ import {
   type Meter,
   type Session as Listener,
 } from '../lib/speech';
-import { situationFor, type Topic } from '../data/topics';
 
 const BARS = 15;
 const flat = () => new Array(BARS).fill(7) as number[];
@@ -24,7 +31,19 @@ type Line = {
   text: string;
   correction?: Correction | null;
   phrase?: Phrase | null;
+  at: number; // kapan nongol di layar — timestamp di riwayat tes
 };
+
+/* id sesi, dibikin di browser dan dipakai server sebagai id tes.
+   randomUUID cuma ada di secure context (HTTPS / localhost). */
+function newRunId(): string {
+  if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+  const b = crypto.getRandomValues(new Uint8Array(16));
+  b[6] = (b[6] & 0x0f) | 0x40;
+  b[8] = (b[8] & 0x3f) | 0x80;
+  const h = Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('');
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+}
 
 export function Session({
   cfg,
@@ -40,7 +59,7 @@ export function Session({
   model: string;
   frasa: number;
   momentum: number;
-  onExit: (turns: number) => void;
+  onExit: () => void;
   onPhrase: (p: Phrase) => void;
 }) {
   const speechReady = cfg.speech.ready;
@@ -64,7 +83,12 @@ export function Session({
   );
   const [bump, setBump] = useState(false);
 
-  const situation = useRef(situationFor(topic));
+  const situation = useRef(topic.situations[Math.floor(Math.random() * topic.situations.length)] ?? '');
+  const runId = useRef(newRunId());
+  /* Sesi baru kesimpan sebagai tes begitu jawaban ke-`min` masuk (server
+     yang mutusin, lalu ngabarin lewat stream). Sebelum itu: null. */
+  const [saved, setSaved] = useState<SavedRun | null>(null);
+  const min = cfg.minAnswers;
   const voiceRef = useRef<Voice | null>(null);
   const listener = useRef<Listener | null>(null);
   const meter = useRef<Meter | null>(null);
@@ -128,7 +152,7 @@ export function Session({
       abort.current = ac;
 
       const base = mine
-        ? [...linesRef.current, { role: 'me' as const, text: mine }]
+        ? [...linesRef.current, { role: 'me' as const, text: mine, at: Date.now() }]
         : linesRef.current;
 
       /* Koreksi nempel by INDEX, bukan "kalimat-ku terakhir" — dia dateng
@@ -143,7 +167,7 @@ export function Session({
 
       setErr(null);
       goPhase('thinking');
-      setLines([...base, { role: 'ai', text: '' }]);
+      setLines([...base, { role: 'ai', text: '', at: Date.now() }]);
 
       voiceRef.current?.kill();
       const v = new Voice(voice);
@@ -168,25 +192,35 @@ export function Session({
         await chatStream(
           {
             model,
-            topic: topic.name,
+            topicId: topic.id,
+            runId: runId.current,
             situation: situation.current,
-            history: base.map((l) => ({ role: l.role, text: l.text })),
+            history: base.map((l) => ({
+              role: l.role,
+              text: l.text,
+              at: l.at,
+              correction: l.correction ?? null,
+            })),
           },
-          (delta) => {
-            if (!opened) {
-              opened = true;
-              if (live() && phaseRef.current === 'thinking') goPhase('talking');
-            }
-            setLines((prev) => {
-              const slot = prev[aiIndex];
-              if (!slot || slot.role !== 'ai') return prev;
-              const next = [...prev];
-              next[aiIndex] = { ...slot, text: slot.text + delta };
-              return next;
-            });
-            chunks.push(delta); // suara yang udah di-kill diem aja, teksnya tetap nambah
+          {
+            delta: (delta) => {
+              if (!opened) {
+                opened = true;
+                if (live() && phaseRef.current === 'thinking') goPhase('talking');
+              }
+              setLines((prev) => {
+                const slot = prev[aiIndex];
+                if (!slot || slot.role !== 'ai') return prev;
+                const next = [...prev];
+                next[aiIndex] = { ...slot, text: slot.text + delta };
+                return next;
+              });
+              chunks.push(delta); // suara yang udah di-kill diem aja, teksnya tetap nambah
+            },
+            review: attach,
+            run: setSaved,
+            warn: setErr, // gagal nyimpen ≠ gagal ngobrol: kasih tau, tapi jalan terus
           },
-          attach,
           ac.signal,
         );
         chunks.flush();
@@ -215,7 +249,7 @@ export function Session({
         goPhase('idle');
       }
     },
-    [model, topic.name, voice, speechReady],
+    [model, topic.id, voice, speechReady],
   );
 
   /* pembuka */
@@ -350,7 +384,16 @@ export function Session({
     setPartial('');
     sent.current = '';
     setEditing(mine);
-  }, []);
+
+    /* Server nyimpen di AWAL giliran. Kalau yang ditarik jawaban ke-`min`
+       (atau lebih), dia udah keburu masuk database — buang juga dari sana.
+       Turun di bawah minimum = sesinya dihapus lagi. */
+    if (before.current.filter((l) => l.role === 'me').length + 1 >= min) {
+      rewindRun(runId.current, keep)
+        .then((r) => setSaved(r.saved))
+        .catch((e) => setErr(e instanceof Error ? e.message : String(e)));
+    }
+  }, [min]);
 
   /* spasi = push to talk (desktop), M = kabur ke Bengkel,
      SPASI lagi pas Zii mikir = betulin */
@@ -432,6 +475,21 @@ export function Session({
     }
   }
 
+  /* Keluar sebelum minimum = sesi ini nggak disimpan sama sekali. Tanya dulu. */
+  const leave = () => {
+    if (
+      myTurns > 0 &&
+      myTurns < min &&
+      !window.confirm(`Baru ${myTurns} dari ${min} pertanyaan — sesi ini nggak akan disimpan. Tetap keluar?`)
+    ) {
+      return;
+    }
+    onExit();
+  };
+  const progress = saved
+    ? `${myTurns} pertanyaan · Tes #${saved.attempt} tersimpan`
+    : `${myTurns}/${min} pertanyaan`;
+
   const status =
     phase === 'rec'
       ? 'kamu ngomong...'
@@ -472,11 +530,11 @@ export function Session({
           </i>
           <div style={{ flex: 1, minWidth: 0 }}>
             <b>{topic.name}</b>
-            <span>{myTurns} giliran kamu</span>
+            <span>{progress}</span>
           </div>
         </div>
         <div style={{ flex: 1 }} />
-        <button className="rail-item" onClick={() => onExit(myTurns)}>
+        <button className="rail-item" onClick={leave}>
           <i style={{ background: '#F4EBF5', color: 'var(--ink-soft)' }}>
             <Icon name="back" size={17} />
           </i>
@@ -489,7 +547,7 @@ export function Session({
       {/* tengah */}
       <div className="sess-main">
         <div className="sess-head safe-top">
-          <button className="icon-btn" onClick={() => onExit(myTurns)} aria-label="Keluar">
+          <button className="icon-btn" onClick={leave} aria-label="Keluar">
             <Icon name="back" size={19} />
           </button>
           <div className="sess-title">
@@ -506,7 +564,10 @@ export function Session({
           </div>
         </div>
 
-        <Beats done={Math.min(6, myTurns)} />
+        <div className="goal">
+          <Beats done={Math.min(min, myTurns)} total={min} />
+          <span className={saved ? 'ok' : ''}>{progress}</span>
+        </div>
 
         <div className="presence">
           <Orb

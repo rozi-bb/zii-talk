@@ -11,11 +11,11 @@ Desain aslinya ada di `design/` (canvas 7 artboard).
 cp .env.example .env    # isi key-nya
 npm install             # frontend (React + Vite)
 uv sync --group dev     # backend (Python + FastAPI)
-npm run dev             # buka http://localhost:5173
+npm run dev             # nyalain Postgres (Docker) + app → http://localhost:5173
 ```
 
 Backend-nya Python, frontend-nya React — makanya dua perintah install.
-Butuh [uv](https://docs.astral.sh/uv/) dan Python ≥ 3.11.
+Butuh [uv](https://docs.astral.sh/uv/), Python ≥ 3.11, dan **Docker** (buat Postgres).
 
 Produksi (satu proses, frontend + API):
 
@@ -35,6 +35,7 @@ npm run serve           # buka http://localhost:8787
 | `LANGSMITH_API_KEY` | trace + Studio | buat observability |
 | `LANGSMITH_TRACING` | `true` buat nyalain trace | opsional |
 | `LANGSMITH_PROJECT` | nama project trace | opsional |
+| `DATABASE_URL` | Postgres, default `postgresql://zii:zii@127.0.0.1:5439/zii_talk` | opsional |
 
 Yang belum keisi bakal ketahuan di layar Home ("LLM & Azure Speech belum
 kebaca"). Minimal satu key LLM **plus** Azure Speech: obrolan utama sengaja
@@ -49,7 +50,8 @@ yang manggil LLM, dan buat Azure dia cuma nyetak token sementara (umur 10 menit)
 yang aman dipegang browser. Jangan pindahin panggilan ini ke frontend.
 
 Endpoint-nya kekelompok per fitur di `server/routes/`, dan Swagger-nya
-otomatis ada di `/docs` — 4 grup: Config, Speech, Chat, Bengkel Kalimat.
+otomatis ada di `/docs` — 7 grup: Config, Speech, Chat, Bengkel Kalimat, Topik,
+Riwayat Tes, State.
 
 ## Model LLM
 
@@ -248,20 +250,72 @@ Mode dev dengan live-reload lewat tailnet:
 npm run dev:tailnet    # HMR-nya lewat wss di port bridge
 ```
 
+## Database, tes & dashboard
+
+Semua data ada di **Postgres** yang jalan di container (`docker-compose.yml`,
+`127.0.0.1:5439`, volume `zii-talk_pgdata`). `npm run dev` / `npm start`
+nyalain container-nya duluan. Skemanya dibikin otomatis waktu server start, dari
+file di `server/migrations/` (urut nama, sekali per file).
+
+```bash
+npm run db:up      # nyalain Postgres, nunggu sampai sehat
+npm run db:psql    # masuk psql
+npm run db:down    # matiin — data tetap aman di volume
+```
+
+| Tabel | Isinya |
+|---|---|
+| `topics` | topik + skenario buat Zii. 9 topik awal di-seed dari `002_seed_topics.sql` |
+| `test_runs` | satu sesi tes: topik, tes ke-berapa, model, jumlah pertanyaan, mulai & aktivitas terakhir |
+| `messages` | transkrip per sesi, lengkap sama timestamp & kartu koreksi |
+| `phrases` | koleksi frasa |
+| `app_state` | model pilihan & momentum — satu baris, usernya cuma satu |
+
+Status "sudah/belum dites", jumlah tes, dan total pertanyaan **nggak disimpan
+sebagai kolom**. Semuanya dihitung dari `test_runs` lewat view `topic_stats`,
+jadi nggak mungkin beda sama data aslinya.
+
+**Kapan satu sesi jadi tes:** begitu **jawaban ke-10** masuk. Sebelum itu nggak
+ada yang ditulis ke database — keluar di jawaban ke-7 berarti sesi itu nggak
+pernah ada (app nanya dulu sebelum kamu keluar). Lewat dari 10, tiap Q&A langsung
+ditulis dan kamu bebas lanjut sampai kapan aja. Satu pertanyaan = satu pertanyaan
+Zii yang kamu jawab. Batasnya `MIN_ANSWERS` di `server/runlog.py`.
+
+Yang gampang kelewat:
+
+- Jawaban ditulis di **awal** giliran, balasan Zii di **akhir**. Jadi jawaban
+  ke-10 tetap kesimpan walaupun kamu langsung keluar selagi Zii masih nyaut.
+- **Betulin** jawaban yang udah kesimpan ikut ngehapus barisnya di database
+  (`POST /api/runs/{id}/rewind`). Kalau jadinya di bawah 10, sesinya dihapus lagi.
+- Id sesi dibikin browser waktu sesi dibuka, jadi giliran yang nyampe dua kali
+  nggak bikin tes dobel.
+- Gagal nyimpen (misal Postgres mati di tengah sesi) nggak ngehentiin obrolan —
+  cuma muncul peringatan merah.
+
+**Dashboard** ada di `/dashboard` (link di atas Home), enaknya dibuka di tab
+sendiri — angkanya disegerin tiap tab-nya dilihat lagi. Isinya ringkasan (total
+topik, sudah/belum dites, total tes & pertanyaan), tabel topik yang bisa difilter,
+dan per topik: riwayat tes (klik buat lihat transkripnya), tombol **Retest**, dan
+form **Tambah topik**. Sesi yang dimulai dari dashboard balik ke dashboard lagi
+waktu selesai.
+
 ## Struktur
 
 ```
 server/main.py      FastAPI: rakit router + serve frontend build
-server/routes/      endpoint per fitur (config, speech, chat, translate)
+server/routes/      endpoint per fitur (config, speech, chat, translate, topics, runs, state)
 server/agent/       graph LangGraph (conversation, workshop)
+server/db.py        pool Postgres + runner migrasi
+server/runlog.py    nyatet sesi tes (aturan minimal 10 jawaban)
+server/migrations/  skema + seed 9 topik awal
 server/util.py      helper: bersihin teks, riwayat -> BaseMessage
 pyproject.toml      dependency Python (dikelola uv)
 langgraph.json      config Agent Server buat Studio
+docker-compose.yml  Postgres
 src/lib/speech.ts   Azure STT/TTS + antrean suara per kalimat
 src/lib/api.ts      client ke server
-src/lib/store.ts    koleksi frasa & momentum (localStorage)
-src/data/topics.ts  kurikulum Pareto — 9 topik
-src/screens/        Home, Session
+src/lib/nav.ts      router mini: / dan /dashboard
+src/screens/        Home, Session, Dashboard
 src/components/     Bengkel, orb, waveform, ikon
 scripts/bridge.mjs  bridge Tailscale (HTTPS buat mic)
 design/             canvas desain
@@ -274,6 +328,6 @@ design/             canvas desain
   keganggu.
 - **Momentum bukan streak.** Bolos sehari nggak ngapus apa-apa; baru mengecil
   (separuh, minimal 1) kalau nganggur lebih dari 2 hari. Ini disengaja.
-- Koleksi frasa disimpan di **localStorage** — per browser, belum sinkron
-  antar device.
+- Koleksi frasa, momentum, dan riwayat tes ada di **Postgres**, bukan di
+  browser — jadi sama di semua device yang buka app lewat server yang sama.
 - Mic butuh **HTTPS** kalau diakses bukan dari `localhost`.

@@ -70,9 +70,9 @@ export function ModelPicker({
   );
 }
 
-export function Beats({ done, total = 6 }: { done: number; total?: number }) {
+export function Beats({ done, total }: { done: number; total: number }) {
   return (
-    <div className="beats" aria-label={`${done} dari ${total} giliran`}>
+    <div className="beats" aria-label={`${done} dari ${total} pertanyaan dijawab`}>
       {Array.from({ length: total }, (_, i) => (
         <i key={i} className={i < done ? 'on' : ''} />
       ))}

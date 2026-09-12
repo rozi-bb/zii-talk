@@ -1,0 +1,30 @@
+# Postgres khusus Zii Talk. Port & volume sendiri, jadi nggak nabrak
+# Postgres project lain di mesin ini. Cuma dengerin 127.0.0.1.
+#
+#   npm run db:up     nyalain (otomatis jalan sebelum `npm run dev` / `start`)
+#   npm run db:psql   masuk psql
+#   npm run db:down   matiin (data tetap aman di volume)
+name: zii-talk
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: zii-talk-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: zii
+      POSTGRES_PASSWORD: zii
+      POSTGRES_DB: zii_talk
+    ports:
+      # kalau port ini diganti, DATABASE_URL di .env juga harus diganti
+      - "127.0.0.1:5439:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zii -d zii_talk"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  pgdata:

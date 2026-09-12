@@ -2,24 +2,65 @@ export type ModelInfo = { id: string; label: string; hint: string; ready: boolea
 export type AppConfig = {
   models: ModelInfo[];
   speech: { ready: boolean; region: string | null; voice: string };
+  /* jawaban minimal biar satu sesi kesimpan sebagai tes */
+  minAnswers: number;
 };
+
+export type Group = 'daily' | 'work';
+export type Topic = {
+  id: string;
+  name: string;
+  group: Group;
+  icon: string;
+  tint: string;
+  ink: string;
+  blurb: string;
+  situations: string[];
+  /* dihitung server dari riwayat tes, bukan flag yang disimpan */
+  tests: number;
+  questions: number;
+  lastTestedAt: string | null;
+};
+export type NewTopic = Pick<Topic, 'name' | 'group' | 'blurb' | 'situations' | 'icon' | 'tint' | 'ink'>;
+
+export type AppState = { model: string; momentum: number; lastPlayed: string | null; phrases: number };
 
 export type Correction = { wrong: string; right: string; why: string };
 export type Phrase = { en: string; id: string };
 /* Bengkel: tiap gaya dapet beberapa pilihan (biasanya 3), yang pertama paling natural */
 export type Translation = { formal: string[]; casual: string[]; note: string };
-export type Turn = { role: 'ai' | 'me'; text: string };
+/* `at` = kapan barisnya nongol di layar (ms) — jadi timestamp di riwayat tes */
+export type Turn = { role: 'ai' | 'me'; text: string; at: number; correction?: Correction | null };
 
-async function post<T>(url: string, body: unknown): Promise<T> {
-  const r = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
+/* sesi yang udah kesimpan sebagai tes */
+export type SavedRun = { attempt: number; questions: number };
+export type Run = {
+  id: string;
+  topicId: string;
+  attempt: number;
+  situation: string;
+  model: string;
+  questions: number;
+  startedAt: string;
+  endedAt: string;
+};
+export type RunMessage = { role: 'ai' | 'me'; text: string; correction: Correction | null; at: string };
+export type RunDetail = Run & { messages: RunMessage[] };
+
+async function call<T>(method: string, url: string, body?: unknown): Promise<T> {
+  const r = await fetch(
+    url,
+    body === undefined
+      ? { method }
+      : { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) },
+  );
   const j = await r.json().catch(() => ({}) as Record<string, unknown>);
   if (!r.ok) throw new Error(String((j as { error?: string }).error ?? `Gagal (${r.status})`));
   return j as T;
 }
+
+const get = <T>(url: string) => call<T>('GET', url);
+const post = <T>(url: string, body: unknown = {}) => call<T>('POST', url, body);
 
 export async function loadConfig(): Promise<AppConfig> {
   const r = await fetch('/api/config');
@@ -27,18 +68,36 @@ export async function loadConfig(): Promise<AppConfig> {
   return r.json();
 }
 
+export const loadState = () => get<AppState>('/api/state');
+export const saveModel = (model: string) => call<AppState>('PUT', '/api/state/model', { model });
+export const touchMomentum = () => post<AppState>('/api/state/touch');
+export const addPhrase = (p: Phrase, topicId: string) => post<AppState>('/api/phrases', { ...p, topicId });
+
+export const loadTopics = () => get<Topic[]>('/api/topics');
+export const createTopic = (t: NewTopic) => post<Topic>('/api/topics', t);
+export const loadRuns = (topicId: string) => get<Run[]>(`/api/topics/${encodeURIComponent(topicId)}/runs`);
+export const loadRun = (id: string) => get<RunDetail>(`/api/runs/${encodeURIComponent(id)}`);
+export const rewindRun = (id: string, keep: number) =>
+  post<{ saved: SavedRun | null }>(`/api/runs/${encodeURIComponent(id)}/rewind`, { keep });
+
 export type ReviewOut = { correction: Correction | null; phrase: Phrase | null };
 
 /**
  * Balasan Zii, di-stream.
- * `onDelta` kepanggil tiap potongan teks nyampe.
- * `onReview` kepanggil sekali kalau koreksi/frasa nyusul — graph-nya
+ * `delta` kepanggil tiap potongan teks nyampe.
+ * `review` kepanggil sekali kalau koreksi/frasa nyusul — graph-nya
  * ngerjain itu paralel, jadi datengnya belakangan di stream yang SAMA.
+ * `run` kepanggil kalau sesi ini (udah) kesimpan sebagai tes.
+ * `warn` = gagal nyimpen ke database; obrolannya tetap jalan.
  */
 export async function chatStream(
-  p: { model: string; topic: string; situation: string; history: Turn[] },
-  onDelta: (chunk: string) => void,
-  onReview?: (r: ReviewOut) => void,
+  p: { model: string; topicId: string; runId: string; situation: string; history: Turn[] },
+  on: {
+    delta: (chunk: string) => void;
+    review?: (r: ReviewOut) => void;
+    run?: (r: SavedRun) => void;
+    warn?: (message: string) => void;
+  },
   signal?: AbortSignal,
 ): Promise<string> {
   const r = await fetch('/api/chat/stream', {
@@ -70,12 +129,20 @@ export async function chatStream(
       buf = buf.slice(nl + 1);
       if (!line) continue;
       try {
-        const j = JSON.parse(line) as { d?: string; e?: string; review?: ReviewOut };
+        const j = JSON.parse(line) as {
+          d?: string;
+          e?: string;
+          review?: ReviewOut;
+          run?: SavedRun;
+          warn?: string;
+        };
         if (j.d) {
           full += j.d;
-          onDelta(j.d);
+          on.delta(j.d);
         }
-        if (j.review) onReview?.(j.review);
+        if (j.review) on.review?.(j.review);
+        if (j.run) on.run?.(j.run);
+        if (j.warn) on.warn?.(j.warn);
         if (j.e) soft = j.e;
       } catch {
         /* baris nggak utuh */

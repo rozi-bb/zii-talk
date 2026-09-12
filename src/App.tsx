@@ -1,37 +1,62 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { Home } from './screens/Home';
+import { Dashboard } from './screens/Dashboard';
 
 /* SDK Azure Speech gede; dimuat baru saat sesi dibuka. */
 const Session = lazy(() => import('./screens/Session').then((m) => ({ default: m.Session })));
 import { Orb } from './components/bits';
-import { loadConfig, type AppConfig, type Phrase } from './lib/api';
-import { load, save, touchMomentum, addPhrase, type State } from './lib/store';
-import { byId } from './data/topics';
+import {
+  addPhrase,
+  loadConfig,
+  loadState,
+  loadTopics,
+  saveModel,
+  touchMomentum,
+  type AppConfig,
+  type AppState,
+  type Phrase,
+  type Topic,
+} from './lib/api';
+import { usePath } from './lib/nav';
+
+const errText = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 export default function App() {
+  const [path, go] = usePath();
   const [cfg, setCfg] = useState<AppConfig | null>(null);
   const [fatal, setFatal] = useState<string | null>(null);
-  const [st, setSt] = useState<State>(() => load());
+  const [st, setSt] = useState<AppState | null>(null);
+  const [topics, setTopics] = useState<Topic[] | null>(null);
   const [picked, setPicked] = useState<string | null>(null);
-  const [active, setActive] = useState<string | null>(null);
+  /* sesi yang lagi jalan + halaman buat balik habis selesai (Home / dashboard) */
+  const [active, setActive] = useState<{ id: string; back: string } | null>(null);
 
   useEffect(() => {
-    loadConfig()
-      .then((c) => {
+    Promise.all([loadConfig(), loadState(), loadTopics()])
+      .then(([c, s, t]) => {
         setCfg(c);
-        setSt((s) => {
-          const ok = s.model && c.models.some((m) => m.id === s.model);
-          if (ok) return s;
-          const first = c.models.find((m) => m.ready) ?? c.models[0];
-          return { ...s, model: first ? first.id : '' };
-        });
+        setTopics(t);
+        if (s.model && c.models.some((m) => m.id === s.model)) {
+          setSt(s);
+          return;
+        }
+        const first = c.models.find((m) => m.ready) ?? c.models[0];
+        setSt({ ...s, model: first ? first.id : '' });
+        if (first) saveModel(first.id).catch(() => {});
       })
-      .catch((e) => setFatal(e instanceof Error ? e.message : String(e)));
+      .catch((e) => setFatal(errText(e)));
   }, []);
 
-  useEffect(() => {
-    save(st);
-  }, [st]);
+  const refresh = useCallback(() => loadTopics().then(setTopics), []);
+
+  /* Model dipegang browser (dropdown-nya bisa diganti selagi request lain
+     masih jalan) — balasan server cuma dipakai buat angka lainnya. */
+  const merge = (s: AppState) => setSt((prev) => (prev ? { ...s, model: prev.model } : s));
+
+  const start = (id: string) => {
+    setActive({ id, back: location.pathname + location.search });
+    touchMomentum().then(merge).catch(() => {}); // momentum itu bonus, jangan halangin sesi
+  };
 
   if (fatal) {
     return (
@@ -47,30 +72,38 @@ export default function App() {
     );
   }
 
-  if (!cfg) return <Booting label="Nyalain Zii..." />;
+  if (!cfg || !st || !topics) return <Booting label="Nyalain Zii..." />;
 
-  if (active) {
-    const topic = byId(active);
+  const topic = active && topics.find((t) => t.id === active.id);
+  if (active && topic) {
     return (
       <div className="app">
         <Suspense fallback={<Booting label="Nyiapin mikrofon..." />}>
-        <Session
-          key={active}
-          cfg={cfg}
-          topic={topic}
-          model={st.model}
-          frasa={st.collection.length}
-          momentum={st.momentum}
-          onPhrase={(p: Phrase) => setSt((s) => addPhrase(s, p, topic.id))}
-          onExit={(turns) => {
-            setSt((s) => ({
-              ...s,
-              progress: { ...s.progress, [topic.id]: Math.max(s.progress[topic.id] ?? 0, Math.min(8, turns)) },
-            }));
-            setActive(null);
-          }}
-        />
+          <Session
+            key={active.id}
+            cfg={cfg}
+            topic={topic}
+            model={st.model}
+            frasa={st.phrases}
+            momentum={st.momentum}
+            onPhrase={(p: Phrase) => {
+              addPhrase(p, topic.id).then(merge).catch(() => {});
+            }}
+            onExit={() => {
+              setActive(null);
+              go(active.back);
+              refresh().catch(() => {});
+            }}
+          />
         </Suspense>
+      </div>
+    );
+  }
+
+  if (path === '/dashboard') {
+    return (
+      <div className="app">
+        <Dashboard cfg={cfg} topics={topics} onRefresh={refresh} onStart={start} go={go} />
       </div>
     );
   }
@@ -79,14 +112,16 @@ export default function App() {
     <div className="app">
       <Home
         cfg={cfg}
+        topics={topics}
         state={st}
         picked={picked}
         onPick={setPicked}
-        onModel={(model) => setSt((s) => ({ ...s, model }))}
-        onStart={(id) => {
-          setSt((s) => touchMomentum(s));
-          setActive(id);
+        onModel={(model) => {
+          setSt((s) => s && { ...s, model });
+          saveModel(model).catch(() => {});
         }}
+        onStart={start}
+        go={go}
       />
     </div>
   );

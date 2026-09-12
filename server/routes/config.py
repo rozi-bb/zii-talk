@@ -8,6 +8,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 
 from server.agent.models import MODELS, key_for
+from server.runlog import MIN_ANSWERS
 
 router = APIRouter(prefix="/api", tags=["Config"])
 
@@ -43,6 +44,7 @@ class AppConfig(BaseModel):
     models: list[ModelInfo]
     speech: SpeechInfo
     tracing: TracingInfo
+    minAnswers: int  # jawaban minimal biar satu sesi kesimpan sebagai tes
 
 
 @router.get("/config", response_model=AppConfig, summary="Status model, speech, dan tracing")
@@ -67,4 +69,5 @@ def get_config() -> AppConfig:
             on=(os.environ.get("LANGSMITH_TRACING") or "").lower() == "true",
             project=os.environ.get("LANGSMITH_PROJECT") or "default",
         ),
+        minAnswers=MIN_ANSWERS,
     )

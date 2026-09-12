@@ -4,17 +4,20 @@ import json
 import os
 from pathlib import Path
 
+import psycopg
 from dotenv import load_dotenv
 from fastapi import FastAPI
-from fastapi.responses import FileResponse
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.requests import Request
 from starlette.responses import Response
 
 load_dotenv()
 
+from server import db  # noqa: E402
 from server.agent.models import MODELS, key_for  # noqa: E402  (butuh .env kemuat duluan)
-from server.routes import chat, config, speech, translate  # noqa: E402
+from server.routes import chat, config, runs, speech, state, topics, translate  # noqa: E402
 
 # ── grouping buat Swagger (/docs) ──────────────────────────────────
 TAGS_METADATA = [
@@ -22,6 +25,9 @@ TAGS_METADATA = [
     {"name": "Speech", "description": "Token sementara buat Azure Speech SDK (STT & TTS) di browser."},
     {"name": "Chat", "description": "Obrolan sama Zii — streaming NDJSON, respond + review paralel."},
     {"name": "Bengkel Kalimat", "description": "Jeda obrolan, terjemahin Indonesia -> Inggris (formal & casual)."},
+    {"name": "Topik", "description": "Daftar topik + statistik tes, dan tambah topik baru."},
+    {"name": "Riwayat Tes", "description": "Sesi tes per topik (minimal 10 jawaban) lengkap dengan transkripnya."},
+    {"name": "State", "description": "Model pilihan, momentum, dan koleksi frasa."},
 ]
 
 app = FastAPI(
@@ -35,6 +41,28 @@ app.include_router(config.router)
 app.include_router(speech.router)
 app.include_router(chat.router)
 app.include_router(translate.router)
+app.include_router(topics.router)
+app.include_router(runs.router)
+app.include_router(state.router)
+
+
+# Semua error dibalikin sebagai {"error": "..."} — itu yang dibaca frontend.
+@app.exception_handler(db.DatabaseDown)
+async def on_db_down(_: Request, e: db.DatabaseDown) -> JSONResponse:
+    return JSONResponse(status_code=503, content={"error": str(e)})
+
+
+@app.exception_handler(psycopg.OperationalError)
+async def on_db_lost(_: Request, e: psycopg.OperationalError) -> JSONResponse:
+    return JSONResponse(status_code=503, content={"error": f"Koneksi ke Postgres putus: {e}"})
+
+
+@app.exception_handler(RequestValidationError)
+async def on_invalid(_: Request, e: RequestValidationError) -> JSONResponse:
+    first = e.errors()[0] if e.errors() else {}
+    field = ".".join(str(p) for p in first.get("loc", [])[1:])
+    msg = first.get("msg", "Data nggak valid").removeprefix("Value error, ")
+    return JSONResponse(status_code=422, content={"error": f"{field}: {msg}" if field else msg})
 
 # ── frontend hasil build ────────────────────────────────────────────
 DIST = Path(__file__).resolve().parent.parent / "dist"
@@ -68,6 +96,12 @@ async def on_startup() -> None:
     else:
         print("  LangSmith     →  tracing OFF (set LANGSMITH_TRACING=true + LANGSMITH_API_KEY)")
 
+    try:
+        await db.pool()
+        print(f"  Postgres      →  {db.where()}")
+    except db.DatabaseDown:
+        print(f"  Postgres      →  GAGAL nyambung ke {db.where()} (npm run db:up)")
+
     bridge_path = Path(__file__).resolve().parent.parent / ".bridge.json"
     try:
         state = json.loads(bridge_path.read_text())
@@ -76,6 +110,11 @@ async def on_startup() -> None:
     except (FileNotFoundError, json.JSONDecodeError):
         pass  # bridge belum nyala
     print("")
+
+
+@app.on_event("shutdown")
+async def on_shutdown() -> None:
+    await db.close()
 
 
 if __name__ == "__main__":

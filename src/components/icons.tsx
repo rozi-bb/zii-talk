@@ -122,6 +122,7 @@ const P: Record<string, React.ReactNode> = {
       <path d="M8.8 7.2V5.4a2 2 0 0 1 2-2h2.4a2 2 0 0 1 2 2v1.8M2.8 12.4h18.4" />
     </>
   ),
+  plus: <path d="M12 5v14M5 12h14" />,
   badge: (
     <>
       <rect x="3" y="4.4" width="18" height="15.2" rx="2.6" />

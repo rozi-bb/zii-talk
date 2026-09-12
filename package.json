@@ -4,6 +4,11 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "predev": "npm run db:up",
+    "prestart": "npm run db:up",
+    "db:up": "docker compose up -d --wait db",
+    "db:down": "docker compose stop db",
+    "db:psql": "docker compose exec db psql -U zii zii_talk",
     "dev": "concurrently -n api,web -c magenta,cyan \"PYTHONUNBUFFERED=1 uv run python -m server.main --reload\" \"vite\"",
     "build": "tsc --noEmit && vite build",
     "start": "PYTHONUNBUFFERED=1 uv run python -m server.main",
