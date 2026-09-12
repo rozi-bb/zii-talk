@@ -70,7 +70,12 @@ async def review(state: ConversationState) -> dict:
         messages.append(HumanMessage(f"Learner said: {last_human.content}"))
 
         out: ReviewOut = await model.ainvoke(messages)
-        return {"correction": out.correction, "phrase": out.phrase}
+        # Jaminan di kode, bukan cuma di prompt: kartu Tangkap frasa di UI
+        # cuma nempel ke kartu koreksi. Kalau nggak ada correction, phrase
+        # nggak akan pernah kelihatan/bisa ditangkep — jadi buang aja di sini,
+        # daripada percaya model selalu nurut instruksi di REVIEW_SYSTEM.
+        phrase = out.phrase if out.correction else None
+        return {"correction": out.correction, "phrase": phrase}
     except Exception:
         # koreksi itu bonus — jangan sampai ngerusak obrolan
         return {"correction": None, "phrase": None}

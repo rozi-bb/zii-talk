@@ -21,7 +21,8 @@ CORRECTION
 - If nothing is worth correcting, return null. Most lines need no correction.
 
 PHRASE
-- Return a phrase only when it is genuinely reusable in everyday or work talk: either the corrected sentence, or a phrase the partner just offered.
+- Only when there IS a correction above (never on its own — the UI only shows a phrase attached to a correction card, so a phrase without one is silently wasted).
+- Must be the corrected sentence itself, genuinely reusable in everyday or work talk. Otherwise null.
 - "id" is the natural Indonesian meaning. Otherwise null.
 
 Reply with json in exactly this shape and nothing else:
