@@ -1,16 +1,22 @@
+import { shown } from './expr';
+
 export type ModelInfo = { id: string; label: string; hint: string; ready: boolean; keyEnv: string };
+/* daftar suara dipegang server (server/voices.py) — yang aman dipakai di region-nya */
+export type VoiceInfo = { id: string; name: string; gender: 'female' | 'male'; hint: string };
 export type AppConfig = {
   models: ModelInfo[];
-  speech: { ready: boolean; region: string | null; voice: string };
+  speech: { ready: boolean; region: string | null; voices: VoiceInfo[] };
+  tracing: { on: boolean; project: string };
   /* jawaban minimal biar satu sesi kesimpan sebagai tes */
   minAnswers: number;
 };
 
-export type Group = 'daily' | 'work';
+/* `topics` = jumlah topik di kategori itu, dihitung server */
+export type Category = { id: string; name: string; topics: number };
 export type Topic = {
   id: string;
   name: string;
-  group: Group;
+  categoryId: string;
   icon: string;
   tint: string;
   ink: string;
@@ -21,9 +27,10 @@ export type Topic = {
   questions: number;
   lastTestedAt: string | null;
 };
-export type NewTopic = Pick<Topic, 'name' | 'group' | 'blurb' | 'situations' | 'icon' | 'tint' | 'ink'>;
+export type NewTopic = Pick<Topic, 'name' | 'categoryId' | 'blurb' | 'situations' | 'icon' | 'tint' | 'ink'>;
 
-export type AppState = { model: string; momentum: number; lastPlayed: string | null; phrases: number };
+/* `voice` selalu valid: kalau belum pernah milih, server ngisi default-nya */
+export type AppState = { model: string; voice: string; momentum: number; lastPlayed: string | null; phrases: number };
 
 export type Correction = { wrong: string; right: string; why: string };
 export type Phrase = { en: string; id: string };
@@ -70,11 +77,14 @@ export async function loadConfig(): Promise<AppConfig> {
 
 export const loadState = () => get<AppState>('/api/state');
 export const saveModel = (model: string) => call<AppState>('PUT', '/api/state/model', { model });
+export const saveVoice = (voice: string) => call<AppState>('PUT', '/api/state/voice', { voice });
 export const touchMomentum = () => post<AppState>('/api/state/touch');
 export const addPhrase = (p: Phrase, topicId: string) => post<AppState>('/api/phrases', { ...p, topicId });
 
 export const loadTopics = () => get<Topic[]>('/api/topics');
 export const createTopic = (t: NewTopic) => post<Topic>('/api/topics', t);
+export const loadCategories = () => get<Category[]>('/api/categories');
+export const createCategory = (name: string) => post<Category>('/api/categories', { name });
 export const loadRuns = (topicId: string) => get<Run[]>(`/api/topics/${encodeURIComponent(topicId)}/runs`);
 export const loadRun = (id: string) => get<RunDetail>(`/api/runs/${encodeURIComponent(id)}`);
 export const rewindRun = (id: string, keep: number) =>
@@ -150,7 +160,7 @@ export async function chatStream(
     }
   }
 
-  if (soft && !full) throw new Error(soft);
+  if (soft && !shown(full)) throw new Error(soft); // cuma tag suara = sama aja nggak jawab
   return full;
 }
 

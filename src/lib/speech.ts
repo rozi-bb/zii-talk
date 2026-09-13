@@ -1,4 +1,5 @@
 import * as SDK from 'microsoft-cognitiveservices-speech-sdk';
+import { isSpoken, shown } from './expr';
 
 /* Token Azure umurnya 10 menit; kita perbarui tiap 8 menit. */
 let cached: { token: string; region: string; at: number } | null = null;
@@ -97,17 +98,23 @@ export async function speak(
   const syn = new SDK.SpeechSynthesizer(cfg, SDK.AudioConfig.fromSpeakerOutput(dest));
 
   let seen = 0;
-  syn.wordBoundary = () => {
+  syn.wordBoundary = (_s, e) => {
+    if (!isSpoken(e.text)) return; // pecahan tag suara, bukan kata
     seen += 1;
     opts.onWord?.(seen);
   };
 
+  /* Tag suara ([laughter]) cuma dimengerti HD voice — suara lain bisa ngebacanya. */
+  const said = escapeXml(/:DragonHD/i.test(voice) ? text : shown(text));
+
+  /* <prosody> cuma dikirim kalau kecepatannya beneran diubah. Docs bilang
+     HD voice (DragonHD) nggak dukung tag ini — dites di southeastasia
+     rate-nya tetap jalan, tapi jangan diandelin di jalur normal. */
   const pct = Math.round((rate - 1) * 100);
+  const body = pct === 0 ? said : `<prosody rate="${pct > 0 ? '+' : ''}${pct}%">${said}</prosody>`;
   const ssml =
     `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-US">` +
-    `<voice name="${escapeXml(voice)}"><prosody rate="${pct >= 0 ? '+' : ''}${pct}%">` +
-    escapeXml(text) +
-    `</prosody></voice></speak>`;
+    `<voice name="${escapeXml(voice)}">${body}</voice></speak>`;
 
   return new Promise<void>((resolve) => {
     let done = false;
@@ -129,7 +136,11 @@ export async function speak(
         } catch {
           /* noop */
         }
-        if (r.reason !== SDK.ResultReason.SynthesizingAudioCompleted) finish();
+        /* Sukses tapi audionya kosong — mis. potongan yang isinya cuma tag gaya
+           ("[excited]"): onAudioEnd nggak bakal nyala, jangan nunggu jaring
+           pengaman. Kosong = durasi 0 dan paling banter header WAV (44 byte). */
+        const empty = !r.audioDuration && (r.audioData?.byteLength ?? 0) <= 44;
+        if (r.reason !== SDK.ResultReason.SynthesizingAudioCompleted || empty) finish();
       },
       () => {
         try {

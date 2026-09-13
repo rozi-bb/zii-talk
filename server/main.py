@@ -17,7 +17,8 @@ load_dotenv()
 
 from server import db  # noqa: E402
 from server.agent.models import MODELS, key_for  # noqa: E402  (butuh .env kemuat duluan)
-from server.routes import chat, config, runs, speech, state, topics, translate  # noqa: E402
+from server.routes import categories, chat, config, runs, speech, state, topics, translate  # noqa: E402
+from server.voices import DEFAULT_VOICE, env_voice, is_voice_id  # noqa: E402
 
 # ── grouping buat Swagger (/docs) ──────────────────────────────────
 TAGS_METADATA = [
@@ -26,8 +27,9 @@ TAGS_METADATA = [
     {"name": "Chat", "description": "Obrolan sama Zii — streaming NDJSON, respond + review paralel."},
     {"name": "Bengkel Kalimat", "description": "Jeda obrolan, terjemahin Indonesia -> Inggris (formal & casual)."},
     {"name": "Topik", "description": "Daftar topik + statistik tes, dan tambah topik baru."},
+    {"name": "Kategori", "description": "Kategori topik: daftar dan tambah kategori baru."},
     {"name": "Riwayat Tes", "description": "Sesi tes per topik (minimal 10 jawaban) lengkap dengan transkripnya."},
-    {"name": "State", "description": "Model pilihan, momentum, dan koleksi frasa."},
+    {"name": "State", "description": "Model & suara pilihan, momentum, dan koleksi frasa."},
 ]
 
 app = FastAPI(
@@ -42,6 +44,7 @@ app.include_router(speech.router)
 app.include_router(chat.router)
 app.include_router(translate.router)
 app.include_router(topics.router)
+app.include_router(categories.router)
 app.include_router(runs.router)
 app.include_router(state.router)
 
@@ -91,6 +94,8 @@ async def on_startup() -> None:
     print(f"\n  Zii Talk API  →  http://{host}:{port}")
     print(f"  LLM siap      →  {', '.join(llm) if llm else 'BELUM ADA (isi .env)'}")
     print(f"  Azure Speech  →  {speech_region if speech_key and speech_region else 'BELUM ADA (isi .env)'}")
+    if env_voice() and not is_voice_id(env_voice()):
+        print(f"  Suara default →  AZURE_TTS_VOICE={env_voice()} nggak ada di server/voices.py, pakai {DEFAULT_VOICE}")
     if tracing:
         print(f"  LangSmith     →  tracing ON → project \"{os.environ.get('LANGSMITH_PROJECT', 'default')}\"")
     else:

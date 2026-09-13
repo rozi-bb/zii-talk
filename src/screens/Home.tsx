@@ -1,155 +1,226 @@
-import { Icon, Flame, Cards } from '../components/icons';
-import { ModelPicker } from '../components/bits';
-import type { AppConfig, AppState, Topic } from '../lib/api';
+import { Cards, Flame, Icon } from '../components/icons';
+import { TopicCard } from '../components/TopicCard';
+import type { AppConfig, AppState, Category, Topic } from '../lib/api';
 import { linkTo, type Go } from '../lib/nav';
+import { lastMs, lastPracticed, pickOfDay, statusText } from '../lib/topics';
 
-const OF_DAY = 'macet';
+/* kartu per baris di Latihan — sisanya lewat "Lihat semua" ke halaman Topik */
+const ROW = 4;
 
+/* Beranda "Latihan". Sengaja NGGAK nampilin semua topik: dia milihin yang
+   paling perlu dilatih, dan daftar lengkapnya ada di halaman Topik. */
 export function Home({
   cfg,
   topics,
+  categories,
   state,
-  picked,
-  onPick,
   onStart,
-  onModel,
   go,
 }: {
   cfg: AppConfig;
   topics: Topic[];
+  categories: Category[];
   state: AppState;
-  picked: string | null;
-  onPick: (id: string | null) => void;
   onStart: (id: string) => void;
-  onModel: (id: string) => void;
   go: Go;
 }) {
-  const hero = topics.find((t) => t.id === OF_DAY) ?? topics[0];
-  const daily = topics.filter((t) => t.group === 'daily' && t.id !== hero?.id);
-  const work = topics.filter((t) => t.group === 'work' && t.id !== hero?.id);
-  const pickedTopic = topics.find((t) => t.id === picked);
-
+  const min = cfg.minAnswers;
   const modelReady = cfg.models.some((m) => m.ready);
-  const missing: string[] = [];
-  if (!modelReady) missing.push('LLM');
-  if (!cfg.speech.ready) missing.push('Azure Speech');
+  const missing = [!modelReady && 'AI', !cfg.speech.ready && 'Mic & suara'].filter((x): x is string => !!x);
+  const catName = (id: string) => categories.find((c) => c.id === id)?.name ?? '';
+
+  const last = lastPracticed(topics);
+  const today = pickOfDay(topics, last?.id);
+  /* yang udah nongol di kartu besar nggak diulang di baris bawah */
+  const featured = new Set([today?.id, last?.id]);
+  const rest = topics.filter((t) => !featured.has(t.id));
+  const untested = rest.filter((t) => !t.tests);
+  const stale = rest.filter((t) => t.tests).sort((a, b) => lastMs(a) - lastMs(b));
+  const testedCount = topics.filter((t) => t.tests).length;
 
   const card = (t: Topic) => (
-    <button
+    <TopicCard
       key={t.id}
-      className={`topic${picked === t.id ? ' on' : ''}`}
-      onClick={() => onPick(picked === t.id ? null : t.id)}
-      onDoubleClick={() => onStart(t.id)}
-    >
-      <div className="topic-ico" style={{ background: t.tint, color: t.ink }}>
-        <Icon name={t.icon} size={21} />
-      </div>
-      <div className="topic-name">{t.name}</div>
-      <div className="topic-meta">
-        <div className="bar">
-          <i style={{ width: t.tests ? '100%' : 0 }} />
-        </div>
-        <span>{t.tests ? `${t.tests}× tes` : 'baru'}</span>
-      </div>
-    </button>
+      topic={t}
+      categoryName={catName(t.categoryId)}
+      onStart={() => onStart(t.id)}
+      disabled={!modelReady}
+    />
   );
 
   return (
-    <div className="home">
-      <div className="home-top safe-top">
-        <div className="stat">
-          <Flame className="flame" />
-          <b>{state.momentum}</b>
-          <span>hari</span>
+    <div className="page">
+      <header className="page-head">
+        <div>
+          <h1>Mau latihan apa hari ini?</h1>
+          <p>
+            {topics.length} topik di {categories.length} kategori · {testedCount} udah pernah tersimpan
+          </p>
         </div>
-        <a className="stat" style={{ marginLeft: 'auto' }} {...linkTo('/dashboard', go)}>
-          <Icon name="chart" size={16} />
-          <b>Dashboard</b>
-        </a>
-        <div className="stat">
-          <Cards />
-          <b>{state.phrases}</b>
-          <span>frasa</span>
-        </div>
-      </div>
-
-      <div className="home-body scroll">
-        <div className="home-hi">
-          Mau ngobrol apa
-          <br />
-          hari ini?
-        </div>
-        <div className="home-sub">Pilih yang paling bikin kamu penasaran.</div>
-
-        {missing.length > 0 && (
-          <div className="warn" style={{ marginTop: 16 }}>
-            <Icon name="info" size={18} />
-            <div>
-              <b>{missing.join(' & ')} belum kebaca.</b> Copy <code>.env.example</code> jadi{' '}
-              <code>.env</code>, isi key-nya, terus restart <code>npm run dev</code>.
-            </div>
+        <div className="head-stats m-only">
+          <div className="stat" title="Naik tiap hari kamu latihan, menyusut kalau lama nggak latihan">
+            <Flame className="flame" />
+            <b>{state.momentum}</b>
+            <span>momentum</span>
           </div>
-        )}
-
-        <div style={{ marginTop: 16 }}>
-          <ModelPicker models={cfg.models} value={state.model} onChange={onModel} />
+          <div className="stat" title="Frasa yang udah kamu simpan">
+            <Cards />
+            <b>{state.phrases}</b>
+            <span>frasa</span>
+          </div>
         </div>
+      </header>
 
-        {hero && (
-          <button className="hero b3d" onClick={() => onStart(hero.id)}>
-            <div className="hero-deco" aria-hidden="true">
-              <svg width="136" height="136" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.1">
-                <circle cx="12" cy="12" r="9.2" />
-                <circle cx="12" cy="12" r="3.9" />
-                <path d="M5.5 5.5 9.2 9.2M18.5 5.5 14.8 9.2M5.5 18.5 9.2 14.8M18.5 18.5 14.8 14.8" />
-              </svg>
-            </div>
-            <div className="hero-kicker">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="#fff" aria-hidden="true">
-                <path d="M12 2.6l2.5 5.6 6.1.6-4.6 4.1 1.3 6-5.3-3.1-5.3 3.1 1.3-6L3.4 8.8l6.1-.6L12 2.6Z" />
-              </svg>
-              PILIHAN HARI INI
-            </div>
-            <div className="hero-title">{hero.name}</div>
-            <div className="hero-desc">{hero.blurb}</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginTop: 15 }}>
-              <span className="hero-go">Mulai</span>
-              <span style={{ fontSize: 11.5, fontWeight: 700, opacity: 0.85 }}>
-                min. {cfg.minAnswers} pertanyaan
+      {missing.length > 0 && (
+        <a className="notice" {...linkTo('/pengaturan', go)}>
+          <Icon name="info" size={18} />
+          <span>
+            <b>{missing.join(' & ')} belum siap</b>, jadi sesi belum bisa jalan. Lihat detailnya di Pengaturan.
+          </span>
+          <Icon name="right" size={16} />
+        </a>
+      )}
+
+      {topics.length === 0 ? (
+        <div className="empty">
+          <b>Belum ada topik</b>
+          <span>Tambah topik pertama kamu dulu, baru bisa mulai latihan.</span>
+          <a className="btn primary" {...linkTo('/topik?tambah=1', go)}>
+            <Icon name="plus" size={16} />
+            Tambah topik
+          </a>
+        </div>
+      ) : (
+        <>
+          <div className="feat-row">
+            {today && (
+              <article className="feat today">
+                <div className="feat-kicker">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M12 2.6l2.5 5.6 6.1.6-4.6 4.1 1.3 6-5.3-3.1-5.3 3.1 1.3-6L3.4 8.8l6.1-.6L12 2.6Z" />
+                  </svg>
+                  Rekomendasi hari ini
+                </div>
+                <h2>{today.name}</h2>
+                {today.blurb && <p>{today.blurb}</p>}
+                <div className="feat-meta">
+                  <span className="pill-soft">{catName(today.categoryId)}</span>
+                  <span>{statusText(today)}</span>
+                </div>
+                <div className="feat-acts">
+                  <button className="btn white" disabled={!modelReady} onClick={() => onStart(today.id)}>
+                    <Icon name="mic" size={17} />
+                    Mulai sesi
+                  </button>
+                  <span className="feat-note">Minimal {min} jawaban biar tersimpan</span>
+                </div>
+                <div className="feat-deco" aria-hidden="true">
+                  <Icon name={today.icon} size={132} />
+                </div>
+              </article>
+            )}
+
+            {last ? (
+              <article className="feat cont">
+                <div className="feat-kicker">Terakhir dilatih</div>
+                <div className="cont-head">
+                  <i className="tico" style={{ background: last.tint, color: last.ink }}>
+                    <Icon name={last.icon} size={20} />
+                  </i>
+                  <div>
+                    <h3>{last.name}</h3>
+                    <span>{catName(last.categoryId)}</span>
+                  </div>
+                </div>
+                <p>{statusText(last)}</p>
+                <button className="btn primary" disabled={!modelReady} onClick={() => onStart(last.id)}>
+                  <Icon name="replay" size={16} />
+                  Latih lagi
+                </button>
+              </article>
+            ) : (
+              <article className="feat cont">
+                <div className="feat-kicker">Cara kerjanya</div>
+                <h3>Sesi tersimpan setelah {min} jawaban</h3>
+                <p>
+                  Pilih topik, lalu ngobrol sama Zii pakai suara. Begitu kamu jawab {min} kali, sesinya selesai dan
+                  masuk riwayat. Keluar sebelum itu, sesinya dianggap nggak ada.
+                </p>
+              </article>
+            )}
+          </div>
+
+          {/* kalau kartu "Cara kerjanya" nggak nongol, aturannya tetap disebut di sini */}
+          {last && (
+            <p className="rule">
+              <Icon name="info" size={16} />
+              <span>
+                Satu sesi baru <b>selesai & tersimpan</b> kalau kamu jawab minimal {min} kali. Kurang dari itu,
+                sesinya dianggap nggak ada.
               </span>
+            </p>
+          )}
+
+          {untested.length > 0 && (
+            <section className="home-sec">
+              <div className="sec-head">
+                <h2>Belum pernah dicoba</h2>
+                <span className="count">{topics.filter((t) => !t.tests).length} topik</span>
+                <a className="link" {...linkTo('/topik?status=untested', go)}>
+                  Lihat semua
+                  <Icon name="right" size={15} />
+                </a>
+              </div>
+              <div className="card-grid">{untested.slice(0, ROW).map(card)}</div>
+            </section>
+          )}
+
+          {stale.length > 0 && (
+            <section className="home-sec">
+              <div className="sec-head">
+                <h2>Waktunya diulang</h2>
+                <span className="count">paling lama nggak dilatih duluan</span>
+                <a className="link" {...linkTo('/topik?status=tested&urut=stale', go)}>
+                  Lihat semua
+                  <Icon name="right" size={15} />
+                </a>
+              </div>
+              <div className="card-grid">{stale.slice(0, ROW).map(card)}</div>
+            </section>
+          )}
+
+          <section className="home-sec">
+            <div className="sec-head">
+              <h2>Jelajah kategori</h2>
+              <a className="link" {...linkTo('/topik', go)}>
+                Semua topik
+                <Icon name="right" size={15} />
+              </a>
             </div>
-          </button>
-        )}
-
-        <div className="sec">
-          <b>Sehari-hari</b>
-          <span>{daily.length} topik</span>
-        </div>
-        <div className="grid">{daily.map(card)}</div>
-
-        <div className="sec">
-          <b>Buat Kerja</b>
-          <span>{work.length} topik</span>
-        </div>
-        <div className="grid">{work.map(card)}</div>
-
-        <div style={{ height: 10 }} />
-      </div>
-
-      <div className="home-foot">
-        <button
-          className="cta b3d"
-          disabled={!modelReady || !(pickedTopic ?? hero)}
-          onClick={() => {
-            const t = pickedTopic ?? hero;
-            if (t) onStart(t.id);
-          }}
-        >
-          <Icon name="mic" size={20} />
-          <b>{pickedTopic ? `Mulai: ${pickedTopic.name}` : 'Mulai Pilihan Hari Ini'}</b>
-        </button>
-        <div className="hint">Ngobrolnya pakai suara — tekan &amp; tahan buat ngomong</div>
-      </div>
+            <div className="cat-grid">
+              {categories.map((c) => {
+                const list = topics.filter((t) => t.categoryId === c.id);
+                const done = list.filter((t) => t.tests).length;
+                return (
+                  <a key={c.id} className="cat-tile" {...linkTo(`/topik?kategori=${encodeURIComponent(c.id)}`, go)}>
+                    <div className="cat-icons" aria-hidden="true">
+                      {list.slice(0, 3).map((t) => (
+                        <i key={t.id} style={{ background: t.tint, color: t.ink }}>
+                          <Icon name={t.icon} size={15} />
+                        </i>
+                      ))}
+                    </div>
+                    <b>{c.name}</b>
+                    <span>
+                      {list.length} topik · {done} udah dilatih
+                    </span>
+                  </a>
+                );
+              })}
+            </div>
+          </section>
+        </>
+      )}
     </div>
   );
 }

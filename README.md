@@ -31,14 +31,14 @@ npm run serve           # buka http://localhost:8787
 | `OPENAI_API_KEY` | model **GPT-5.6 Luna** | salah satu |
 | `AZURE_SPEECH_KEY` | dengerin + ngomong | **ya** — tanpa ini nggak bisa ngobrol |
 | `AZURE_SPEECH_REGION` | region Azure, mis. `southeastasia` | ya |
-| `AZURE_TTS_VOICE` | suara Zii, default `en-US-AriaNeural` | opsional |
+| `AZURE_TTS_VOICE` | suara default sebelum dipilih di halaman Pengaturan, default `en-US-Emma:DragonHDLatestNeural` — harus salah satu dari `server/voices.py` | opsional |
 | `LANGSMITH_API_KEY` | trace + Studio | buat observability |
 | `LANGSMITH_TRACING` | `true` buat nyalain trace | opsional |
 | `LANGSMITH_PROJECT` | nama project trace | opsional |
 | `DATABASE_URL` | Postgres, default `postgresql://zii:zii@127.0.0.1:5439/zii_talk` | opsional |
 
-Yang belum keisi bakal ketahuan di layar Home ("LLM & Azure Speech belum
-kebaca"). Minimal satu key LLM **plus** Azure Speech: obrolan utama sengaja
+Yang belum keisi bakal ketahuan di Latihan (peringatan kuning), dan detailnya
+ada di **Pengaturan → Status sistem**. Minimal satu key LLM **plus** Azure Speech: obrolan utama sengaja
 **nggak punya kotak ketik** — biar tetap latihan ngomong, bukan ngetik — jadi
 tanpa Azure mic-nya mati dan obrolannya nggak bisa jalan. Bengkel Kalimat masih
 bisa dipakai lewat ketik.
@@ -50,8 +50,8 @@ yang manggil LLM, dan buat Azure dia cuma nyetak token sementara (umur 10 menit)
 yang aman dipegang browser. Jangan pindahin panggilan ini ke frontend.
 
 Endpoint-nya kekelompok per fitur di `server/routes/`, dan Swagger-nya
-otomatis ada di `/docs` — 7 grup: Config, Speech, Chat, Bengkel Kalimat, Topik,
-Riwayat Tes, State.
+otomatis ada di `/docs` — 8 grup: Config, Speech, Chat, Bengkel Kalimat, Topik,
+Kategori, Riwayat Tes, State.
 
 ## Model LLM
 
@@ -265,7 +265,8 @@ npm run db:down    # matiin — data tetap aman di volume
 
 | Tabel | Isinya |
 |---|---|
-| `topics` | topik + skenario buat Zii. 9 topik awal di-seed dari `002_seed_topics.sql` |
+| `categories` | kategori topik — awalnya Sehari-hari & Buat Kerja, bisa ditambah dari app |
+| `topics` | topik + skenario buat Zii, masing-masing di satu kategori. 9 topik awal di-seed dari `002_seed_topics.sql` |
 | `test_runs` | satu sesi tes: topik, tes ke-berapa, model, jumlah pertanyaan, mulai & aktivitas terakhir |
 | `messages` | transkrip per sesi, lengkap sama timestamp & kartu koreksi |
 | `phrases` | koleksi frasa |
@@ -292,31 +293,48 @@ Yang gampang kelewat:
 - Gagal nyimpen (misal Postgres mati di tengah sesi) nggak ngehentiin obrolan —
   cuma muncul peringatan merah.
 
-**Dashboard** ada di `/dashboard` (link di atas Home), enaknya dibuka di tab
-sendiri — angkanya disegerin tiap tab-nya dilihat lagi. Isinya ringkasan (total
-topik, sudah/belum dites, total tes & pertanyaan), tabel topik yang bisa difilter,
-dan per topik: riwayat tes (klik buat lihat transkripnya), tombol **Retest**, dan
-form **Tambah topik**. Sesi yang dimulai dari dashboard balik ke dashboard lagi
-waktu selesai.
+## Halaman
+
+Navigasinya sidebar di laptop, tab bar di HP. Sesi ngobrol sengaja tampil penuh
+tanpa navigasi.
+
+| Halaman | Isinya |
+|---|---|
+| **Latihan** `/` | rekomendasi hari ini, topik terakhir dilatih, beberapa topik yang belum dicoba / waktunya diulang, dan jalan pintas per kategori. Sengaja **bukan** daftar semua topik |
+| **Topik** `/topik` | semua topik: cari (tekan `/`), filter kategori & status, urutkan, tambah topik & kategori. Filternya ikut di URL, jadi bisa di-bookmark |
+| **Dashboard** `/dashboard` | ringkasan, status tes per topik, riwayat tes + transkrip, tombol **Retest** |
+| **Pengaturan** `/pengaturan` | suara Zii, model AI, aturan sesi, status sistem (API key, Azure, tracing) |
+
+**Rekomendasi hari ini** dipilih dari 5 topik yang paling perlu dilatih (belum
+pernah dicoba duluan, lalu yang paling lama nggak disentuh), dan ditentuin
+tanggal: sama seharian, ganti besoknya. Logikanya di `src/lib/topics.ts`.
+
+Dashboard enaknya dibuka di tab sendiri — angkanya disegerin tiap tab-nya dilihat
+lagi. Sesi yang dimulai dari halaman mana pun balik ke halaman itu waktu selesai.
 
 ## Struktur
 
 ```
 server/main.py      FastAPI: rakit router + serve frontend build
-server/routes/      endpoint per fitur (config, speech, chat, translate, topics, runs, state)
+server/routes/      endpoint per fitur (config, speech, chat, translate, topics, categories, runs, state)
 server/agent/       graph LangGraph (conversation, workshop)
 server/db.py        pool Postgres + runner migrasi
 server/runlog.py    nyatet sesi tes (aturan minimal 10 jawaban)
 server/migrations/  skema + seed 9 topik awal
 server/util.py      helper: bersihin teks, riwayat -> BaseMessage
+server/voices.py    daftar suara HD Azure yang bisa dipilih di Pengaturan
+server/expressions.py  tag suara ([laughter], ...): yang diizinin + filter stream
 pyproject.toml      dependency Python (dikelola uv)
 langgraph.json      config Agent Server buat Studio
 docker-compose.yml  Postgres
 src/lib/speech.ts   Azure STT/TTS + antrean suara per kalimat
+src/lib/expr.ts     tag suara: dibuang dari layar, nggak dihitung sebagai kata
 src/lib/api.ts      client ke server
-src/lib/nav.ts      router mini: / dan /dashboard
-src/screens/        Home, Session, Dashboard
-src/components/     Bengkel, orb, waveform, ikon
+src/lib/nav.ts      router mini: /, /topik, /dashboard, /pengaturan
+src/lib/topics.ts   cari, filter, urutkan topik + pilih rekomendasi hari ini
+src/lib/format.ts   format waktu ("3 jam yang lalu")
+src/screens/        Home (Latihan), Topics, Settings, Session, Dashboard
+src/components/     Shell (navigasi), TopicCard, TopicForm, Bengkel, orb, waveform, ikon
 scripts/bridge.mjs  bridge Tailscale (HTTPS buat mic)
 design/             canvas desain
 ```
@@ -326,6 +344,9 @@ design/             canvas desain
 - **Waveform** butuh stream mic kedua di samping punya Azure. Kalau browser
   nolak, waveform-nya jatuh ke animasi sintetis — fungsi ngomongnya nggak
   keganggu.
+- **Zii bisa ketawa & berekspresi** lewat tag suara (`[laughter]`, `[excited]`,
+  ...) yang ditulis LLM-nya. Cuma tag di `server/expressions.py` yang lolos, dan
+  tag-nya nggak pernah kelihatan di layar maupun riwayat tes — cuma kedengeran.
 - **Momentum bukan streak.** Bolos sehari nggak ngapus apa-apa; baru mengecil
   (separuh, minimal 1) kalau nganggur lebih dari 2 hari. Ini disengaja.
 - Koleksi frasa, momentum, dan riwayat tes ada di **Postgres**, bukan di

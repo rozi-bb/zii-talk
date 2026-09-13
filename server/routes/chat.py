@@ -18,7 +18,7 @@ from typing import AsyncIterator
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
-from server import db, runlog
+from server import db, expressions, runlog
 from server.agent.conversation import graph as conversation
 from server.agent.models import MODELS, key_for, pick_model
 from server.util import clean, to_messages
@@ -61,6 +61,9 @@ async def chat_stream(req: Request):
             yield json.dumps({"warn": warn}) + "\n"
 
         reply: list[str] = []
+        # Tag suara ([laughter]) disaring sebelum kekirim: yang dikarang LLM dibuang,
+        # yang kepotong di antara dua token ditahan sampai utuh.
+        tags = expressions.TagFilter()
         correction = None
         try:
             async for mode, chunk in conversation.astream(
@@ -80,8 +83,10 @@ async def chat_stream(req: Request):
                     # LLM, dan buat DeepSeek itu termasuk monolog "thinking" —
                     # jangan sampai kekirim ke user (atau keucap sama TTS).
                     if meta.get("langgraph_node") == "respond" and msg.content:
-                        reply.append(msg.content)
-                        yield json.dumps({"d": msg.content}) + "\n"
+                        piece = tags.push(msg.content)
+                        if piece:
+                            reply.append(piece)
+                            yield json.dumps({"d": piece}) + "\n"
 
                 if mode == "updates":
                     upd = chunk.get("review")
@@ -97,7 +102,14 @@ async def chat_stream(req: Request):
                             }
                         ) + "\n"
 
-            if not reply:
+            tail = tags.flush()
+            if tail:
+                reply.append(tail)
+                yield json.dumps({"d": tail}) + "\n"
+
+            # balasan yang isinya cuma tag = nggak ada yang bisa dibaca
+            said = expressions.strip("".join(reply))
+            if not said:
                 yield json.dumps({"e": f"{MODELS[model].label} nggak ngasih jawaban. Coba lagi atau ganti model."}) + "\n"
             elif run_id:
                 # Cuma kalau stream-nya kelar. Dibatalin di tengah (betulin / keluar)
@@ -106,7 +118,7 @@ async def chat_stream(req: Request):
                     await runlog.save_reply(
                         run_id,
                         seq=len(turns),
-                        text=clean("".join(reply), 2000),
+                        text=clean(said, 2000),
                         correction=correction.model_dump() if correction else None,
                     )
                 except Exception as e:  # noqa: BLE001

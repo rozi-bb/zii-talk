@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Icon, Cards } from '../components/icons';
 import { Orb, Wave, Beats } from '../components/bits';
 import { Bengkel } from '../components/Bengkel';
+import { shown } from '../lib/expr';
 import {
   chatStream,
   rewindRun,
@@ -49,6 +50,7 @@ export function Session({
   cfg,
   topic,
   model,
+  voice,
   frasa,
   momentum,
   onExit,
@@ -57,13 +59,13 @@ export function Session({
   cfg: AppConfig;
   topic: Topic;
   model: string;
+  voice: string;
   frasa: number;
   momentum: number;
   onExit: () => void;
   onPhrase: (p: Phrase) => void;
 }) {
   const speechReady = cfg.speech.ready;
-  const voice = cfg.speech.voice;
 
   const [phase, setPhase] = useState<Phase>('thinking');
   const [lines, setLines] = useState<Line[]>([]);
@@ -233,7 +235,7 @@ export function Session({
         setErr(e instanceof Error ? e.message : String(e));
         // buang slot balasan kalau masih kosong; kalau udah sempat keisi, biarin
         setLines((prev) =>
-          prev[aiIndex]?.role === 'ai' && !prev[aiIndex].text
+          prev[aiIndex]?.role === 'ai' && !shown(prev[aiIndex].text)
             ? prev.filter((_, i) => i !== aiIndex)
             : prev,
         );
@@ -480,15 +482,17 @@ export function Session({
     if (
       myTurns > 0 &&
       myTurns < min &&
-      !window.confirm(`Baru ${myTurns} dari ${min} pertanyaan — sesi ini nggak akan disimpan. Tetap keluar?`)
+      !window.confirm(
+        `Baru ${myTurns} dari ${min} jawaban — sesi ini belum tersimpan dan bakal dianggap nggak ada. Tetap keluar?`,
+      )
     ) {
       return;
     }
     onExit();
   };
   const progress = saved
-    ? `${myTurns} pertanyaan · Tes #${saved.attempt} tersimpan`
-    : `${myTurns}/${min} pertanyaan`;
+    ? `${myTurns} jawaban · Tes #${saved.attempt} tersimpan`
+    : `${myTurns}/${min} jawaban`;
 
   const status =
     phase === 'rec'
@@ -512,7 +516,7 @@ export function Session({
           <div className="rail-stat" style={{ background: '#FFF6EF' }}>
             <div>
               <b>{momentum}</b>
-              <span>hari</span>
+              <span>momentum</span>
             </div>
           </div>
           <div className="rail-stat" style={{ background: '#FFF9EC' }}>
@@ -568,6 +572,11 @@ export function Session({
           <Beats done={Math.min(min, myTurns)} total={min} />
           <span className={saved ? 'ok' : ''}>{progress}</span>
         </div>
+        {!saved && (
+          <p className="goal-hint">
+            Jawab minimal {min} kali biar sesi ini selesai &amp; tersimpan — kurang dari itu dianggap nggak ada.
+          </p>
+        )}
 
         <div className="presence">
           <Orb
@@ -609,11 +618,13 @@ export function Session({
                 <div key={i}>
                   <div className={`turn ${l.role}`}>
                     <div style={{ maxWidth: '100%' }}>
+                      {/* l.text balasan Zii bisa bawa tag suara ([laughter]) — disimpen
+                          utuh biar tombol Ulangi ikut ketawa, yang ditampilin versi bersihnya */}
                       <div className="bubble">
-                        {l.text}
+                        {shown(l.text)}
                         {streaming && <span className="caret" style={{ background: 'var(--ink)' }} />}
                       </div>
-                      {l.role === 'ai' && l.text && phase === 'idle' && (
+                      {l.role === 'ai' && shown(l.text) && phase === 'idle' && (
                         <div className="bubble-acts">
                           <button
                             className="chip"

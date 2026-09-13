@@ -2,23 +2,22 @@
 
 from __future__ import annotations
 
-import re
-import unicodedata
 from datetime import datetime
-from typing import Any, Literal
+from typing import Any
 
 from fastapi import APIRouter
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, field_validator
 
 from server import db
-from server.util import clean
+from server.util import clean, slug
 
 router = APIRouter(prefix="/api/topics", tags=["Topik"])
 
 HEX = r"^#[0-9A-Fa-f]{6}$"
 
 SELECT = """
-SELECT t.id, t.name, t.grp, t.icon, t.tint, t.ink, t.blurb, t.situations,
+SELECT t.id, t.name, t.category_id, t.icon, t.tint, t.ink, t.blurb, t.situations,
        s.tests, s.questions, s.last_tested_at
 FROM topics t
 JOIN topic_stats s ON s.id = t.id
@@ -28,7 +27,7 @@ JOIN topic_stats s ON s.id = t.id
 class TopicOut(BaseModel):
     id: str
     name: str
-    group: Literal["daily", "work"]
+    categoryId: str
     icon: str
     tint: str
     ink: str
@@ -41,7 +40,7 @@ class TopicOut(BaseModel):
 
 class TopicIn(BaseModel):
     name: str = Field(min_length=1, max_length=60)
-    group: Literal["daily", "work"]
+    categoryId: str = Field(min_length=1, max_length=48)
     blurb: str = Field(default="", max_length=160)
     situations: list[str] = Field(min_length=1, max_length=5)
     icon: str = Field(pattern=r"^[a-zA-Z]{1,24}$")
@@ -67,7 +66,7 @@ def _out(r: dict[str, Any]) -> TopicOut:
     return TopicOut(
         id=r["id"],
         name=r["name"],
-        group=r["grp"],
+        categoryId=r["category_id"],
         icon=r["icon"],
         tint=r["tint"],
         ink=r["ink"],
@@ -79,22 +78,20 @@ def _out(r: dict[str, Any]) -> TopicOut:
     )
 
 
-def _slug(name: str) -> str:
-    ascii_ = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode()
-    s = re.sub(r"[^a-z0-9]+", "-", ascii_.lower()).strip("-")[:40].strip("-")
-    return s or "topik"
-
-
-@router.get("", response_model=list[TopicOut], summary="Semua topik + jumlah tes & pertanyaan")
+@router.get("", response_model=list[TopicOut], summary="Semua topik + jumlah tes & jawaban")
 async def list_topics() -> list[TopicOut]:
     rows = await db.fetch_all(SELECT + " ORDER BY t.sort_order, t.created_at")
     return [_out(r) for r in rows]
 
 
 @router.post("", response_model=TopicOut, status_code=201, summary="Tambah topik baru")
-async def create_topic(body: TopicIn) -> TopicOut:
-    base = _slug(body.name)
+async def create_topic(body: TopicIn):
+    base = slug(body.name, "topik")
     async with (await db.pool()).connection() as conn, conn.transaction():
+        cur = await conn.execute("SELECT 1 FROM categories WHERE id = %s", (body.categoryId,))
+        if await cur.fetchone() is None:
+            return JSONResponse(status_code=400, content={"error": "Kategorinya nggak ketemu. Muat ulang halamannya."})
+
         # serialisasi tambah-topik, biar slug & sort_order nggak rebutan
         await conn.execute("LOCK TABLE topics IN SHARE ROW EXCLUSIVE MODE")
         cur = await conn.execute("SELECT id FROM topics WHERE id = %s OR id LIKE %s", (base, base + "-%"))
@@ -105,11 +102,11 @@ async def create_topic(body: TopicIn) -> TopicOut:
 
         await conn.execute(
             """
-            INSERT INTO topics (id, name, grp, icon, tint, ink, blurb, situations, sort_order)
+            INSERT INTO topics (id, name, category_id, icon, tint, ink, blurb, situations, sort_order)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s,
                     (SELECT coalesce(max(sort_order), 0) + 1 FROM topics))
             """,
-            (id_, body.name, body.group, body.icon, body.tint, body.ink, body.blurb, body.situations),
+            (id_, body.name, body.categoryId, body.icon, body.tint, body.ink, body.blurb, body.situations),
         )
         cur = await conn.execute(SELECT + " WHERE t.id = %s", (id_,))
         row = await cur.fetchone()

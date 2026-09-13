@@ -25,7 +25,7 @@ from uuid import UUID
 from psycopg import AsyncConnection
 from psycopg.types.json import Jsonb
 
-from server import db
+from server import db, expressions
 from server.util import clean
 
 MIN_ANSWERS = 10
@@ -74,7 +74,9 @@ def parse_turns(history: object) -> list[Turn]:
             if role == "me" and isinstance(c, dict) and c.get("right")
             else None
         )
-        out.append(Turn(role, clean(t.get("text"), 2000), at, correction))
+        text = clean(t.get("text"), 2000)
+        # balasan Zii di browser masih bawa tag suara ([laughter]) — riwayat tes disimpan bersih
+        out.append(Turn(role, expressions.strip(text) if role == "ai" else text, at, correction))
     return out
 
 

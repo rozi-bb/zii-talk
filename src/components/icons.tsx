@@ -3,6 +3,21 @@ type Props = { name: string; size?: number; className?: string };
 const P: Record<string, React.ReactNode> = {
   back: <path d="M14.5 5 8 12l6.5 7" />,
   x: <path d="M6 6l12 12M18 6L6 18" />,
+  home: <path d="M4 10.4 12 4l8 6.4v8.8a1.4 1.4 0 0 1-1.4 1.4H15v-6H9v6H5.4A1.4 1.4 0 0 1 4 19.2v-8.8Z" />,
+  grid: (
+    <>
+      <rect x="4" y="4" width="6.6" height="6.6" rx="1.8" />
+      <rect x="13.4" y="4" width="6.6" height="6.6" rx="1.8" />
+      <rect x="4" y="13.4" width="6.6" height="6.6" rx="1.8" />
+      <rect x="13.4" y="13.4" width="6.6" height="6.6" rx="1.8" />
+    </>
+  ),
+  search: (
+    <>
+      <circle cx="10.8" cy="10.8" r="6.3" />
+      <path d="m15.6 15.6 4.4 4.4" />
+    </>
+  ),
   gear: (
     <>
       <circle cx="12" cy="12" r="3.2" />

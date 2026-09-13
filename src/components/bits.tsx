@@ -1,5 +1,8 @@
+import { useEffect, useRef, useState } from 'react';
 import { Icon } from './icons';
-import type { ModelInfo } from '../lib/api';
+import type { ModelInfo, VoiceInfo } from '../lib/api';
+
+type SpeechLib = typeof import('../lib/speech');
 
 export function Orb({
   mode = 'idle',
@@ -66,6 +69,103 @@ export function ModelPicker({
         </select>
       </div>
       <Icon name="chevron" size={16} />
+    </div>
+  );
+}
+
+/* Ganti suara = langsung dengerin contohnya, biar nggak milih dari nama doang.
+   SDK Azure-nya gede, jadi baru di-import pas contoh pertama diputer — Home
+   tetap enteng. */
+export function VoicePicker({
+  voices,
+  value,
+  ready,
+  onChange,
+}: {
+  voices: VoiceInfo[];
+  value: string;
+  ready: boolean;
+  onChange: (id: string) => void;
+}) {
+  const [status, setStatus] = useState<'idle' | 'loading' | 'playing'>('idle');
+  const lib = useRef<SpeechLib | null>(null);
+  /* naik tiap contoh baru / stop — speak() lama yang telat kelar nggak ngubah tombol */
+  const tok = useRef(0);
+
+  useEffect(
+    () => () => {
+      tok.current++;
+      lib.current?.stopSpeaking(); // pindah layar / mulai sesi = contohnya berhenti
+    },
+    [],
+  );
+
+  async function preview(id: string) {
+    const v = voices.find((x) => x.id === id);
+    if (!ready || !v) return;
+    const mine = ++tok.current;
+    setStatus('loading');
+    try {
+      lib.current ??= await import('../lib/speech');
+      if (tok.current !== mine) return;
+      setStatus('playing');
+      await lib.current.speak(`Hi, I'm ${v.name}. Ready to practice some English?`, id);
+    } catch {
+      /* contoh gagal bunyi nggak ngalangin milih suara */
+    }
+    if (tok.current === mine) setStatus('idle');
+  }
+
+  function stop() {
+    tok.current++;
+    lib.current?.stopSpeaking();
+    setStatus('idle');
+  }
+
+  const group = (g: VoiceInfo['gender']) =>
+    voices
+      .filter((v) => v.gender === g)
+      .map((v) => (
+        <option key={v.id} value={v.id}>
+          {v.name}
+          {v.hint ? ` — ${v.hint}` : ''}
+        </option>
+      ));
+
+  const busy = status !== 'idle';
+  return (
+    <div className="picker">
+      <span
+        className="dot"
+        style={{ background: ready ? 'var(--teal)' : 'var(--faint)' }}
+        title={ready ? 'Azure Speech kebaca' : 'Azure Speech belum diisi'}
+      />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <label htmlFor="voice">SUARA ZII</label>
+        <select
+          id="voice"
+          value={value}
+          onChange={(e) => {
+            onChange(e.target.value);
+            void preview(e.target.value);
+          }}
+        >
+          <optgroup label="Perempuan">{group('female')}</optgroup>
+          <optgroup label="Laki-laki">{group('male')}</optgroup>
+        </select>
+      </div>
+      <Icon name="chevron" size={16} />
+      {ready && (
+        <button
+          type="button"
+          className={`picker-play${busy ? ' on' : ''}`}
+          onClick={() => (busy ? stop() : void preview(value))}
+          aria-label={busy ? 'Stop contoh suara' : 'Dengerin contoh suara'}
+          title={busy ? 'Stop' : 'Dengerin contoh'}
+        >
+          <Icon name={busy ? 'stop' : 'speakerSmall'} size={16} />
+        </button>
+      )}
     </div>
   );
 }

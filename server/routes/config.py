@@ -9,6 +9,7 @@ from pydantic import BaseModel
 
 from server.agent.models import MODELS, key_for
 from server.runlog import MIN_ANSWERS
+from server.voices import VOICES, Gender
 
 router = APIRouter(prefix="/api", tags=["Config"])
 
@@ -29,10 +30,17 @@ class ModelInfo(BaseModel):
     keyEnv: str
 
 
+class VoiceInfo(BaseModel):
+    id: str
+    name: str
+    gender: Gender
+    hint: str
+
+
 class SpeechInfo(BaseModel):
     ready: bool
     region: str | None
-    voice: str
+    voices: list[VoiceInfo]  # yang bisa dipilih; yang lagi dipakai ada di /api/state
 
 
 class TracingInfo(BaseModel):
@@ -63,7 +71,7 @@ def get_config() -> AppConfig:
         speech=SpeechInfo(
             ready=bool(_speech_key() and _speech_region()),
             region=_speech_region() or None,
-            voice=(os.environ.get("AZURE_TTS_VOICE") or "en-US-AriaNeural").strip(),
+            voices=[VoiceInfo(id=id_, name=v.name, gender=v.gender, hint=v.hint) for id_, v in VOICES.items()],
         ),
         tracing=TracingInfo(
             on=(os.environ.get("LANGSMITH_TRACING") or "").lower() == "true",

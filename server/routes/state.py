@@ -1,4 +1,4 @@
-"""State app (satu user): model pilihan, momentum, dan koleksi frasa."""
+"""State app (satu user): model & suara pilihan, momentum, dan koleksi frasa."""
 
 from __future__ import annotations
 
@@ -12,12 +12,14 @@ from pydantic import BaseModel, Field
 from server import db
 from server.agent.models import is_model_id
 from server.util import clean
+from server.voices import is_voice_id, pick_voice
 
 router = APIRouter(prefix="/api", tags=["State"])
 
 
 class StateOut(BaseModel):
     model: str
+    voice: str  # selalu valid: belum pernah milih / udah nggak ada di daftar -> default
     momentum: int
     lastPlayed: date | None
     phrases: int
@@ -25,6 +27,10 @@ class StateOut(BaseModel):
 
 class ModelIn(BaseModel):
     model: str
+
+
+class VoiceIn(BaseModel):
+    voice: str
 
 
 class PhraseIn(BaseModel):
@@ -35,14 +41,20 @@ class PhraseIn(BaseModel):
 
 async def _read(conn: Any) -> StateOut:
     cur = await conn.execute(
-        "SELECT model, momentum, last_played, (SELECT count(*) FROM phrases)::int AS phrases"
+        "SELECT model, voice, momentum, last_played, (SELECT count(*) FROM phrases)::int AS phrases"
         " FROM app_state WHERE id = 1"
     )
     r = await cur.fetchone()
-    return StateOut(model=r["model"], momentum=r["momentum"], lastPlayed=r["last_played"], phrases=r["phrases"])
+    return StateOut(
+        model=r["model"],
+        voice=pick_voice(r["voice"]),
+        momentum=r["momentum"],
+        lastPlayed=r["last_played"],
+        phrases=r["phrases"],
+    )
 
 
-@router.get("/state", response_model=StateOut, summary="Model pilihan, momentum, jumlah frasa")
+@router.get("/state", response_model=StateOut, summary="Model & suara pilihan, momentum, jumlah frasa")
 async def get_state() -> StateOut:
     async with (await db.pool()).connection() as conn:
         return await _read(conn)
@@ -54,6 +66,15 @@ async def set_model(body: ModelIn):
         return JSONResponse(status_code=400, content={"error": f"Model {body.model!r} nggak dikenal"})
     async with (await db.pool()).connection() as conn:
         await conn.execute("UPDATE app_state SET model = %s WHERE id = 1", (body.model,))
+        return await _read(conn)
+
+
+@router.put("/state/voice", response_model=StateOut, summary="Simpan suara Zii yang dipilih")
+async def set_voice(body: VoiceIn):
+    if not is_voice_id(body.voice):
+        return JSONResponse(status_code=400, content={"error": f"Suara {body.voice!r} nggak dikenal"})
+    async with (await db.pool()).connection() as conn:
+        await conn.execute("UPDATE app_state SET voice = %s WHERE id = 1", (body.voice,))
         return await _read(conn)
 
 

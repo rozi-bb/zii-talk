@@ -3,12 +3,20 @@
 from __future__ import annotations
 
 import re
+import unicodedata
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 
 
 def clean(s: object, max_len: int = 400) -> str:
     return re.sub(r"\s+", " ", str(s or "")).strip()[:max_len]
+
+
+def slug(name: str, fallback: str) -> str:
+    """Nama -> id yang aman di URL: "Pesan & Beli" -> "pesan-beli"."""
+    ascii_ = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode()
+    s = re.sub(r"[^a-z0-9]+", "-", ascii_.lower()).strip("-")[:40].strip("-")
+    return s or fallback
 
 
 def to_messages(history: object) -> list[BaseMessage]:
