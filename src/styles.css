@@ -356,7 +356,11 @@ input, select, textarea { font: inherit; color: inherit; }
 }
 @media (pointer: coarse) {
   .sort, .chip-btn { height: 44px; }
-  .lib-tools .seg button { min-height: 40px; }
+  .lib-tools .seg button, .dash-list > .seg button { min-height: 40px; }
+  /* kotak ketik ngisi tinggi kotak cari (dulu cuma 22px yang bisa diketuk) */
+  .search input { align-self: stretch; }
+  /* .picker di depan: gaya dasar .picker-play ada lebih bawah di file, jadi selector-nya harus lebih kuat */
+  .picker .picker-play { width: 44px; height: 44px; }
 }
 /* judul halaman yang punya tombol aksi (mis. Tambah topik): tombolnya tetap sebaris di HP */
 .page-head:has(> .btn) > div:first-child { flex-basis: 0; }
