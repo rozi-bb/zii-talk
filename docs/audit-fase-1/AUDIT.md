@@ -7,20 +7,25 @@
 > **Tanggal:** 13 September 2026 · **Cakupan:** Home, Sesi, Bengkel Kalimat,
 > Dashboard, form Tambah topik · **Status kode:** commit `d1b3c11` + perubahan
 > suara HD & ekspresi yang belum di-commit.
+>
+> **Update status:** 14 September 2026, sampai commit `931f351`. Lihat
+> [Status perbaikan](#status-perbaikan). Temuan di section 1–4 sengaja dibiarkan
+> apa adanya (kondisi **sebelum** diperbaiki), begitu juga screenshot di `img/`.
 
 ---
 
 ## Daftar isi
 
 1. [Ringkasan](#ringkasan)
-2. [Cara risetnya](#cara-risetnya)
-3. [Bug yang ketemu](#1-bug-yang-ketemu)
-4. [Temuan desain per layar](#2-temuan-desain-per-layar)
-5. [Sistem visual & aksesibilitas](#3-sistem-visual--aksesibilitas)
-6. [Konsep yang perlu dirombak](#4-konsep-yang-perlu-dirombak)
-7. [Roadmap usulan](#5-roadmap-usulan)
-8. [Keputusan yang perlu kamu ambil](#6-keputusan-yang-perlu-kamu-ambil)
-9. [Lampiran](#lampiran)
+2. [Status perbaikan](#status-perbaikan)
+3. [Cara risetnya](#cara-risetnya)
+4. [Bug yang ketemu](#1-bug-yang-ketemu)
+5. [Temuan desain per layar](#2-temuan-desain-per-layar)
+6. [Sistem visual & aksesibilitas](#3-sistem-visual--aksesibilitas)
+7. [Konsep yang perlu dirombak](#4-konsep-yang-perlu-dirombak)
+8. [Roadmap usulan](#5-roadmap-usulan)
+9. [Keputusan yang perlu kamu ambil](#6-keputusan-yang-perlu-kamu-ambil)
+10. [Lampiran](#lampiran)
 
 ---
 
@@ -47,18 +52,94 @@ suara HD dan ekspresi jalan, dan datanya udah rapi di Postgres. Yang bikin app i
 
 ### 10 prioritas teratas
 
-| # | Apa | Jenis | Usaha |
+| # | Apa | Jenis | Usaha | Status (14 Sep) |
+|---|---|---|---|---|
+| 1 | Benerin timer rekaman `0:75` | Bug | kecil | **Belum** |
+| 2 | Orb Zii jadi kotak saat reduce motion | Bug | kecil | **Beres** |
+| 3 | Naikin kontras token warna + ukuran teks minimal 12px | Aksesibilitas | sedang | **Sebagian**: beres di 4 halaman sidebar + form; Sesi & Bengkel belum |
+| 4 | Tombol Bengkel: "Pakai & Lanjut" cuma nutup, "Simpan" ketutup | Bug UX | kecil | **Belum** |
+| 5 | Pindahin model & suara ke halaman **Pengaturan** | Konsep | sedang | **Beres** |
+| 6 | Halaman **Topik** dengan cari, kategori, filter, urutkan | Konsep | besar | **Beres**; edit & arsip topik belum |
+| 7 | **Ringkasan sesi** setelah selesai | Konsep | sedang | **Belum** |
+| 8 | **Koleksi frasa** yang bisa dilihat & diulang | Konsep | besar | **Belum** |
+| 9 | Dashboard → **Progres**: metrik kelancaran, bukan cuma jumlah tes | Konsep | sedang | **Sebagian**: ringkasan & istilah dirapiin; metrik kelancaran belum |
+| 10 | Navigasi app yang konsisten (tab bawah di HP, sidebar di laptop) | Konsep | sedang | **Beres** |
+
+---
+
+## Status perbaikan
+
+> Update 14 September 2026.
+
+### Dikerjain di commit mana
+
+| Commit | Isi |
+|---|---|
+| `022accd` | Navigasi baru (sidebar laptop, tab bar HP), beranda **Latihan**, halaman **Topik** & **Pengaturan**, tabel `categories`, suara HD & ekspresi Zii |
+| `078eba9` | Review desain 4 halaman sidebar di laptop, tablet, dan HP: kontras, ukuran teks, layout responsif, Dashboard dirombak ke gaya baru, favicon |
+| `931f351` | Sisa target sentuh di HP (tombol status Dashboard, kotak cari Topik, tombol contoh suara) |
+
+Dua commit terakhir ada di branch `design/review-halaman-sidebar`.
+
+**Belum disentuh sama sekali:** layar **Sesi** dan **Bengkel Kalimat**. Semua
+temuan di [2.2](#22-sesi-ngobrol), [2.3](#23-bengkel-kalimat),
+[4.4](#44-sesi-fokus-ke-obrolan-tutup-dengan-ringkasan), dan
+[4.5](#45-bengkel-satu-tujuan-per-layar) masih berlaku.
+
+### Status per area
+
+| Area | Status | Yang udah | Yang belum |
 |---|---|---|---|
-| 1 | Benerin timer rekaman `0:75` | Bug | kecil |
-| 2 | Orb Zii jadi kotak saat reduce motion | Bug | kecil |
-| 3 | Naikin kontras token warna + ukuran teks minimal 12px | Aksesibilitas | sedang |
-| 4 | Tombol Bengkel: "Pakai & Lanjut" cuma nutup, "Simpan" ketutup | Bug UX | kecil |
-| 5 | Pindahin model & suara ke halaman **Pengaturan** | Konsep | sedang |
-| 6 | Halaman **Topik** dengan cari, kategori, filter, urutkan | Konsep | besar |
-| 7 | **Ringkasan sesi** setelah selesai | Konsep | sedang |
-| 8 | **Koleksi frasa** yang bisa dilihat & diulang | Konsep | besar |
-| 9 | Dashboard → **Progres**: metrik kelancaran, bukan cuma jumlah tes | Konsep | sedang |
-| 10 | Navigasi app yang konsisten (tab bawah di HP, sidebar di laptop) | Konsep | sedang |
+| Beranda ([2.1](#21-home), [4.2](#42-beranda-latihan-dirancang-buat-100-topik)) | **Beres** | Rekomendasi hari ini (rotasi harian), Terakhir dilatih, Belum pernah dicoba, Waktunya diulang, Jelajah kategori; model & suara pindah ke Pengaturan | Kartu "frasa perlu diulang" (nunggu Koleksi) |
+| Navigasi ([4.1](#41-arsitektur-informasi--navigasi)) | **Beres** | 4 tujuan: Latihan, Topik, Dashboard, Pengaturan. Sidebar di laptop, tab bar di HP, disembunyiin saat sesi | Tujuan **Koleksi** |
+| Topik ([4.3](#43-halaman-topik-perpustakaan)) | **Sebagian** | Cari, filter kategori & status, 5 urutan, filter ikut URL, daftar ringkas, tambah kategori dari app | Edit, arsip, sematkan topik (`archived_at`, `pinned`, `PATCH`); ikon kategori |
+| Pengaturan ([4.8](#48-pengaturan--onboarding)) | **Sebagian** | Suara + contoh, model AI, aturan sesi, status sistem (LLM, Azure, LangSmith) | Kecepatan bicara, ekspresi on/off, koreksi on/off, target jawaban, status database, onboarding |
+| Dashboard → Progres ([2.4](#24-dashboard--tambah-topik), [4.7](#47-progres-pengganti-dashboard)) | **Sebagian** | Ringkasan nggak redundan, istilah "sesi", kotak statistik minggir di HP saat detail dibuka, tambah topik pindah ke Topik | Metrik kelancaran (koreksi per 10 jawaban, menit ngomong), grafik mingguan, riwayat lintas topik |
+| Kontras ([3.1](#31-kontras-warna-wcag-aa-teks-normal--451)) | **Sebagian** | Token baru `--ink-mute` `#7d6a8e` + warna status `#097c57`/`#be4919` (sesuai usulan tabel 3.1) dipakai di 4 halaman & form; tombol simpan form jadi violet | `--muted`/`--faint` masih dipakai 14× di Sesi & Bengkel; tombol teal/amber/oranye/biru di sesi |
+| Ukuran teks ([3.2](#32-ukuran-teks)) | **Sebagian** | Nol teks < 12px di 4 halaman & form | **28 aturan CSS** < 12px tersisa (dulu 51), semuanya di Sesi, Bengkel, rail |
+| Target sentuh ([3.3](#33-target-sentuh)) | **Sebagian** | Tombol & kontrol di 4 halaman HP minimal 40–44px | Semua elemen di tabel 3.3 (Sesi & Bengkel) |
+| Utang CSS ([3.4](#34-konsistensi--utang-css)) | **Belum** | Favicon | CSS mati (`.fcard`, `.side-head`, `.gloss`, `.pill`, `.dsp`, `.round.plain`) masih ada; hex di CSS 178 (98 unik), `style={{…}}` inline 40; manifest & app icon |
+| Sesi ([2.2](#22-sesi-ngobrol), [4.4](#44-sesi-fokus-ke-obrolan-tutup-dengan-ringkasan)) | **Belum** | — | Semua, termasuk ringkasan sesi |
+| Bengkel ([2.3](#23-bengkel-kalimat), [4.5](#45-bengkel-satu-tujuan-per-layar)) | **Belum** | — | Semua |
+| Koleksi frasa ([4.6](#46-koleksi-frasa--latihan-ulang-fitur-yang-hilang)) | **Belum** | — | API masih cuma `POST /api/phrases` |
+
+### Yang berubah di review desain (`078eba9`, `931f351`)
+
+**Semua halaman sidebar:** teks minimal 12px, kontras lolos AA, tombol di HP
+minimal 40–44px, favicon.
+
+**Latihan**
+
+- Grid topik pakai container query: di tablet dan laptop ±1100–1260px nggak ada
+  kartu nyangkut sendirian di baris kedua.
+- Kartu "Cara kerjanya" nggak bolong lagi waktu ditumpuk.
+- Aturan 10 jawaban nggak disebut dua kali.
+
+**Topik**
+
+- HP: cari & status sebaris, "Sudah tersimpan" jadi "Tersimpan", urutkan pindah
+  ke baris jumlah hasil, catatan aturan pindah ke bawah daftar. Topik pertama
+  naik dari y ±470px ke ±318px.
+- Hasil cari kosong: "Reset filter" nggak dobel, urutkan disembunyiin.
+- Form tambah topik: teks lebih gede, tombol simpan violet & nempel di bawah
+  layar HP, ada petunjuk kenapa belum bisa disimpan.
+
+**Dashboard**
+
+- Gaya disamain sama halaman lain (kartu flat, satu scroll).
+- Tabel pakai container query: nama topik nggak kepotong lagi di laptop
+  1024–1280px.
+- Istilah "tes" jadi "sesi"; 4 kotak ringkasan yang nggak dobel.
+- Tombol "Latih lagi" mati kalau AI belum siap; tombol tambah topik cuma di Topik.
+- Transkrip & skenario ditandai `lang="en"`.
+
+**Pengaturan**
+
+- Dropdown suara & model bisa diketuk di seluruh kotak, dengan tanda fokus keyboard.
+- Status sistem naik ke atas kalau ada yang belum siap; nama variabel `.env`
+  nggak pecah di HP.
+- Status LangSmith nggak lagi "Siap" kalau API key-nya kosong (`tracing.keyed`
+  di `/api/config`).
 
 ---
 
@@ -88,26 +169,27 @@ suara HD dan ekspresi jalan, dan datanya udah rapi di Postgres. Yang bikin app i
 ## 1. Bug yang ketemu
 
 Semua di bawah udah dicek ke kode dan/atau kelihatan di screenshot, kecuali yang
-ditandai *(perlu dicek manual)*.
+ditandai *(perlu dicek manual)*. Kolom **Status** dicek ulang ke kode per 14
+September 2026; nomor baris di kolom Lokasi masih nomor baris waktu audit.
 
-| # | Bug | Dampak ke user | Lokasi | Prioritas |
-|---|---|---|---|---|
-| B1 | **Timer rekaman nggak pernah jadi menit.** Formatnya `` `0:${secs}` ``, jadi detik ke-75 tampil `0:75`. | Kelihatan rusak tiap ngomong lebih dari 1 menit | [Session.tsx:747](../../src/screens/Session.tsx#L747) | Tinggi |
-| B2 | **Orb Zii jadi kotak ungu** kalau sistem user nyalain "kurangi animasi". Bentuk bulatnya cuma datang dari `@keyframes breathe`; begitu animasinya dimatiin, `.orb` nggak punya `border-radius`. | Avatar Zii rusak di Sesi, Dashboard, dan layar loading | [styles.css:70](../../src/styles.css#L70), [:101](../../src/styles.css#L101), [:106](../../src/styles.css#L106) | Tinggi |
-| B3 | **Topik "Pilihan hari ini" hilang dari grid dan hitungannya salah.** Grid buang topik hero, jadi "Sehari-hari · 4 topik" padahal ada 5, dan progres topik itu nggak pernah kelihatan. | Angka nggak cocok, topik kayak hilang | [Home.tsx:30-31](../../src/screens/Home.tsx#L30) | Sedang |
-| B4 | **"Pilihan hari ini" nggak pernah ganti.** Di-hardcode `OF_DAY = 'macet'`. | Label "hari ini" bohong | [Home.tsx:6](../../src/screens/Home.tsx#L6) | Sedang |
-| B5 | **Bar progres palsu:** lebarnya 0% atau langsung 100% begitu pernah dites sekali. | Kelihatan "tuntas" padahal baru sekali coba | [Home.tsx:52](../../src/screens/Home.tsx#L52) | Sedang |
-| B6 | **Highlight kata di Bengkel lari duluan.** Azure ngirim tanda baca sebagai event kata terpisah (`funny`, `!`), sedangkan kalimatnya dipecah per spasi (`funny!`). Tiap koma atau tanda tanya bikin highlight maju satu kata lebih cepat. | Highlight nggak sinkron sama suara | [Bengkel.tsx:174](../../src/components/Bengkel.tsx#L174), [:376](../../src/components/Bengkel.tsx#L376) | Sedang |
-| B7 | **Tombol utama Bengkel menyesatkan.** "Pakai & Lanjut Ngobrol" cuma nutup panel, nggak "pakai" apa-apa. Aksi yang beneran nyimpen ("Simpan … ke koleksi frasa") cuma teks abu-abu di bawahnya, dan di HP ketutup, harus scroll dulu. | Frasa jarang kesimpan; user ngira kalimatnya dikirim | [Bengkel.tsx:467](../../src/components/Bengkel.tsx#L467), [:473](../../src/components/Bengkel.tsx#L473) | Tinggi |
-| B8 | **Spasi antar kata di kartu Bengkel melebar** ("Could  you  say"), karena tiap kata jadi item flex dengan `gap: 6px`. | Kalimat kelihatan aneh, susah dibaca | [styles.css:382](../../src/styles.css#L382) | Rendah |
-| B9 | **`favicon.ico` 404** di tiap halaman. Nggak ada ikon tab, app icon, atau manifest. | Kelihatan belum jadi di tab browser / home screen HP | [index.html](../../index.html) | Rendah |
-| B10 | **Label momentum "hari" menyesatkan.** Momentum bukan jumlah hari (bisa naik 1 per hari main, bisa kepotong separuh), tapi tampil "2 hari". | User ngira streak | [Home.tsx:65](../../src/screens/Home.tsx#L65), [Session.tsx:517](../../src/screens/Session.tsx#L517) | Rendah |
-| B11 | **Konfirmasi keluar pakai `window.confirm` bawaan browser.** | Dialog abu-abu bawaan OS, beda gaya sama app | [Session.tsx:485](../../src/screens/Session.tsx#L485) | Rendah |
-| B12 | **Bengkel di HP nggak punya backdrop.** Tombol kembali di header sesi masih bisa diketuk selagi Bengkel kebuka. | Bisa keluar sesi nggak sengaja | [styles.css:346](../../src/styles.css#L346) | Rendah |
-| B13 | **Dropdown nggak punya tanda fokus keyboard** (`outline: none`). Pas di-Tab, nggak ada yang nyala. | Pengguna keyboard nggak tahu posisinya | [styles.css:186](../../src/styles.css#L186) | Sedang |
-| B14 | **Kartu versi di Bengkel `role="button"` tapi di dalamnya ada tombol lain** (dengerin, pelanin, geser). | Screen reader bingung, interaksi bertumpuk | [Bengkel.tsx:332](../../src/components/Bengkel.tsx#L332) | Rendah |
-| B15 | **Teks Inggris nggak ditandai `lang="en"`.** Halamannya `lang="id"`, jadi screen reader ngebaca kalimat Inggris pakai lafal Indonesia. | Aksesibilitas | bubble di Session & Bengkel | Rendah |
-| B16 | *(perlu dicek manual)* **Contoh suara bunyi berulang kalau dropdown suara diganti pakai panah keyboard.** Tiap `change` langsung muter preview. | Berisik waktu lihat-lihat suara | [bits.tsx:150](../../src/components/bits.tsx#L150) | Rendah |
+| # | Bug | Dampak ke user | Lokasi | Prioritas | Status |
+|---|---|---|---|---|---|
+| B1 | **Timer rekaman nggak pernah jadi menit.** Formatnya `` `0:${secs}` ``, jadi detik ke-75 tampil `0:75`. | Kelihatan rusak tiap ngomong lebih dari 1 menit | [Session.tsx:747](../../src/screens/Session.tsx#L747) | Tinggi | **Belum** |
+| B2 | **Orb Zii jadi kotak ungu** kalau sistem user nyalain "kurangi animasi". Bentuk bulatnya cuma datang dari `@keyframes breathe`; begitu animasinya dimatiin, `.orb` nggak punya `border-radius`. | Avatar Zii rusak di Sesi, Dashboard, dan layar loading | [styles.css:70](../../src/styles.css#L70), [:101](../../src/styles.css#L101), [:106](../../src/styles.css#L106) | Tinggi | **Beres** |
+| B3 | **Topik "Pilihan hari ini" hilang dari grid dan hitungannya salah.** Grid buang topik hero, jadi "Sehari-hari · 4 topik" padahal ada 5, dan progres topik itu nggak pernah kelihatan. | Angka nggak cocok, topik kayak hilang | [Home.tsx:30-31](../../src/screens/Home.tsx#L30) | Sedang | **Beres** (beranda baru) |
+| B4 | **"Pilihan hari ini" nggak pernah ganti.** Di-hardcode `OF_DAY = 'macet'`. | Label "hari ini" bohong | [Home.tsx:6](../../src/screens/Home.tsx#L6) | Sedang | **Beres** (`pickOfDay`) |
+| B5 | **Bar progres palsu:** lebarnya 0% atau langsung 100% begitu pernah dites sekali. | Kelihatan "tuntas" padahal baru sekali coba | [Home.tsx:52](../../src/screens/Home.tsx#L52) | Sedang | **Beres** (bar dibuang) |
+| B6 | **Highlight kata di Bengkel lari duluan.** Azure ngirim tanda baca sebagai event kata terpisah (`funny`, `!`), sedangkan kalimatnya dipecah per spasi (`funny!`). Tiap koma atau tanda tanya bikin highlight maju satu kata lebih cepat. | Highlight nggak sinkron sama suara | [Bengkel.tsx:174](../../src/components/Bengkel.tsx#L174), [:376](../../src/components/Bengkel.tsx#L376) | Sedang | **Belum** |
+| B7 | **Tombol utama Bengkel menyesatkan.** "Pakai & Lanjut Ngobrol" cuma nutup panel, nggak "pakai" apa-apa. Aksi yang beneran nyimpen ("Simpan … ke koleksi frasa") cuma teks abu-abu di bawahnya, dan di HP ketutup, harus scroll dulu. | Frasa jarang kesimpan; user ngira kalimatnya dikirim | [Bengkel.tsx:467](../../src/components/Bengkel.tsx#L467), [:473](../../src/components/Bengkel.tsx#L473) | Tinggi | **Belum** |
+| B8 | **Spasi antar kata di kartu Bengkel melebar** ("Could  you  say"), karena tiap kata jadi item flex dengan `gap: 6px`. | Kalimat kelihatan aneh, susah dibaca | [styles.css:382](../../src/styles.css#L382) | Rendah | **Belum** |
+| B9 | **`favicon.ico` 404** di tiap halaman. Nggak ada ikon tab, app icon, atau manifest. | Kelihatan belum jadi di tab browser / home screen HP | [index.html](../../index.html) | Rendah | **Sebagian**: favicon SVG ada; app icon & manifest belum |
+| B10 | **Label momentum "hari" menyesatkan.** Momentum bukan jumlah hari (bisa naik 1 per hari main, bisa kepotong separuh), tapi tampil "2 hari". | User ngira streak | [Home.tsx:65](../../src/screens/Home.tsx#L65), [Session.tsx:517](../../src/screens/Session.tsx#L517) | Rendah | **Beres** (label "momentum") |
+| B11 | **Konfirmasi keluar pakai `window.confirm` bawaan browser.** | Dialog abu-abu bawaan OS, beda gaya sama app | [Session.tsx:485](../../src/screens/Session.tsx#L485) | Rendah | **Belum** |
+| B12 | **Bengkel di HP nggak punya backdrop.** Tombol kembali di header sesi masih bisa diketuk selagi Bengkel kebuka. | Bisa keluar sesi nggak sengaja | [styles.css:346](../../src/styles.css#L346) | Rendah | **Belum** |
+| B13 | **Dropdown nggak punya tanda fokus keyboard** (`outline: none`). Pas di-Tab, nggak ada yang nyala. | Pengguna keyboard nggak tahu posisinya | [styles.css:186](../../src/styles.css#L186) | Sedang | **Beres** di halaman sidebar & form |
+| B14 | **Kartu versi di Bengkel `role="button"` tapi di dalamnya ada tombol lain** (dengerin, pelanin, geser). | Screen reader bingung, interaksi bertumpuk | [Bengkel.tsx:332](../../src/components/Bengkel.tsx#L332) | Rendah | **Belum** |
+| B15 | **Teks Inggris nggak ditandai `lang="en"`.** Halamannya `lang="id"`, jadi screen reader ngebaca kalimat Inggris pakai lafal Indonesia. | Aksesibilitas | bubble di Session & Bengkel | Rendah | **Sebagian**: transkrip Dashboard beres; Sesi & Bengkel belum |
+| B16 | *(perlu dicek manual)* **Contoh suara bunyi berulang kalau dropdown suara diganti pakai panah keyboard.** Tiap `change` langsung muter preview. | Berisik waktu lihat-lihat suara | [bits.tsx:150](../../src/components/bits.tsx#L150) | Rendah | **Belum dicek** |
 
 <table>
 <tr>
@@ -122,6 +204,9 @@ ditandai *(perlu dicek manual)*.
 ## 2. Temuan desain per layar
 
 ### 2.1 Home
+
+> **Status:** beres. Home diganti beranda **Latihan** (lihat 4.2); daftar semua
+> topik pindah ke halaman **Topik**.
 
 <table>
 <tr>
@@ -166,6 +251,8 @@ ditandai *(perlu dicek manual)*.
 
 ### 2.2 Sesi ngobrol
 
+> **Status:** belum digarap. Semua temuan di bawah masih berlaku.
+
 <table>
 <tr>
 <td align="center"><img src="img/sess-open-m.png" width="220"><br><sub>Awal sesi di HP</sub></td>
@@ -195,6 +282,8 @@ ditandai *(perlu dicek manual)*.
 
 ### 2.3 Bengkel Kalimat
 
+> **Status:** belum digarap. Semua temuan di bawah masih berlaku.
+
 <table>
 <tr>
 <td align="center"><img src="img/bengkel-empty-m.png" width="220"><br><sub>HP: sheet tanpa backdrop</sub></td>
@@ -213,6 +302,11 @@ ditandai *(perlu dicek manual)*.
   lewat "Ketik aja", yang ngeganti seluruh kotak.
 
 ### 2.4 Dashboard & Tambah topik
+
+> **Status:** sebagian. Kotak statistik redundan, kotak yang dorong detail di
+> HP, dan campur fungsi (tambah topik) udah beres; cari & urutkan ada di halaman
+> Topik. Edit/arsip topik, bantuan bikin skenario, dan pilihan warna yang lebih
+> banyak belum. Kategori sekarang bisa ditambah dari app.
 
 <table>
 <tr>
@@ -243,6 +337,10 @@ ditandai *(perlu dicek manual)*.
 
 ## 3. Sistem visual & aksesibilitas
 
+> **Status:** sebagian. Kontras, ukuran teks, dan target sentuh udah beres di 4
+> halaman sidebar & form tambah topik (angka di
+> [Lampiran](#setelah-perbaikan-14-september-2026)). Sesi & Bengkel belum.
+
 ### 3.1 Kontras warna (WCAG AA: teks normal ≥ 4.5:1)
 
 Dihitung dari token asli di [styles.css](../../src/styles.css). Warna pengganti
@@ -268,6 +366,11 @@ Pengukuran di halaman nemu **27 teks kontras rendah di Dashboard**, 40 di detail
 topik, 24 di Bengkel, dan 9 di sesi HP. Paling parah: "Tangkap frasa" **1.77:1**,
 jam di transkrip **1.85:1**, dan header tabel **1.92:1**.
 
+> **Update:** halaman sidebar pakai token baru `--ink-mute` (`#7d6a8e`, nilai
+> usulan `--muted`) dan warna status usulan (`#097c57`, `#be4919`). Token
+> `--muted` & `--faint` yang lama nggak diubah, masih dipakai 14× di Sesi &
+> Bengkel. Tombol teal, amber, oranye, dan biru di sesi belum diganti.
+
 ### 3.2 Ukuran teks
 
 - **51 aturan CSS pakai font di bawah 12px**, dan 39 di antaranya ≤ 11px
@@ -280,6 +383,10 @@ jam di transkrip **1.85:1**, dan header tabel **1.92:1**.
 **Usulan skala tipografi** (6 langkah, bukan 26 ukuran kayak sekarang):
 `12 · 14 · 16 · 20 · 24 · 32`. Label kapital boleh 12px dengan `letter-spacing`;
 nggak ada teks di bawah 12px.
+
+> **Update:** tinggal **28 aturan** di bawah 12px, semuanya di Sesi, Bengkel,
+> dan rail sesi. Di 4 halaman sidebar & form tambah topik nggak ada teks yang
+> kelihatan di bawah 12px. Skala tipografi 6 langkah belum dijadiin token.
 
 ### 3.3 Target sentuh
 
@@ -294,6 +401,9 @@ Acuan: WCAG 2.2 SC 2.5.8 minimal 24×24px; pedoman iOS/Android 44–48px.
 | "Kenapa?" | 75×33 |
 | Tombol kembali | 38×38 |
 
+> **Update:** tab filter Dashboard sekarang 40px di layar sentuh. Elemen Sesi &
+> Bengkel di tabel ini belum diubah.
+
 ### 3.4 Konsistensi & utang CSS
 
 - **123 kode warna hex ditulis langsung** (59 unik) di luar token, ditambah
@@ -305,6 +415,11 @@ Acuan: WCAG 2.2 SC 2.5.8 minimal 24×24px; pedoman iOS/Android 44–48px.
   itu ngandelin outline bawaan browser, atau dimatiin sama sekali (B13).
 - **Nggak ada dark mode, favicon, atau manifest PWA**, padahal app ini
   mobile-first dan punya `theme-color`.
+
+> **Update:** belum digarap. Hex di `styles.css` malah naik jadi **178 (98 unik)**
+> karena halaman baru; inline style 40. CSS mati masih ada. Favicon udah ada,
+> manifest & dark mode belum. Fokus keyboard sekarang dirancang di navigasi,
+> tombol, chip, dropdown, dan baris daftar.
 
 ### 3.5 Kenapa kesannya "kurang profesional"
 
@@ -328,11 +443,19 @@ sebagai identitas, tapi:
 - Nada bahasa tetap santai di obrolan, tapi jelas dan baku di error, pengaturan,
   dan konfirmasi.
 
+> **Update:** 4 halaman sidebar & form udah pakai arah ini (kartu flat bertepi
+> tipis, judul 700, angka `tabular-nums`, 3D dibuang dari Dashboard). Sesi &
+> Bengkel masih gaya lama.
+
 ---
 
 ## 4. Konsep yang perlu dirombak
 
 ### 4.1 Arsitektur informasi & navigasi
+
+> **Status:** beres, tanpa Koleksi. Yang dibangun: Latihan, Topik, Dashboard
+> (belum jadi Progres), Pengaturan. Di HP, Pengaturan jadi tab ke-4 (bukan ikon
+> di header).
 
 Sekarang cuma ada dua halaman (`/` dan `/dashboard`), dan navigasinya berupa pil
 kecil. Usulan: **lima tujuan jelas**, dengan navigasi yang sama di semua layar
@@ -352,6 +475,10 @@ kecil. Usulan: **lima tujuan jelas**, dengan navigasi yang sama di semua layar
 - **Saat sesi:** navigasi disembunyiin; cuma header sesi + tombol keluar.
 
 ### 4.2 Beranda "Latihan": dirancang buat 100+ topik
+
+> **Status:** beres, tanpa kartu "frasa perlu diulang" (nunggu Koleksi).
+> "Lanjutkan" dibangun sebagai kartu **Terakhir dilatih**, plus baris **Belum
+> pernah dicoba** dan **Waktunya diulang**.
 
 Beranda **nggak lagi nampilin semua topik**, tapi mutusin buat user:
 
@@ -381,6 +508,11 @@ deterministik per tanggal, supaya tetap sama seharian dan ganti besoknya. Nggak
 butuh tabel baru; cukup data `topic_stats` yang udah ada.
 
 ### 4.3 Halaman "Topik": perpustakaan
+
+> **Status:** sebagian. Cari, filter kategori & status, urutkan, daftar ringkas,
+> dan tabel `categories` udah jadi. Kelola (edit, arsip, sematkan, atur urutan),
+> `categories.icon`, `topics.archived_at`, `topics.pinned`, dan endpoint `PATCH`
+> / `archive` belum.
 
 ```
 ┌─────────────────────────────────────────────┐
@@ -414,6 +546,8 @@ butuh tabel baru; cukup data `topic_stats` yang udah ada.
 - Endpoint `PATCH /api/topics/{id}` dan `POST /api/topics/{id}/archive`.
 
 ### 4.4 Sesi: fokus ke obrolan, tutup dengan ringkasan
+
+> **Status:** belum digarap.
 
 - **Header ringkas:** begitu ada ≥2 bubble, orb besar menyusut jadi avatar kecil
   di header. Area obrolan naik dari ±61% jadi ±75% layar HP.
@@ -450,6 +584,8 @@ nampilin ringkasan setelah tiap sesi).
 
 ### 4.5 Bengkel: satu tujuan per layar
 
+> **Status:** belum digarap.
+
 - **Ganti label & hierarki (B7):**
   - Tombol utama: **"Simpan frasa"** (atau "Tersimpan ✓").
   - Tombol sekunder: **"Balik ngobrol"** (dan `Esc`).
@@ -463,6 +599,9 @@ nampilin ringkasan setelah tiap sesi).
   event. Ini sekaligus benerin B6.
 
 ### 4.6 Koleksi frasa + latihan ulang (fitur yang hilang)
+
+> **Status:** belum digarap. Jumlah frasa tampil di sidebar & beranda, tapi
+> belum ada layar atau endpoint buat ngebacanya.
 
 Sekarang frasa **cuma bisa masuk** ([state.py:102](../../server/routes/state.py#L102)),
 nggak ada endpoint baca dan nggak ada layarnya. Desain aslinya punya panel
@@ -495,6 +634,12 @@ konteks obrolan disebut jadi pembeda app speaking yang serius (lihat
 
 ### 4.7 Progres (pengganti Dashboard)
 
+> **Status:** sebagian. Kotak "total / sudah / belum" udah diganti 4 kotak: sesi
+> tersimpan, total jawaban (+ rata-rata per sesi), belum dicoba, dan terakhir
+> latihan. Di HP kotaknya minggir waktu detail dibuka, dan manajemen topik udah
+> pindah ke Topik. Metrik kelancaran, grafik mingguan, dan riwayat lintas topik
+> belum. Namanya masih "Dashboard".
+
 Ganti kotak "total topik / sudah / belum" dengan angka yang jawab **"aku makin
 lancar?"**. Semuanya bisa dihitung dari tabel yang udah ada:
 
@@ -515,6 +660,11 @@ lancar?"**. Semuanya bisa dihitung dari tabel yang udah ada:
 - **Manajemen topik pindah** ke halaman Topik (4.3).
 
 ### 4.8 Pengaturan & onboarding
+
+> **Status:** sebagian. Halaman Pengaturan udah ada: suara + contoh, model AI,
+> aturan sesi, dan status sistem (LLM, Azure Speech, LangSmith). Kecepatan
+> bicara, ekspresi on/off, koreksi on/off, target jawaban, status database, dan
+> onboarding belum.
 
 **Pengaturan:**
 
@@ -538,6 +688,9 @@ rencana latihan (lihat [Sumber](#sumber)).
 
 ### 4.9 Kamus istilah (biar konsisten)
 
+> **Status:** dipakai di 4 halaman sidebar (Dashboard udah ganti "tes" jadi
+> "sesi"). Sesi & Bengkel belum dicek ulang.
+
 | Pakai | Jangan campur dengan | Arti |
 |---|---|---|
 | **Sesi** | tes, obrolan | Satu kali latihan dengan Zii |
@@ -551,36 +704,48 @@ rencana latihan (lihat [Sumber](#sumber)).
 
 ## 5. Roadmap usulan
 
+Dicentang = beres per 14 September 2026.
+
 ### Fase 1.5 — Rapiin yang ada (± 2–3 hari)
 
 - [ ] B1 timer menit:detik
-- [ ] B2 orb punya `border-radius` dasar
-- [ ] B3 + B4 + B5 hero, rotasi harian, buang bar palsu
+- [x] B2 orb punya `border-radius` dasar
+- [x] B3 + B4 + B5 hero, rotasi harian, buang bar palsu
 - [ ] B7 + B8 + B6 tombol Bengkel, spasi kata, highlight pakai offset
-- [ ] Token warna AA (tabel 3.1) + minimal font 12px + fokus keyboard
-- [ ] Favicon, app icon, manifest
-- [ ] Istilah (4.9) + konfirmasi keluar in-app
+- [ ] Token warna AA (tabel 3.1) + minimal font 12px + fokus keyboard — *beres di 4 halaman sidebar & form; Sesi & Bengkel belum*
+- [ ] Favicon, app icon, manifest — *favicon beres; app icon & manifest belum*
+- [ ] Istilah (4.9) + konfirmasi keluar in-app — *istilah beres di halaman sidebar; konfirmasi keluar belum*
 - [ ] Hapus CSS mati; pindahin hex & inline style ke token
 
 ### Fase 2a — Struktur (± 1–2 minggu)
 
-- [ ] Navigasi app (tab bar HP, sidebar laptop)
-- [ ] Halaman **Pengaturan** (model & suara pindah dari Home)
-- [ ] Tabel **kategori** + halaman **Topik** (cari, filter, urutkan, edit, arsip)
-- [ ] Beranda **Latihan** baru (Lanjutkan, Rekomendasi, Jelajah)
+- [x] Navigasi app (tab bar HP, sidebar laptop)
+- [x] Halaman **Pengaturan** (model & suara pindah dari Home)
+- [x] Tabel **kategori** + halaman **Topik** (cari, filter, urutkan)
+- [ ] **Edit & arsip** topik
+- [x] Beranda **Latihan** baru (Lanjutkan, Rekomendasi, Jelajah)
 
 ### Fase 2b — Siklus belajar (± 1–2 minggu)
 
 - [ ] **Ringkasan sesi**
 - [ ] **Koleksi frasa** + latihan ulang
-- [ ] **Progres** dengan metrik kelancaran
+- [ ] **Progres** dengan metrik kelancaran — *ringkasan & istilah Dashboard udah dirapiin*
 
 ### Fase 2c — Poles (menyusul)
 
 - [ ] Onboarding pertama kali
 - [ ] Dark mode (setelah token warna rapi)
-- [ ] Pecah `Session.tsx` (899 baris) jadi komponen kecil
+- [ ] Pecah `Session.tsx` (sekarang 906 baris) jadi komponen kecil
 - [ ] Jadiin skrip audit visual ini bagian dari cek rutin sebelum rilis
+
+### Urutan berikutnya yang disarankan
+
+1. **Bug kecil di Sesi & Bengkel:** B1, B7, B8 + B6, B11, B12. Usahanya kecil
+   dan kelihatan langsung sama user.
+2. **Kontras & ukuran teks di Sesi & Bengkel,** biar standarnya sama kayak
+   halaman sidebar.
+3. **Ringkasan sesi,** yang datanya udah lengkap.
+4. **Koleksi frasa,** yang angkanya udah nongol di sidebar tapi belum bisa dibuka.
 
 ---
 
@@ -606,6 +771,8 @@ Jawaban ini ngubah desain fase 2:
 
 ### Angka pengukuran
 
+#### Waktu audit (13 September 2026)
+
 | Layar | Teks dicek | Kontras rendah | Tombol < 44px | Font < 12px |
 |---|---|---|---|---|
 | Home HP | 36 | 7 | 4 | 17 |
@@ -627,9 +794,34 @@ Jawaban ini ngubah desain fase 2:
   (warna latar induk + opacity). Latar gradien diabaikan, jadi teks di atas orb
   atau gradien bisa sedikit meleset.
 
+#### Setelah perbaikan (14 September 2026)
+
+Diukur dengan cara yang sama, sampai commit `931f351`, dengan AI & Azure Speech
+aktif (tombol Mulai nyala). HP = 375px dengan layar sentuh, laptop = 1280px.
+Sesi & Bengkel nggak diukur ulang karena belum diubah.
+
+| Layar | Kontras rendah | Font < 12px | Kontrol < 44px | Overflow |
+|---|---|---|---|---|
+| Latihan HP | 0 | 0 | 0 | nggak ada |
+| Topik HP | 0 | 0 | 5 (tombol status 40px ×3, kotak cari 42px, urutkan 42px) | nggak ada |
+| Form tambah topik HP | 0 | 0 | 0 | — |
+| Dashboard HP | 0 | 0 | 3 (tombol status 40px) | nggak ada |
+| Pengaturan HP | 0 | 0 | 0 | nggak ada |
+| Latihan laptop | 0 | 0 | 2 link teks tingginya 19px ("Lihat semua", "Semua topik") | nggak ada |
+| Topik laptop | 0 | 0 | kotak ketik cari 22px (bingkainya 44px) | nggak ada |
+| Dashboard laptop | 0 | 0 | 0 | nggak ada |
+| Pengaturan laptop | 0 | 0 | 0 | nggak ada |
+
+- Kolom kontrol HP pakai acuan 44px, laptop pakai acuan WCAG 24px.
+- Nama topik kepotong di Dashboard: **nol** di 1024px, 1280px, dan HP (dulu
+  "Saat K…" di 1280px).
+- Data sesi contoh dipakai sementara buat ngecek kartu "Terakhir dilatih" dan
+  transkrip, lalu dihapus lagi dari database.
+
 ### Screenshot
 
-Semua di [`img/`](img/), diambil dengan data asli + simulasi:
+Semua di [`img/`](img/), diambil dengan data asli + simulasi waktu audit
+(kondisi **sebelum** perbaikan):
 `home-m-full`, `home-d`, `home-many-m-full`, `home-many-d`, `sess-open-m`,
 `sess-mid-m`, `sess-rec-m`, `sess-mid-d`, `bengkel-empty-m`, `bengkel-result-m`,
 `bengkel-result-d`, `bengkel-result-1024`, `dash-many-d`, `dash-detail-d`,
