@@ -150,8 +150,9 @@ export function Home({
             )}
           </div>
 
-          {/* kalau kartu "Cara kerjanya" nggak nongol, aturannya tetap disebut di sini */}
-          {last && (
+          {/* aturannya udah disebut di kartu rekomendasi / "Cara kerjanya" — ini cuma
+              kalau dua-duanya nggak nongol */}
+          {last && !today && (
             <p className="rule">
               <Icon name="info" size={16} />
               <span>

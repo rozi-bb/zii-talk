@@ -76,6 +76,10 @@ if DIST.exists():
     async def spa(full_path: str, request: Request) -> Response:
         if full_path.startswith("api/") or full_path in {"docs", "openapi.json", "redoc"}:
             return Response(status_code=404)
+        # file dari public/ (favicon, dst.) ikut ke root dist — jangan dijawab index.html
+        file = (DIST / full_path).resolve()
+        if full_path and file.is_file() and file.is_relative_to(DIST):
+            return FileResponse(file)
         index = DIST / "index.html"
         if index.exists():
             return FileResponse(index)

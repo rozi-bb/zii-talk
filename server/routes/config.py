@@ -46,6 +46,7 @@ class SpeechInfo(BaseModel):
 class TracingInfo(BaseModel):
     on: bool
     project: str
+    keyed: bool  # LANGSMITH_API_KEY keisi — "on" tanpa key = nggak ada trace yang kekirim
 
 
 class AppConfig(BaseModel):
@@ -76,6 +77,7 @@ def get_config() -> AppConfig:
         tracing=TracingInfo(
             on=(os.environ.get("LANGSMITH_TRACING") or "").lower() == "true",
             project=os.environ.get("LANGSMITH_PROJECT") or "default",
+            keyed=bool((os.environ.get("LANGSMITH_API_KEY") or "").strip()),
         ),
         minAnswers=MIN_ANSWERS,
     )

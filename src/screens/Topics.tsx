@@ -193,24 +193,12 @@ export function Topics({
                 </button>
               ))}
             </div>
-
-            <label className="sort">
-              <span>Urutkan</span>
-              <select value={sort} onChange={(e) => setSort(e.target.value as Sort)}>
-                {SORTS.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.label}
-                  </option>
-                ))}
-              </select>
-              <Icon name="chevron" size={15} />
-            </label>
           </div>
 
           {/* HP: kategori jadi chip yang bisa digeser, gantiin sidebar */}
           <div className="chips m-only" role="group" aria-label="Kategori">
             <button className={`chip-btn${activeCat === null ? ' on' : ''}`} aria-pressed={activeCat === null} onClick={() => setCategory(null)}>
-              Semua
+              Semua · {topics.length}
             </button>
             {categories.map((c) => (
               <button
@@ -226,44 +214,63 @@ export function Topics({
 
           <div className="lib-meta">
             <span>{shown.length === topics.length ? `${topics.length} topik` : `${shown.length} dari ${topics.length} topik`}</span>
-            {filtered && (
+            {/* hasil kosong: reset & urutan nggak ada gunanya di sini — kotak kosong di bawah udah punya tombol reset */}
+            {filtered && shown.length > 0 && (
               <button className="link" onClick={reset}>
                 Reset filter
               </button>
             )}
-            <span className="lib-rule">
-              <Icon name="info" size={15} />
-              Sesi tersimpan kalau kamu jawab minimal {cfg.minAnswers} kali — kurang dari itu dianggap nggak ada.
-            </span>
+            {/* urutan nempel ke baris hasil (kanan), bukan ke baris filter — di HP hemat satu baris */}
+            {shown.length > 0 && (
+              <label className="sort">
+                <span>Urutkan</span>
+                <select value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="Urutkan topik">
+                  {SORTS.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.label}
+                    </option>
+                  ))}
+                </select>
+                <Icon name="chevron" size={15} />
+              </label>
+            )}
           </div>
 
           {shown.length > 0 ? (
-            <ul className="tlist">
-              {shown.map((t) => (
-                <li key={t.id} id={`topic-${t.id}`} className={`tl-row${fresh === t.id ? ' fresh' : ''}`}>
-                  <i className="tico" style={{ background: t.tint, color: t.ink }}>
-                    <Icon name={t.icon} size={19} />
-                  </i>
-                  <div className="tl-main">
-                    <b>{t.name}</b>
-                    {t.blurb && <span>{t.blurb}</span>}
-                  </div>
-                  <div className="tl-meta">
-                    <span className="tl-cat">{catName(t.categoryId)}</span>
-                    <span className={`tl-status${t.tests ? ' done' : ''}`}>{statusText(t)}</span>
-                  </div>
-                  <button
-                    className="btn primary sm tl-go"
-                    disabled={!modelReady}
-                    onClick={() => onStart(t.id)}
-                    aria-label={`Mulai sesi ${t.name}`}
-                  >
-                    <Icon name="mic" size={15} />
-                    Mulai
-                  </button>
-                </li>
-              ))}
-            </ul>
+            <>
+              <ul className="tlist">
+                {shown.map((t) => (
+                  <li key={t.id} id={`topic-${t.id}`} className={`tl-row${fresh === t.id ? ' fresh' : ''}`}>
+                    <i className="tico" style={{ background: t.tint, color: t.ink }}>
+                      <Icon name={t.icon} size={19} />
+                    </i>
+                    <div className="tl-main">
+                      <b>{t.name}</b>
+                      {t.blurb && <span>{t.blurb}</span>}
+                    </div>
+                    <div className="tl-meta">
+                      <span className="tl-cat">{catName(t.categoryId)}</span>
+                      <span className={`tl-status${t.tests ? ' done' : ''}`}>{statusText(t)}</span>
+                    </div>
+                    <button
+                      className="btn primary sm tl-go"
+                      disabled={!modelReady}
+                      onClick={() => onStart(t.id)}
+                      aria-label={`Mulai sesi ${t.name}`}
+                    >
+                      <Icon name="mic" size={15} />
+                      Mulai
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              <p className="lib-foot">
+                <Icon name="info" size={15} />
+                <span>
+                  Sesi tersimpan kalau kamu jawab minimal {cfg.minAnswers} kali — kurang dari itu dianggap nggak ada.
+                </span>
+              </p>
+            </>
           ) : topics.length === 0 ? (
             <div className="empty">
               <b>Belum ada topik</b>

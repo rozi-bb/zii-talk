@@ -6,7 +6,7 @@ export type VoiceInfo = { id: string; name: string; gender: 'female' | 'male'; h
 export type AppConfig = {
   models: ModelInfo[];
   speech: { ready: boolean; region: string | null; voices: VoiceInfo[] };
-  tracing: { on: boolean; project: string };
+  tracing: { on: boolean; project: string; keyed: boolean };
   /* jawaban minimal biar satu sesi kesimpan sebagai tes */
   minAnswers: number;
 };

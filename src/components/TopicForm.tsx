@@ -265,10 +265,20 @@ export function TopicForm({
         {tooMany && <div className="err">Skenario maksimal 5 — sekarang ada {situations.length}.</div>}
         {err && <div className="err">{err}</div>}
 
-        <button className="use b3d" type="submit" disabled={!ready}>
-          {busy ? <span className="spin" /> : <Icon name="check" size={20} />}
-          <b>Simpan topik</b>
-        </button>
+        {/* nempel di bawah sheet: di HP tombolnya kelihatan tanpa harus scroll ke paling bawah */}
+        <div className="tf-foot">
+          {!ready && !busy && !tooMany && (
+            <p className="tf-need">
+              {newCat !== null
+                ? 'Tambahkan atau batalkan kategori baru dulu.'
+                : `Isi ${[!name.trim() && 'nama topik', !situations.length && 'minimal satu skenario'].filter(Boolean).join(' dan ')} dulu.`}
+            </p>
+          )}
+          <button className="btn primary tf-save" type="submit" disabled={!ready}>
+            {busy ? <span className="spin" /> : <Icon name="check" size={18} />}
+            Simpan topik
+          </button>
+        </div>
       </form>
     </div>
   );

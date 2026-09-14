@@ -11,7 +11,7 @@ export type Sort = 'default' | 'stale' | 'recent' | 'most' | 'az';
 export const STATUSES: { id: Status; label: string }[] = [
   { id: 'all', label: 'Semua' },
   { id: 'untested', label: 'Belum dicoba' },
-  { id: 'tested', label: 'Sudah tersimpan' },
+  { id: 'tested', label: 'Tersimpan' },
 ];
 
 export const SORTS: { id: Sort; label: string }[] = [

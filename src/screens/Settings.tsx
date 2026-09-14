@@ -23,6 +23,68 @@ export function Settings({
     };
   }, []);
 
+  /* sama kayak titik oranye di navigasi: sesi belum bisa jalan */
+  const broken = !cfg.models.some((m) => m.ready) || !cfg.speech.ready;
+  const tracing = !cfg.tracing.on ? 'off' : cfg.tracing.keyed ? 'ok' : 'bad';
+
+  const status = (
+    <section className="set-card">
+      <h2>Status sistem</h2>
+      <p>
+        Buat ngecek kalau ada yang nggak jalan. Perubahan di file <code>.env</code> baru kebaca setelah server
+        di-restart.
+      </p>
+      <ul className="sys">
+        {cfg.models.map((m) => (
+          <Sys
+            key={m.id}
+            state={m.ready ? 'ok' : 'bad'}
+            title={`AI · ${m.label}`}
+            detail={
+              m.ready ? (
+                'API key kebaca'
+              ) : (
+                <>
+                  Isi <code>{m.keyEnv}</code> di <code>.env</code>
+                </>
+              )
+            }
+          />
+        ))}
+        <Sys
+          state={cfg.speech.ready ? 'ok' : 'bad'}
+          title="Mic & suara · Azure Speech"
+          detail={
+            cfg.speech.ready ? (
+              `Aktif di region ${cfg.speech.region}`
+            ) : (
+              <>
+                Isi <code>AZURE_SPEECH_KEY</code> dan <code>AZURE_SPEECH_REGION</code> di <code>.env</code>
+              </>
+            )
+          }
+        />
+        <Sys
+          state={tracing}
+          title="Tracing · LangSmith"
+          detail={
+            tracing === 'off' ? (
+              'Mati — opsional, buat debug'
+            ) : tracing === 'ok' ? (
+              `Aktif, project "${cfg.tracing.project}"`
+            ) : (
+              /* dulu tetap "Siap" walaupun key-nya kosong */
+              <>
+                Nyala tapi <code>LANGSMITH_API_KEY</code> kosong. Isi key-nya, atau set{' '}
+                <code>LANGSMITH_TRACING=false</code>
+              </>
+            )
+          }
+        />
+      </ul>
+    </section>
+  );
+
   return (
     <div className="page narrow">
       <header className="page-head">
@@ -32,10 +94,14 @@ export function Settings({
         </div>
       </header>
 
+      {/* ada yang belum siap = orang ke sini buat nyari tahu kenapa, jadi statusnya paling atas */}
+      {broken && status}
+
       <section className="set-card">
         <h2>Suara Zii</h2>
         <p>Dipakai waktu Zii ngobrol dan di Bengkel Kalimat. Ganti suara = langsung dengerin contohnya.</p>
         <VoicePicker voices={cfg.speech.voices} value={state.voice} ready={cfg.speech.ready} onChange={onVoice} />
+        {!cfg.speech.ready && <p className="set-note">Contoh suara bisa didengerin setelah Azure Speech siap.</p>}
       </section>
 
       <section className="set-card">
@@ -60,49 +126,7 @@ export function Settings({
         </p>
       </section>
 
-      <section className="set-card">
-        <h2>Status sistem</h2>
-        <p>
-          Buat ngecek kalau ada yang nggak jalan. Perubahan di file <code>.env</code> baru kebaca setelah server
-          di-restart.
-        </p>
-        <ul className="sys">
-          {cfg.models.map((m) => (
-            <Sys
-              key={m.id}
-              state={m.ready ? 'ok' : 'bad'}
-              title={`AI · ${m.label}`}
-              detail={
-                m.ready ? (
-                  'API key kebaca'
-                ) : (
-                  <>
-                    Isi <code>{m.keyEnv}</code> di <code>.env</code>
-                  </>
-                )
-              }
-            />
-          ))}
-          <Sys
-            state={cfg.speech.ready ? 'ok' : 'bad'}
-            title="Mic & suara · Azure Speech"
-            detail={
-              cfg.speech.ready ? (
-                `Aktif di region ${cfg.speech.region}`
-              ) : (
-                <>
-                  Isi <code>AZURE_SPEECH_KEY</code> dan <code>AZURE_SPEECH_REGION</code> di <code>.env</code>
-                </>
-              )
-            }
-          />
-          <Sys
-            state={cfg.tracing.on ? 'ok' : 'off'}
-            title="Tracing · LangSmith"
-            detail={cfg.tracing.on ? `Aktif, project "${cfg.tracing.project}"` : 'Mati — opsional, buat debug'}
-          />
-        </ul>
-      </section>
+      {!broken && status}
     </div>
   );
 }
@@ -114,10 +138,13 @@ function Sys({ state, title, detail }: { state: keyof typeof LABEL; title: strin
     <li>
       <i className={`sys-dot ${state}`} aria-hidden="true" />
       <div>
-        <b>{title}</b>
+        {/* label status sebaris sama judul; keterangannya dapet lebar penuh di bawah */}
+        <div className="sys-head">
+          <b>{title}</b>
+          <em className={`sys-state ${state}`}>{LABEL[state]}</em>
+        </div>
         <span>{detail}</span>
       </div>
-      <em className={`sys-state ${state}`}>{LABEL[state]}</em>
     </li>
   );
 }

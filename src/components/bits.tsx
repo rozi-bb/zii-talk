@@ -40,6 +40,11 @@ export function Wave({ levels, sky = false }: { levels: number[]; sky?: boolean 
   );
 }
 
+/* Dropdown di Pengaturan: <select> aslinya transparan & nutup seluruh kotak, jadi ketuk
+   di mana aja langsung kebuka (dulu cuma teks 22px-nya). Yang kelihatan itu label +
+   nilai di .picker-text — select tetap yang dipakai keyboard & screen reader. */
+const modelText = (m: ModelInfo) => `${m.label}${m.ready ? '' : ' — belum ada key'}`;
+
 export function ModelPicker({
   models,
   value,
@@ -57,21 +62,23 @@ export function ModelPicker({
         style={{ background: active?.ready ? 'var(--teal)' : 'var(--faint)' }}
         title={active?.ready ? 'API key kebaca' : 'API key belum diisi'}
       />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <label htmlFor="model">MODEL LLM</label>
-        <select id="model" value={value} onChange={(e) => onChange(e.target.value)}>
-          {models.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.label}
-              {m.ready ? '' : ' — belum ada key'}
-            </option>
-          ))}
-        </select>
+      <div className="picker-text">
+        <label htmlFor="model">Model</label>
+        <b aria-hidden="true">{active ? modelText(active) : 'Pilih model'}</b>
       </div>
       <Icon name="chevron" size={16} />
+      <select id="model" value={value} onChange={(e) => onChange(e.target.value)}>
+        {models.map((m) => (
+          <option key={m.id} value={m.id}>
+            {modelText(m)}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }
+
+const voiceText = (v: VoiceInfo) => `${v.name}${v.hint ? ` — ${v.hint}` : ''}`;
 
 /* Ganti suara = langsung dengerin contohnya, biar nggak milih dari nama doang.
    SDK Azure-nya gede, jadi baru di-import pas contoh pertama diputer — Home
@@ -127,11 +134,11 @@ export function VoicePicker({
       .filter((v) => v.gender === g)
       .map((v) => (
         <option key={v.id} value={v.id}>
-          {v.name}
-          {v.hint ? ` — ${v.hint}` : ''}
+          {voiceText(v)}
         </option>
       ));
 
+  const active = voices.find((v) => v.id === value);
   const busy = status !== 'idle';
   return (
     <div className="picker">
@@ -140,21 +147,22 @@ export function VoicePicker({
         style={{ background: ready ? 'var(--teal)' : 'var(--faint)' }}
         title={ready ? 'Azure Speech kebaca' : 'Azure Speech belum diisi'}
       />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <label htmlFor="voice">SUARA ZII</label>
-        <select
-          id="voice"
-          value={value}
-          onChange={(e) => {
-            onChange(e.target.value);
-            void preview(e.target.value);
-          }}
-        >
-          <optgroup label="Perempuan">{group('female')}</optgroup>
-          <optgroup label="Laki-laki">{group('male')}</optgroup>
-        </select>
+      <div className="picker-text">
+        <label htmlFor="voice">Suara</label>
+        <b aria-hidden="true">{active ? voiceText(active) : 'Pilih suara'}</b>
       </div>
       <Icon name="chevron" size={16} />
+      <select
+        id="voice"
+        value={value}
+        onChange={(e) => {
+          onChange(e.target.value);
+          void preview(e.target.value);
+        }}
+      >
+        <optgroup label="Perempuan">{group('female')}</optgroup>
+        <optgroup label="Laki-laki">{group('male')}</optgroup>
+      </select>
       {ready && (
         <button
           type="button"
