@@ -6,6 +6,7 @@ import { linkTo, type Go } from '../lib/nav';
 const NAV = [
   { to: '/', label: 'Latihan', icon: 'home' },
   { to: '/topik', label: 'Topik', icon: 'grid' },
+  { to: '/koleksi', label: 'Koleksi', icon: 'bookmark' },
   { to: '/dashboard', label: 'Dashboard', icon: 'chart' },
   { to: '/pengaturan', label: 'Pengaturan', icon: 'gear' },
 ];

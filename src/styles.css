@@ -2,7 +2,7 @@
 :root {
   --ink: #241b33;
   --ink-soft: #6b5f7d;
-  --muted: #a99cb5;
+  /* cuma buat hiasan (titik status). Teks kecil pakai --ink-mute — --faint cuma 1.9:1 */
   --faint: #c4b6ce;
   --paper: #fdf6f0;
   --card: #ffffff;
@@ -18,6 +18,9 @@
 
   --tang: #ff7a3d;
   --tang-dark: #d9531c;
+  /* teks oranye & latar teks putih (mic rekam, pita DIJEDA) — putih di --tang cuma 2.6:1 */
+  --tang-ink: #c94100;
+  --tang-deep: #9e3300;
 
   --teal: #10b981;
   --teal-dark: #0a8a61;
@@ -29,6 +32,9 @@
 
   --sky: #2e9bf0;
   --sky-dark: #1573c4;
+  /* teks biru di latar biru muda & latar teks/ikon putih (tag ID, mic Bengkel) — putih di --sky cuma 2.97:1 */
+  --sky-ink: #0f6db8;
+  --sky-deep: #0a5596;
   --sky-wash: #f2f9ff;
 
   --dsp: 'Baloo 2', 'Trebuchet MS', system-ui, sans-serif;
@@ -142,7 +148,8 @@ input, select, textarea { font: inherit; color: inherit; }
 .shell { height: 100%; display: flex; flex-direction: column; }
 .shell-main { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; }
 .side-nav { display: none; }
-.tab-bar { flex-shrink: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; background: var(--card); border-top: 1px solid var(--line); padding: 6px 8px calc(6px + env(safe-area-inset-bottom)); }
+/* kolom ngikut jumlah menu di Shell.tsx, nggak perlu diubah lagi tiap nambah halaman */
+.tab-bar { flex-shrink: 0; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 4px; background: var(--card); border-top: 1px solid var(--line); padding: 6px 8px calc(6px + env(safe-area-inset-bottom)); }
 .tab { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; justify-content: center; border-radius: 12px; color: var(--ink-mute); text-decoration: none; font-size: 12px; font-weight: 700; }
 .tab.on { color: var(--violet-dark); background: var(--violet-wash); }
 .nav-dot { position: absolute; top: 6px; left: calc(50% + 8px); width: 8px; height: 8px; border-radius: 50%; background: var(--tang); box-shadow: 0 0 0 2px var(--card); }
@@ -430,21 +437,41 @@ input, select, textarea { font: inherit; color: inherit; }
 .picker-play:active { transform: scale(0.94); }
 .picker-play.on { background: var(--violet); color: #fff; }
 
+/* ── KOLEKSI ──────────────────────────────────────────── */
+.phr-list { list-style: none; margin: 0; padding: 0; background: var(--card); border: 1px solid var(--line-soft); border-radius: 16px; overflow: hidden; }
+.phr { display: flex; align-items: center; gap: 12px; padding: 12px 14px; }
+.phr + .phr { border-top: 1px solid #f4ecf1; }
+.phr-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.phr-main b { font-family: var(--dsp); font-size: 17px; font-weight: 700; line-height: 1.3; overflow-wrap: anywhere; }
+.phr-main span { font-size: 14px; font-weight: 600; line-height: 1.45; color: var(--ink-soft); }
+.phr-main small { font-size: 12px; font-weight: 600; color: var(--ink-mute); }
+.phr-acts { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.phr-btn { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: #f6f0f8; color: var(--ink-soft); transition: background 0.15s ease, color 0.15s ease; }
+.phr-btn:hover { background: var(--violet-wash); color: var(--violet-dark); }
+.phr-btn.on { background: var(--violet); color: #fff; }
+.phr-btn:focus-visible { outline: 3px solid #b99cf0; outline-offset: 2px; }
+.btn.danger { background: #b02a45; color: #fff; }
+.btn.danger:hover:not(:disabled) { background: #951f38; }
+@media (pointer: coarse) { .phr-btn { width: 44px; height: 44px; } }
+
 .warn { display: flex; gap: 10px; align-items: flex-start; background: var(--amber-wash); border: 2px solid #ffe0a3; border-radius: 18px; padding: 12px 14px; font-size: 12.5px; font-weight: 600; color: var(--amber-ink); line-height: 1.5; }
-.warn code { font-family: ui-monospace, monospace; font-size: 11.5px; background: rgba(0, 0, 0, 0.06); border-radius: 5px; padding: 1px 5px; }
+.warn code { font-family: ui-monospace, monospace; font-size: 12px; background: rgba(0, 0, 0, 0.06); border-radius: 5px; padding: 1px 5px; }
 
 /* ── SESSION ──────────────────────────────────────────── */
+/* Teks minimal 12px & kontras AA, sama kayak halaman lain. Warna "-ink" di token
+   dipakai buat teks / latar teks putih; warna aslinya (--tang, --sky, --amber)
+   tinggal buat hiasan & bayangan. */
 .sess { height: 100%; display: flex; flex-direction: column; overflow: hidden; }
 .sess-main { flex: 1; display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
 .sess-head { display: flex; align-items: center; gap: 10px; padding: 0 16px; }
-.icon-btn { width: 38px; height: 38px; border-radius: 13px; background: var(--card); box-shadow: 0 2px 0 #efe1dc; display: grid; place-items: center; color: #4a3e5c; flex-shrink: 0; }
+.icon-btn { width: 40px; height: 40px; border-radius: 13px; background: var(--card); box-shadow: 0 2px 0 #efe1dc; display: grid; place-items: center; color: #4a3e5c; flex-shrink: 0; }
 .sess-title { flex: 1; text-align: center; min-width: 0; }
 .sess-title b { display: block; font-family: var(--dsp); font-size: 15.5px; font-weight: 800; line-height: 1.1; }
-.sess-title span { font-size: 10.5px; font-weight: 700; color: var(--muted); }
-/* progres minimal pertanyaan: lewat batas = sesi kesimpan sebagai tes */
+.sess-title span { font-size: 12px; font-weight: 700; color: var(--ink-mute); }
+/* progres jawaban minimal: lewat batas = sesi tersimpan */
 .goal { display: flex; align-items: center; gap: 10px; margin: 13px 20px 0; }
-.goal > span { font-size: 10.5px; font-weight: 800; color: var(--muted); white-space: nowrap; }
-.goal > span.ok { color: var(--teal-dark); }
+.goal > span { font-size: 12px; font-weight: 800; color: var(--ink-mute); white-space: nowrap; }
+.goal > span.ok { color: var(--teal-ink); }
 .goal-hint { margin: 6px 20px 0; font-size: 12px; font-weight: 600; line-height: 1.4; color: var(--ink-mute); }
 @media (min-width: 1024px) { .goal-hint { margin: 6px 34px 0; } }
 .beats { flex: 1; display: flex; gap: 5px; }
@@ -452,7 +479,7 @@ input, select, textarea { font: inherit; color: inherit; }
 .beats i.on { background: var(--teal); }
 
 .presence { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 0 4px; flex-shrink: 0; }
-.presence small { font-family: var(--dsp); font-size: 12px; font-weight: 800; color: var(--muted); letter-spacing: 0.3px; }
+.presence small { font-family: var(--dsp); font-size: 12px; font-weight: 800; color: var(--ink-mute); letter-spacing: 0.3px; }
 
 .transcript { flex: 1; padding: 8px 18px 12px; }
 .turn { display: flex; margin-bottom: 13px; }
@@ -464,52 +491,52 @@ input, select, textarea { font: inherit; color: inherit; }
 /* kalimat yang lagi diucapin, atau yang ketahan nunggu disambung */
 .draft-wrap { display: flex; flex-direction: column; align-items: flex-end; }
 .turn.me .bubble.draft { background: #FFF1E8; color: #4A3E5C; box-shadow: none; border: 2px dashed #FFB08A; }
-.draft-foot { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 11.5px; font-weight: 700; color: var(--ink-soft); }
-.draft-foot button { background: none; border: none; padding: 0; font: inherit; color: var(--tang-dark); text-decoration: underline; cursor: pointer; }
+.draft-foot { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 12px; font-weight: 700; color: var(--ink-soft); }
+.draft-foot button { background: none; border: none; padding: 0; font: inherit; color: var(--tang-ink); text-decoration: underline; cursor: pointer; }
 
 /* kotak betulin — nongol di posisi bubble yang barusan ditarik balik */
 .edit-wrap { display: flex; flex-direction: column; align-items: flex-end; animation: pullback .26s cubic-bezier(.2,.9,.3,1.2); }
 .edit-box { max-width: 290px; width: 290px; border-radius: 22px 22px 7px 22px; background: var(--card); border: 2px solid var(--violet); padding: 12px 15px; font-size: 15px; font-weight: 600; line-height: 1.45; color: var(--ink); outline: none; box-shadow: 0 3px 0 var(--violet-dark); }
-.edit-foot { margin-top: 7px; font-size: 11.5px; font-weight: 700; color: var(--ink-soft); }
-.edit-foot .kbd { padding: 2px 8px; font-size: 10.5px; }
+.edit-foot { margin-top: 7px; font-size: 12px; font-weight: 700; color: var(--ink-soft); }
+.edit-foot .kbd { padding: 2px 8px; font-size: 12px; }
 
 /* ketarik balik: bubungnya mundur dikit ke kanan lalu mendarat */
 @keyframes pullback {
   0%   { opacity: 0; transform: translateX(26px) scale(.94); }
   100% { opacity: 1; transform: translateX(0) scale(1); }
 }
-.chip { display: inline-flex; align-items: center; gap: 5px; background: var(--card); border-radius: 999px; padding: 5px 11px 5px 8px; box-shadow: 0 2px 0 #eadfe6; color: var(--ink-soft); font-size: 11px; font-weight: 800; }
-.chip.sky { background: #e8f4ff; box-shadow: 0 2px 0 #cfe6fa; color: var(--sky-dark); }
-.gloss { font-size: 12.5px; font-weight: 600; color: var(--sky-dark); background: #e8f4ff; border-radius: 14px; padding: 9px 12px; margin-top: 7px; line-height: 1.45; }
+.chip { display: inline-flex; align-items: center; gap: 5px; background: var(--card); border-radius: 999px; padding: 7px 12px 7px 9px; box-shadow: 0 2px 0 #eadfe6; color: var(--ink-soft); font-size: 12px; font-weight: 800; }
+.chip.sky { background: #e8f4ff; box-shadow: 0 2px 0 #cfe6fa; color: var(--sky-ink); }
 
 .fix { max-width: 300px; background: var(--amber-wash); border: 2px solid #ffe0a3; border-radius: 20px; padding: 12px 14px 13px; animation: wiggleIn 0.6s cubic-bezier(0.34, 1.5, 0.6, 1) both; }
 .fix-top { display: flex; align-items: center; gap: 7px; }
-.fix-top i { width: 22px; height: 22px; border-radius: 8px; background: var(--amber); display: grid; place-items: center; color: #fff; flex-shrink: 0; }
+.fix-top i { width: 22px; height: 22px; border-radius: 8px; background: var(--amber); display: grid; place-items: center; color: var(--ink); flex-shrink: 0; }
 .fix-top b { font-family: var(--dsp); font-size: 14px; font-weight: 800; color: var(--amber-ink); }
 .fix-diff { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
-.fix-was { font-size: 14px; font-weight: 700; color: #b0a08a; text-decoration: line-through; text-decoration-thickness: 2px; }
-.fix-now { font-family: var(--dsp); font-size: 16px; font-weight: 800; color: var(--teal-dark); }
-.fix-why { margin-top: 11px; padding-top: 11px; border-top: 2px dashed #ffe0a3; font-size: 12.5px; font-weight: 600; color: #6b5f45; line-height: 1.5; }
+.fix-was { font-size: 14px; font-weight: 700; color: #7a6a52; text-decoration: line-through; text-decoration-thickness: 2px; }
+.fix-now { font-family: var(--dsp); font-size: 16px; font-weight: 800; color: var(--teal-ink); }
+.fix-why { margin-top: 11px; padding-top: 11px; border-top: 2px dashed #ffe0a3; font-size: 13px; font-weight: 600; color: #6b5f45; line-height: 1.5; }
 .fix-acts { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
-.grab { display: inline-flex; align-items: center; gap: 6px; background: var(--amber); color: #fff; border-radius: 14px; padding: 9px 14px; --sh: var(--amber-dark); box-shadow: 0 4px 0 var(--amber-dark); font-family: var(--dsp); font-size: 13.5px; font-weight: 800; }
-.grab.done { background: var(--teal); --sh: var(--teal-dark); box-shadow: 0 4px 0 var(--teal-dark); }
-.ghost { display: inline-flex; align-items: center; gap: 4px; color: #a98f55; padding: 8px 4px; font-size: 12.5px; font-weight: 800; }
+/* teks putih di amber cuma 1.77:1 — tulisannya pakai tinta gelap */
+.grab { display: inline-flex; align-items: center; gap: 6px; background: var(--amber); color: var(--ink); border-radius: 14px; padding: 9px 14px; --sh: var(--amber-dark); box-shadow: 0 4px 0 var(--amber-dark); font-family: var(--dsp); font-size: 14px; font-weight: 800; }
+.grab.done { background: var(--teal-ink); color: #fff; --sh: #06603f; box-shadow: 0 4px 0 #06603f; }
+/* dulu namanya .ghost — nabrak .btn.ghost dan bikin padding tombol ghost di halaman lain sempit */
+.fix-toggle { display: inline-flex; align-items: center; gap: 4px; color: #846f42; padding: 10px 6px; font-size: 13px; font-weight: 800; }
 
-.flier { position: fixed; z-index: 60; pointer-events: none; display: flex; align-items: center; gap: 7px; background: var(--amber); border-radius: 14px; padding: 9px 13px; box-shadow: 0 5px 16px rgba(180, 110, 0, 0.4); color: #fff; font-family: var(--dsp); font-size: 14px; font-weight: 800; white-space: nowrap; animation: flyaway 0.95s cubic-bezier(0.5, -0.15, 0.6, 1) forwards; }
+.flier { position: fixed; z-index: 60; pointer-events: none; display: flex; align-items: center; gap: 7px; background: var(--amber); border-radius: 14px; padding: 9px 13px; box-shadow: 0 5px 16px rgba(180, 110, 0, 0.4); color: var(--ink); font-family: var(--dsp); font-size: 14px; font-weight: 800; white-space: nowrap; animation: flyaway 0.95s cubic-bezier(0.5, -0.15, 0.6, 1) forwards; }
 
 /* ── dock ─────────────────────────────────────────────── */
 /* z-index bikin stacking context sendiri, biar lingkaran "punuk" di belakang
    mic bisa nyelip di bawah kapsul tapi tetap di atas latar dock */
 .dock { position: relative; z-index: 0; flex-shrink: 0; padding: 40px 14px calc(14px + env(safe-area-inset-bottom)); background: var(--paper); border-top: 1px solid var(--line); }
-.dock-warn { margin: -24px auto 36px; max-width: 520px; text-align: center; font-size: 12px; font-weight: 700; color: var(--tang-dark); }
-.clock { font-family: var(--dsp); font-size: 16px; font-weight: 800; color: var(--tang-dark); min-width: 36px; }
+.dock-warn { margin: -24px auto 36px; max-width: 520px; text-align: center; font-size: 12px; font-weight: 700; color: var(--tang-ink); }
+.clock { font-family: var(--dsp); font-size: 16px; font-weight: 800; color: var(--tang-ink); min-width: 36px; font-variant-numeric: tabular-nums; }
 .wave { display: flex; align-items: center; gap: 3px; height: 34px; }
 .wave i { width: 5px; border-radius: 3px; background: var(--tang); transition: height 0.07s linear; }
 .wave.sky i { background: var(--sky); width: 4px; }
 
 .round { width: 58px; height: 58px; border-radius: 50%; display: grid; place-items: center; color: #fff; flex-shrink: 0; }
-.round.sky { background: var(--sky); --sh: var(--sky-dark); box-shadow: 0 5px 0 var(--sky-dark); }
-.round.plain { background: var(--card); --sh: #e3d6de; box-shadow: 0 5px 0 #e3d6de; color: var(--ink-soft); }
+.round.sky { background: var(--sky-ink); --sh: var(--sky-deep); box-shadow: 0 5px 0 var(--sky-deep); }
 
 .dock-bar {
   position: relative; width: 100%; max-width: 580px; margin: 0 auto; padding: 7px;
@@ -519,15 +546,15 @@ input, select, textarea { font: inherit; color: inherit; }
 }
 .dock-bar.rec { border-color: #ffd6c2; box-shadow: 0 5px 0 #ffd6c2; }
 .dock-side { display: flex; align-items: center; gap: 10px; min-width: 0; height: 58px; }
-.dock-side .lbl { display: flex; flex-direction: column; min-width: 0; font-size: 11px; font-weight: 700; line-height: 1.25; color: var(--muted); white-space: nowrap; }
+.dock-side .lbl { display: flex; flex-direction: column; min-width: 0; font-size: 12px; font-weight: 700; line-height: 1.25; color: var(--ink-mute); white-space: nowrap; }
 .dock-side .lbl b { font-family: var(--dsp); font-size: 15px; font-weight: 800; line-height: 1.1; color: var(--ink); }
 
 .dock-side.jeda { justify-self: start; padding: 0 16px 0 8px; border-radius: 21px; background: var(--sky-wash); --sh: #d3e8fa; box-shadow: 0 4px 0 #d3e8fa; }
 .dock-side.jeda:hover { background: #e8f4fe; }
-.dock-side.jeda i { position: relative; width: 42px; height: 42px; border-radius: 14px; display: grid; place-items: center; flex-shrink: 0; background: var(--sky); color: #fff; box-shadow: 0 3px 0 var(--sky-dark); }
-.dock-side.jeda .lbl { color: #5f9bcf; }
-.dock-side.jeda .lbl b { color: var(--sky-dark); }
-.dock-side.jeda .kbd.key { position: absolute; right: -9px; bottom: -8px; color: var(--sky-dark); border-color: #cfe4f7; }
+.dock-side.jeda i { position: relative; width: 42px; height: 42px; border-radius: 14px; display: grid; place-items: center; flex-shrink: 0; background: var(--sky-ink); color: #fff; box-shadow: 0 3px 0 var(--sky-deep); }
+.dock-side.jeda .lbl { color: #3475ad; }
+.dock-side.jeda .lbl b { color: var(--sky-ink); }
+.dock-side.jeda .kbd.key { position: absolute; right: -9px; bottom: -8px; color: var(--sky-ink); border-color: #cfe4f7; }
 
 .dock-side.info { justify-self: end; padding: 0 8px 0 4px; }
 .dock-side.info .lbl { align-items: flex-end; text-align: right; }
@@ -548,11 +575,11 @@ input, select, textarea { font: inherit; color: inherit; }
   transition: transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.12s ease, background 0.18s ease;
 }
 .mic:hover:not(:disabled) { transform: translateY(-2px); }
-.mic.rec { background: var(--tang); --sh: var(--tang-dark); box-shadow: 0 3px 0 var(--tang-dark), 0 0 0 6px rgba(255, 122, 61, 0.22); transform: translateY(4px) scale(1.03); }
+.mic.rec { background: var(--tang-ink); --sh: var(--tang-deep); box-shadow: 0 3px 0 var(--tang-deep), 0 0 0 6px rgba(201, 65, 0, 0.2); transform: translateY(4px) scale(1.03); }
 .mic:disabled { background: #cdbfdb; --sh: #ad9ebd; box-shadow: 0 7px 0 #ad9ebd; cursor: not-allowed; }
 .kbd { display: inline-block; background: var(--card); border: 2px solid #eadfe6; border-radius: 9px; padding: 3px 14px; font-family: var(--dsp); font-size: 12px; font-weight: 800; color: var(--ink-soft); }
 .kbd.live { animation: keypress 2.1s ease-in-out infinite; }
-.kbd.key { padding: 1px 8px; border-width: 1.5px; border-radius: 7px; font-size: 10.5px; line-height: 1.5; box-shadow: 0 2px 0 #e3d6de; }
+.kbd.key { padding: 1px 7px; border-width: 1.5px; border-radius: 7px; font-size: 12px; line-height: 1.4; box-shadow: 0 2px 0 #e3d6de; }
 
 /* shortcut keyboard nggak ada artinya di layar sentuh */
 .touch-only { display: none; }
@@ -565,7 +592,8 @@ input, select, textarea { font: inherit; color: inherit; }
   .dock-side { gap: 8px; }
   .dock-side.jeda { padding: 0 10px 0 6px; }
   .dock-side.jeda i { width: 36px; height: 36px; border-radius: 12px; }
-  .dock-side .lbl { font-size: 10px; white-space: normal; }
+  /* 12px, bukan 10px: boleh patah jadi dua baris, kapsulnya masih muat */
+  .dock-side .lbl { font-size: 12px; line-height: 1.2; white-space: normal; }
   .dock-side .lbl b { font-size: 13.5px; white-space: nowrap; }
   .dock-side.info { padding: 0 4px; }
   .dock-side.info .kbd.key { display: none; }
@@ -577,11 +605,11 @@ input, select, textarea { font: inherit; color: inherit; }
 }
 
 /* ── pita DIJEDA ──────────────────────────────────────── */
-.band { display: flex; align-items: center; gap: 10px; background: var(--tang); border-radius: 18px; padding: 11px 13px; box-shadow: 0 3px 0 var(--tang-dark); margin: 0 18px 12px; }
-.band.go { background: var(--teal); box-shadow: 0 3px 0 var(--teal-dark); }
+.band { display: flex; align-items: center; gap: 10px; background: var(--tang-ink); border-radius: 18px; padding: 11px 13px; box-shadow: 0 3px 0 var(--tang-deep); margin: 0 18px 12px; }
+.band.go { background: var(--teal-ink); box-shadow: 0 3px 0 #06603f; }
 .band i { width: 30px; height: 30px; border-radius: 10px; background: rgba(255, 255, 255, 0.24); display: grid; place-items: center; color: #fff; flex-shrink: 0; }
 .band b { display: block; font-family: var(--dsp); font-size: 14px; font-weight: 800; color: #fff; letter-spacing: 0.4px; }
-.band span { font-size: 10.5px; font-weight: 700; color: rgba(255, 255, 255, 0.85); }
+.band span { font-size: 12px; font-weight: 700; color: #fff; }
 .dimmed { opacity: 0.36; pointer-events: none; }
 
 /* ── BENGKEL ──────────────────────────────────────────── */
@@ -594,26 +622,27 @@ input, select, textarea { font: inherit; color: inherit; }
 .handle { width: 44px; height: 5px; border-radius: 99px; background: #e7dcea; margin: 0 auto 10px; }
 .bk-head { display: flex; align-items: flex-start; gap: 10px; }
 .bk-head b { font-family: var(--dsp); font-size: 19px; font-weight: 800; line-height: 1.1; }
-.bk-head p { font-size: 11.5px; font-weight: 600; color: var(--ink-soft); margin: 3px 0 0; line-height: 1.4; }
-.x { width: 32px; height: 32px; border-radius: 11px; background: #f6f0f8; display: grid; place-items: center; color: var(--ink-soft); flex-shrink: 0; }
+.bk-head p { font-size: 13px; font-weight: 600; color: var(--ink-soft); margin: 3px 0 0; line-height: 1.4; }
+.x { width: 40px; height: 40px; border-radius: 12px; background: #f6f0f8; display: grid; place-items: center; color: var(--ink-soft); flex-shrink: 0; }
 
 .lane { display: flex; align-items: center; gap: 7px; margin: 16px 0 8px; }
-.tag { font-size: 9.5px; font-weight: 800; letter-spacing: 0.8px; border-radius: 6px; padding: 3px 6px; color: #fff; }
-.tag.id { background: var(--sky); }
+.tag { font-size: 12px; font-weight: 800; letter-spacing: 0.6px; border-radius: 6px; padding: 2px 6px; color: #fff; }
+.tag.id { background: var(--sky-ink); }
 .tag.en { background: var(--violet); }
-.lane b { font-size: 11.5px; font-weight: 800; }
-.lane .note { margin-left: auto; font-size: 10px; font-weight: 700; color: var(--muted); }
+.lane b { font-size: 13px; font-weight: 800; }
+.lane .note { margin-left: auto; font-size: 12px; font-weight: 700; color: var(--ink-mute); }
 
 .idbox { display: flex; align-items: center; gap: 12px; background: var(--sky-wash); border: 2px solid #d7ebfc; border-radius: 22px; padding: 13px; }
 .idbox .body { flex: 1; min-width: 0; min-height: 46px; display: flex; align-items: center; }
 .idbox .said { font-size: 14.5px; font-weight: 600; color: #24405c; line-height: 1.42; text-wrap: pretty; }
+.said-hint { color: var(--ink-mute); }
 .idbox input { width: 100%; background: #fff; border: 2px solid var(--sky); border-radius: 12px; padding: 10px 12px; font-size: 14px; font-weight: 600; color: #24405c; outline: none; }
-.mic-sky { width: 58px; height: 58px; border-radius: 50%; background: var(--sky); --sh: var(--sky-dark); box-shadow: 0 5px 0 var(--sky-dark); display: grid; place-items: center; color: #fff; flex-shrink: 0; touch-action: none; transition: transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.12s ease, background 0.2s ease; }
-.mic-sky.on { background: var(--sky-dark); --sh: #0f5a99; animation: throb 1.3s ease-in-out infinite; }
+.mic-sky { width: 58px; height: 58px; border-radius: 50%; background: var(--sky-ink); --sh: var(--sky-deep); box-shadow: 0 5px 0 var(--sky-deep); display: grid; place-items: center; color: #fff; flex-shrink: 0; touch-action: none; transition: transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.12s ease, background 0.2s ease; }
+.mic-sky.on { background: var(--sky-deep); --sh: #073f6e; animation: throb 1.3s ease-in-out infinite; }
 
 .fixrow { display: flex; gap: 8px; margin-top: 9px; flex-wrap: wrap; }
-.mini { display: inline-flex; align-items: center; gap: 6px; background: #f6f0f8; border-radius: 999px; padding: 7px 12px 7px 9px; color: var(--ink-soft); font-size: 11.5px; font-weight: 800; }
-.mini.on { background: #e8f4ff; color: var(--sky-dark); }
+.mini { display: inline-flex; align-items: center; gap: 6px; background: #f6f0f8; border-radius: 999px; padding: 8px 13px 8px 10px; color: var(--ink-soft); font-size: 13px; font-weight: 800; }
+.mini.on { background: #e8f4ff; color: var(--sky-ink); }
 
 .arrow { display: flex; align-items: center; gap: 10px; margin: 14px 0 12px; }
 .arrow .ln { flex: 1; height: 2px; background: #f0e8f2; border-radius: 2px; }
@@ -621,6 +650,7 @@ input, select, textarea { font: inherit; color: inherit; }
 
 .enbox { background: #faf6ff; border: 2px solid #e4d6fb; border-radius: 22px; padding: 15px; }
 .enbox.in { animation: flipin 0.55s cubic-bezier(0.3, 1.3, 0.5, 1) both; }
+.en-empty { font-size: 14px; font-weight: 600; line-height: 1.5; color: var(--ink-mute); }
 .entext { font-family: var(--dsp); font-size: 19.5px; font-weight: 700; line-height: 1.28; display: flex; flex-wrap: wrap; gap: 0 6px; }
 .entext span { border-radius: 6px; padding: 0 2px; transition: background 0.12s linear; }
 .entext span.lit { background: #ffe9a8; }
@@ -630,7 +660,7 @@ input, select, textarea { font: inherit; color: inherit; }
 .spk-arc.b { animation-delay: 0.22s; }
 .spk-arc.c { animation-delay: 0.44s; }
 .spk { position: relative; width: 46px; height: 46px; border-radius: 50%; background: var(--violet); --sh: var(--violet-dark); box-shadow: 0 4px 0 var(--violet-dark); display: grid; place-items: center; color: #fff; }
-.outline { display: inline-flex; align-items: center; gap: 5px; background: #fff; border: 2px solid #e4d6fb; border-radius: 999px; padding: 7px 12px; color: var(--violet-dark); font-size: 11.5px; font-weight: 800; }
+.outline { display: inline-flex; align-items: center; gap: 5px; background: #fff; border: 2px solid #e4d6fb; border-radius: 999px; padding: 8px 13px; color: var(--violet-dark); font-size: 13px; font-weight: 800; }
 /* dua versi terjemahan: kartu yang dipilih = yang dipakai & disimpan.
    Ditumpuk ke bawah, bukan sejajar — panel Bengkel cuma ~324px, dua kolom
    bikin kalimat & tombolnya kejepit. */
@@ -641,13 +671,13 @@ input, select, textarea { font: inherit; color: inherit; }
 .ver.on { background: #faf6ff; border-color: var(--violet); box-shadow: 0 3px 0 #e4d6fb; }
 .ver:focus-visible { outline: 3px solid #cdb6f5; outline-offset: 2px; }
 .ver-head { display: flex; align-items: center; gap: 7px; margin-bottom: 7px; }
-.ver-tag { font-size: 9.5px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase; border-radius: 6px; padding: 3px 7px; color: #fff; background: var(--violet); }
-.ver-tag.casual { background: var(--teal); }
-.ver-hint { font-size: 10.5px; font-weight: 700; color: var(--muted); }
+.ver-tag { font-size: 12px; font-weight: 800; letter-spacing: 0.6px; text-transform: uppercase; border-radius: 6px; padding: 2px 7px; color: #fff; background: var(--violet); }
+.ver-tag.casual { background: var(--teal-ink); }
+.ver-hint { font-size: 12px; font-weight: 700; color: var(--ink-mute); }
 .ver-check { margin-left: auto; width: 20px; height: 20px; border-radius: 50%; border: 2px solid #e4d6fb; display: grid; place-items: center; color: #fff; flex-shrink: 0; transition: background 0.15s, border-color 0.15s; }
 .ver.on .ver-check { background: var(--violet); border-color: var(--violet); }
 .ver .entext { font-size: 17px; }
-.ver-count { font-size: 10px; font-weight: 800; color: var(--violet-dark); background: #efe6fd; border-radius: 99px; padding: 2px 7px; margin-left: auto; }
+.ver-count { font-size: 12px; font-weight: 800; color: var(--violet-dark); background: #efe6fd; border-radius: 99px; padding: 1px 7px; margin-left: auto; }
 .ver-count + .ver-check { margin-left: 0; }
 
 /* 3 pilihan per gaya, digeser kanan-kiri. scroll-snap = swipe di HP jalan
@@ -657,22 +687,34 @@ input, select, textarea { font: inherit; color: inherit; }
 .ver-track::-webkit-scrollbar { display: none; }
 .ver-slide { flex: 0 0 100%; min-width: 0; scroll-snap-align: start; padding: 0 2px; }
 .ver-nav { display: flex; align-items: center; gap: 4px; margin-left: auto; }
-.ver-arrow { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; color: var(--violet-dark); background: #f3ecfd; transition: background 0.15s, opacity 0.15s; }
+.ver-arrow { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; color: var(--violet-dark); background: #f3ecfd; transition: background 0.15s, opacity 0.15s; }
 .ver-arrow:hover:not(:disabled) { background: #e4d6fb; }
 .ver-arrow:disabled { opacity: 0.3; cursor: default; }
-.ver-dots { display: flex; gap: 5px; padding: 0 3px; }
-.ver-dot { width: 7px; height: 7px; border-radius: 99px; background: #dccdf4; padding: 0; transition: width 0.2s cubic-bezier(0.34, 1.5, 0.64, 1), background 0.2s; }
-.ver-dot.on { width: 18px; background: var(--violet); }
+.ver-dots { display: flex; padding: 0 2px; }
+/* titiknya tetap kecil, area ketuknya 13×23px: padding + latar cuma di content box */
+.ver-dot { box-sizing: content-box; width: 7px; height: 7px; padding: 8px 3px; border-radius: 99px; background: #dccdf4; background-clip: content-box; transition: width 0.2s cubic-bezier(0.34, 1.5, 0.64, 1), background 0.2s; }
+.ver-dot.on { width: 18px; background: var(--violet); background-clip: content-box; }
 .ver.on .ver-tag.casual ~ .ver-count { color: #0b7a55; background: #dcf7ec; }
 .flip { transform: scaleX(-1); }
 .ver .en-acts { margin-top: 10px; }
-.ver .spk-wrap, .ver .spk { width: 38px; height: 38px; }
-.ver-note { margin: 2px 4px 0; font-size: 11px; font-weight: 700; color: var(--muted); line-height: 1.45; }
+.ver .spk-wrap, .ver .spk { width: 40px; height: 40px; }
+.ver-note { margin: 2px 4px 0; font-size: 12px; font-weight: 700; color: var(--ink-mute); line-height: 1.45; }
 
-.use { display: flex; align-items: center; justify-content: center; gap: 9px; width: 100%; background: var(--teal); color: #fff; border-radius: 20px; padding: 15px; --sh: var(--teal-dark); box-shadow: 0 7px 0 var(--teal-dark); margin-top: 16px; }
-.use b { font-family: var(--dsp); font-size: 16.5px; font-weight: 800; }
-.save { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 13px; color: var(--muted); font-size: 12.5px; font-weight: 800; }
-.save.on { color: var(--amber-ink); }
+/* Aksi Bengkel nempel di bawah panel (lihat Bengkel.tsx). Padding bawah dipindah
+   dari .bengkel ke sini, biar pas nempel nggak ada celah di bawahnya. */
+.bengkel:has(> .bk-foot) { padding-bottom: 0; }
+.bk-foot { position: sticky; bottom: 0; z-index: 1; margin: 16px -20px 0; padding: 12px 20px calc(16px + env(safe-area-inset-bottom)); background: var(--card); border-top: 1px solid var(--line); }
+.bk-pick { margin: 0 0 8px; text-align: center; font-size: 13px; font-weight: 600; color: var(--ink-mute); }
+.bk-pick.on { color: var(--teal-ink); }
+.bk-acts { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 8px; }
+.bk-acts .btn { min-height: 48px; font-size: 15px; }
+.bk-acts .btn.primary.done { background: var(--teal-ink); box-shadow: 0 2px 0 #06603f; cursor: default; }
+
+@media (pointer: coarse) {
+  .icon-btn, .x, .ver-arrow { width: 44px; height: 44px; }
+  .chip, .mini, .outline { min-height: 40px; }
+  .grab, .fix-toggle { min-height: 44px; }
+}
 
 .spin { width: 18px; height: 18px; border-radius: 50%; border: 2.5px solid rgba(255, 255, 255, 0.35); border-top-color: #fff; animation: spin 0.7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -893,16 +935,16 @@ button.trow:focus-visible, .run:focus-visible, .td-sit summary:focus-visible { o
   .rail-stats { display: flex; gap: 8px; padding: 0 2px 18px; }
   .rail-stat { flex: 1; display: flex; align-items: center; gap: 6px; border-radius: 14px; padding: 9px 10px; }
   .rail-stat b { display: block; font-family: var(--dsp); font-size: 15px; font-weight: 800; line-height: 1; }
-  .rail-stat span { font-size: 9.5px; font-weight: 700; color: var(--muted); }
-  .rail-lbl { font-size: 10px; font-weight: 800; color: var(--faint); letter-spacing: 1.1px; padding: 0 8px 8px; }
+  .rail-stat span { font-size: 12px; font-weight: 700; color: var(--ink-mute); }
+  .rail-lbl { font-size: 12px; font-weight: 800; color: var(--ink-mute); letter-spacing: 0.8px; padding: 0 8px 8px; }
   .rail-item { display: flex; align-items: center; gap: 11px; border-radius: 14px; padding: 10px 11px; transition: background 0.14s ease; }
   .rail-item:hover { background: #f8f2fa; }
   .rail-item.on { background: var(--violet-wash); }
   .rail-item i { width: 30px; height: 30px; border-radius: 10px; display: grid; place-items: center; flex-shrink: 0; }
   .rail-item b { display: block; font-family: var(--dsp); font-size: 13.5px; font-weight: 800; }
-  .rail-item span { font-size: 10px; font-weight: 700; color: var(--muted); }
+  .rail-item span { font-size: 12px; font-weight: 700; color: var(--ink-mute); }
   .rail-item.on b { color: var(--violet-dark); }
-  .rail-item.on span { color: #a48acb; }
+  .rail-item.on span { color: #6d4fa3; }
 
   .sess-head { padding: 22px 34px 0; }
   .sess-title { text-align: left; }
@@ -918,19 +960,16 @@ button.trow:focus-visible, .run:focus-visible, .td-sit summary:focus-visible { o
   .band { margin: 0 34px 12px; }
   .err { margin: 0 34px 10px; }
 
-  /* koleksi / bengkel jadi panel kanan */
+  /* bengkel jadi panel kanan */
   .side { display: flex; width: 360px; flex-shrink: 0; background: var(--card); border-left: 1px solid var(--line); flex-direction: column; padding: 22px 18px; overflow-y: auto; animation: slideLeft 0.4s cubic-bezier(0.3, 1.2, 0.5, 1) both; }
-  .side-head { display: flex; align-items: flex-start; gap: 10px; padding: 0 4px 6px; }
-  .side-head b { font-family: var(--dsp); font-size: 17px; font-weight: 800; line-height: 1.1; }
-  .side-head p { font-size: 11px; font-weight: 700; color: var(--muted); margin: 3px 0 0; }
-  .fcard { background: #fffdf7; border: 2px solid #f4ead6; border-radius: 18px; padding: 13px 14px; box-shadow: 0 3px 0 #f4ead6; transition: transform 0.16s cubic-bezier(0.34, 1.5, 0.64, 1); }
-  .fcard:hover { transform: translateY(-3px); }
-  .fcard.fresh { background: var(--amber-wash); border-color: #ffd98a; box-shadow: 0 4px 0 #f6e3b0; animation: rise 0.4s ease-out both; }
-  .fcard .en { font-family: var(--dsp); font-size: 15px; font-weight: 700; line-height: 1.3; }
-  .fcard .id { font-size: 11.5px; font-weight: 600; color: var(--muted); margin-top: 4px; }
+  /* aksi Bengkel nempel di bawah panel: padding bawah panel pindah ke .bk-foot */
+  .side:has(.bk-foot) { padding-bottom: 0; }
+  .bk-foot { margin: 16px -18px 0; padding: 12px 18px 18px; }
 
   /* bengkel: sheet → panel, animasi & posisi diganti */
-  .bengkel { position: static; max-height: none; border-radius: 0; box-shadow: none; padding: 0; animation: none; }
+  /* yang scroll .side, bukan .bengkel: kalau .bengkel ikut scroll, .bk-foot (margin negatif)
+     bikin scrollbar horizontal & celah 15px di bawah tombolnya */
+  .bengkel { position: static; max-height: none; overflow: visible; flex-shrink: 0; border-radius: 0; box-shadow: none; padding: 0; animation: none; }
   .bengkel .handle { display: none; }
   .mic-wrap, .mic { width: 100px; height: 100px; }
   .mic-wrap { margin-top: -44px; }

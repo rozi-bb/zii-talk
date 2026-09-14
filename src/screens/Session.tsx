@@ -751,7 +751,8 @@ export function Session({
                 {phase === 'rec' ? (
                   <>
                     <Wave levels={levels} />
-                    <span className="clock">{`0:${secs < 10 ? '0' : ''}${secs}`}</span>
+                    {/* menit:detik — dulu selalu "0:" di depan, jadi detik ke-75 tampil 0:75 */}
+                    <span className="clock">{`${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`}</span>
                   </>
                 ) : phase === 'idle' ? (
                   speechReady ? (
@@ -895,7 +896,7 @@ function Fix({
           </button>
         )}
         {c.why && (
-          <button className="ghost" onClick={() => setWhy(!why)}>
+          <button className="fix-toggle" onClick={() => setWhy(!why)} aria-expanded={why}>
             Kenapa?
             <Icon name="chevron" size={13} className={why ? 'rot' : ''} />
           </button>

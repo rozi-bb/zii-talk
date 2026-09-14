@@ -1,6 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { Home } from './screens/Home';
 import { Topics } from './screens/Topics';
+import { Collection } from './screens/Collection';
 import { Dashboard } from './screens/Dashboard';
 import { Settings } from './screens/Settings';
 import { Shell } from './components/Shell';
@@ -28,7 +29,7 @@ import { usePath } from './lib/nav';
 const errText = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 /* halaman di dalam Shell; path lain jatuh ke Latihan */
-const PAGES = ['/', '/topik', '/dashboard', '/pengaturan'];
+const PAGES = ['/', '/topik', '/koleksi', '/dashboard', '/pengaturan'];
 
 export default function App() {
   const [path, go] = usePath();
@@ -128,6 +129,8 @@ export default function App() {
       <Shell path={page} go={go} momentum={st.momentum} phrases={st.phrases} needsSetup={needsSetup}>
         {page === '/topik' ? (
           <Topics cfg={cfg} topics={topics} categories={categories} onStart={start} onRefresh={refresh} />
+        ) : page === '/koleksi' ? (
+          <Collection cfg={cfg} voice={st.voice} go={go} onChanged={merge} />
         ) : page === '/dashboard' ? (
           <Dashboard cfg={cfg} topics={topics} categories={categories} onRefresh={refresh} onStart={start} />
         ) : page === '/pengaturan' ? (

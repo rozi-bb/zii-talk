@@ -266,7 +266,7 @@ export function Bengkel({
           ) : (
             <div className="said">
               {said || (
-                <span style={{ color: 'var(--muted)' }}>
+                <span className="said-hint">
                   Tahan mic biru atau <span className="kbd">SPASI</span>, ngomong bebas.
                 </span>
               )}
@@ -457,36 +457,45 @@ export function Bengkel({
         </div>
       ) : (
         <div className="enbox">
-          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted)', lineHeight: 1.5 }}>
+          <div className="en-empty">
             {busy ? 'Nyusun kalimatnya...' : 'Hasil Inggrisnya muncul di sini.'}
           </div>
         </div>
       )}
 
-      <button className="use b3d" onClick={onClose}>
-        <b>Pakai &amp; Lanjut Ngobrol</b>
-        <Icon name="right" size={19} />
-      </button>
-
-      {res && (
-        <button
-          className={`save${saved ? ' on' : ''}`}
-          onClick={() => {
-            if (saved) return;
-            onSave(current, said);
-            setSavedTexts((s) => [...s, current]);
-          }}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill={saved ? 'var(--amber)' : 'none'} stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M6.4 3.6h11.2v17l-5.6-4.2-5.6 4.2v-17Z" />
-          </svg>
-          {saved
-            ? 'Tersimpan di koleksi frasa'
-            : vers.length > 1
-              ? `Simpan ${pickLabel.toLowerCase()} ${slide[pick] + 1} ke koleksi frasa`
-              : 'Simpan ke koleksi frasa'}
-        </button>
-      )}
+      {/* Aksi nempel di bawah panel, selalu kelihatan tanpa scroll. Dulu tombol besarnya
+          "Pakai & Lanjut Ngobrol" padahal cuma nutup panel, sedangkan simpan frasa cuma
+          teks pudar di bawahnya yang ketutup di HP. */}
+      <div className="bk-foot">
+        {res && (
+          <p className={`bk-pick${saved ? ' on' : ''}`}>
+            {saved
+              ? 'Kalimat ini udah ada di koleksi frasa.'
+              : `Yang disimpan: ${vers.length > 1 ? pickLabel : 'kalimat di atas'}${
+                  res[pick].length > 1 ? ` · pilihan ${slide[pick] + 1}` : ''
+                }`}
+          </p>
+        )}
+        <div className="bk-acts">
+          <button className="btn ghost" onClick={onClose}>
+            Balik ngobrol
+          </button>
+          {res && (
+            <button
+              className={`btn primary${saved ? ' done' : ''}`}
+              aria-disabled={saved}
+              onClick={() => {
+                if (saved) return;
+                onSave(current, said);
+                setSavedTexts((s) => [...s, current]);
+              }}
+            >
+              <Icon name={saved ? 'check' : 'bookmark'} size={17} />
+              {saved ? 'Tersimpan' : 'Simpan frasa'}
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

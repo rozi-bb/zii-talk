@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from typing import Any
 
 from fastapi import APIRouter
@@ -37,6 +37,15 @@ class PhraseIn(BaseModel):
     en: str = Field(min_length=1)
     id: str = ""
     topicId: str | None = None
+
+
+class PhraseOut(BaseModel):
+    id: int
+    en: str
+    meaning: str  # arti / kalimat Indonesia-nya, boleh kosong
+    topicId: str | None
+    topicName: str | None  # topik udah dihapus = None
+    createdAt: datetime
 
 
 async def _read(conn: Any) -> StateOut:
@@ -99,6 +108,29 @@ async def touch() -> StateOut:
         return await _read(conn)
 
 
+@router.get("/phrases", response_model=list[PhraseOut], summary="Semua frasa di koleksi, terbaru dulu")
+async def list_phrases() -> list[PhraseOut]:
+    rows = await db.fetch_all(
+        """
+        SELECT p.id, p.en, p.meaning, p.topic_id, t.name AS topic_name, p.created_at
+        FROM phrases p
+        LEFT JOIN topics t ON t.id = p.topic_id
+        ORDER BY p.created_at DESC, p.id DESC
+        """
+    )
+    return [
+        PhraseOut(
+            id=r["id"],
+            en=r["en"],
+            meaning=r["meaning"],
+            topicId=r["topic_id"],
+            topicName=r["topic_name"],
+            createdAt=r["created_at"],
+        )
+        for r in rows
+    ]
+
+
 @router.post("/phrases", response_model=StateOut, summary="Simpan frasa ke koleksi (dobel diabaikan)")
 async def add_phrase(body: PhraseIn) -> StateOut:
     async with (await db.pool()).connection() as conn:
@@ -110,4 +142,13 @@ async def add_phrase(body: PhraseIn) -> StateOut:
             """,
             (clean(body.en, 300), clean(body.id, 300), body.topicId),
         )
+        return await _read(conn)
+
+
+@router.delete("/phrases/{phrase_id}", response_model=StateOut, summary="Hapus frasa dari koleksi")
+async def delete_phrase(phrase_id: int):
+    async with (await db.pool()).connection() as conn:
+        cur = await conn.execute("DELETE FROM phrases WHERE id = %s", (phrase_id,))
+        if cur.rowcount == 0:
+            return JSONResponse(status_code=404, content={"error": "Frasa nggak ketemu — mungkin udah dihapus"})
         return await _read(conn)

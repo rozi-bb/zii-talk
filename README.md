@@ -302,6 +302,7 @@ tanpa navigasi.
 |---|---|
 | **Latihan** `/` | rekomendasi hari ini, topik terakhir dilatih, beberapa topik yang belum dicoba / waktunya diulang, dan jalan pintas per kategori. Sengaja **bukan** daftar semua topik |
 | **Topik** `/topik` | semua topik: cari (tekan `/`), filter kategori & status, urutkan, tambah topik & kategori. Filternya ikut di URL, jadi bisa di-bookmark |
+| **Koleksi** `/koleksi` | frasa yang ditangkap dari kartu koreksi & disimpan dari Bengkel: cari, filter per topik, dengerin, hapus |
 | **Dashboard** `/dashboard` | ringkasan, status tes per topik, riwayat tes + transkrip, tombol **Retest** |
 | **Pengaturan** `/pengaturan` | suara Zii, model AI, aturan sesi, status sistem (API key, Azure, tracing) |
 
@@ -330,10 +331,10 @@ docker-compose.yml  Postgres
 src/lib/speech.ts   Azure STT/TTS + antrean suara per kalimat
 src/lib/expr.ts     tag suara: dibuang dari layar, nggak dihitung sebagai kata
 src/lib/api.ts      client ke server
-src/lib/nav.ts      router mini: /, /topik, /dashboard, /pengaturan
+src/lib/nav.ts      router mini: /, /topik, /koleksi, /dashboard, /pengaturan
 src/lib/topics.ts   cari, filter, urutkan topik + pilih rekomendasi hari ini
 src/lib/format.ts   format waktu ("3 jam yang lalu")
-src/screens/        Home (Latihan), Topics, Settings, Session, Dashboard
+src/screens/        Home (Latihan), Topics, Collection (Koleksi), Settings, Session, Dashboard
 src/components/     Shell (navigasi), TopicCard, TopicForm, Bengkel, orb, waveform, ikon
 scripts/bridge.mjs  bridge Tailscale (HTTPS buat mic)
 design/             canvas desain

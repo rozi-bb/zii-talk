@@ -81,6 +81,18 @@ export const saveVoice = (voice: string) => call<AppState>('PUT', '/api/state/vo
 export const touchMomentum = () => post<AppState>('/api/state/touch');
 export const addPhrase = (p: Phrase, topicId: string) => post<AppState>('/api/phrases', { ...p, topicId });
 
+/* frasa di koleksi. `meaning` = arti / kalimat Indonesia-nya; `topicName` null kalau topiknya udah dihapus */
+export type SavedPhrase = {
+  id: number;
+  en: string;
+  meaning: string;
+  topicId: string | null;
+  topicName: string | null;
+  createdAt: string;
+};
+export const loadPhrases = () => get<SavedPhrase[]>('/api/phrases');
+export const deletePhrase = (id: number) => call<AppState>('DELETE', `/api/phrases/${id}`);
+
 export const loadTopics = () => get<Topic[]>('/api/topics');
 export const createTopic = (t: NewTopic) => post<Topic>('/api/topics', t);
 export const loadCategories = () => get<Category[]>('/api/categories');
