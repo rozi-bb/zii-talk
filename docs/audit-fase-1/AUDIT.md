@@ -877,6 +877,7 @@ Detailnya di [Login & akun](#login--akun).
 - [ ] **Login Google** — *kolom `google_sub` udah disiapin; kerjain bareng online*
 - [ ] **Topik & kategori per akun** — *sekarang masih dipakai bareng*
 - [ ] **Batas pemakaian AI per akun** (chat, Bengkel, token suara)
+- [x] **Full container**: app + Postgres jalan di Docker (`Dockerfile`, `docker-compose.yml`, `npm run docker:up`)
 - [ ] **Online**: domain + HTTPS, batas salah password pindah ke database
 - [ ] Lupa password & verifikasi email
 - [ ] Menu admin

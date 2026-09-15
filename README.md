@@ -23,6 +23,33 @@ Produksi (satu proses, frontend + API):
 npm run serve           # buka http://localhost:8787
 ```
 
+### Pakai Docker (full container)
+
+App-nya (frontend hasil build + API) dan Postgres jalan di container. Mesinnya
+cukup punya **Docker** — nggak perlu Node, Python, atau uv.
+
+```bash
+cp .env.example .env                    # isi key-nya
+docker compose up -d --build --wait     # = npm run docker:up → http://localhost:8080
+```
+
+| Perintah | Buat apa |
+|---|---|
+| `npm run docker:up` | build ulang image + nyalain app & Postgres. Jalanin lagi tiap habis ganti kode atau `.env` |
+| `npm run docker:logs` | log server (`docker compose logs -f app`) |
+| `npm run docker:down` | matiin app & Postgres — data tetap aman di volume |
+
+- **Kunci API nggak masuk image.** `.env` dibaca waktu container nyala
+  (`env_file`), dan `.dockerignore` ngebuang `.env` dari build.
+- **Database-nya sama** dengan `npm run dev` (volume `zii-talk_pgdata`), jadi akun,
+  frasa, dan riwayat tes kebawa. Migrasi jalan otomatis waktu app start.
+- Port-nya **8080**, biar bisa jalan barengan `npm run dev` (5173 + 8787). Mau
+  port lain: `APP_PORT=9000 npm run docker:up`.
+- Di container, `DATABASE_URL`, `HOST`, dan `PORT` dari `.env` diabaikan —
+  diatur `docker-compose.yml`.
+- App jalan sebagai user biasa (bukan root), dan ditandai *unhealthy* kalau
+  Postgres putus.
+
 ## Isi `.env`
 
 | Variabel | Buat apa | Wajib? |
@@ -358,7 +385,8 @@ server/voices.py    daftar suara HD Azure yang bisa dipilih di Pengaturan
 server/expressions.py  tag suara ([laughter], ...): yang diizinin + filter stream
 pyproject.toml      dependency Python (dikelola uv)
 langgraph.json      config Agent Server buat Studio
-docker-compose.yml  Postgres
+Dockerfile          image app: build frontend (Node) → API + frontend (Python)
+docker-compose.yml  Postgres + app (full container)
 src/lib/speech.ts   Azure STT/TTS + antrean suara per kalimat
 src/lib/expr.ts     tag suara: dibuang dari layar, nggak dihitung sebagai kata
 src/lib/api.ts      client ke server

@@ -1,9 +1,17 @@
-# Postgres khusus Zii Talk. Port & volume sendiri, jadi nggak nabrak
-# Postgres project lain di mesin ini. Cuma dengerin 127.0.0.1.
+# Zii Talk full container: Postgres + app (frontend + API, dari Dockerfile).
+# Port & volume sendiri, jadi nggak nabrak project lain di mesin ini. Semua
+# cuma dengerin 127.0.0.1.
 #
-#   npm run db:up     nyalain (otomatis jalan sebelum `npm run dev` / `start`)
+#   npm run docker:up     build + nyalain app & Postgres → http://localhost:8080
+#   npm run docker:logs   liat log server
+#   npm run docker:down   matiin app & Postgres (data tetap aman di volume)
+#
+# Buat ngoding tetap pakai `npm run dev` (reload lebih cepet) — itu cuma
+# nyalain service `db` di sini:
+#
+#   npm run db:up     nyalain Postgres (otomatis jalan sebelum `npm run dev` / `start`)
 #   npm run db:psql   masuk psql
-#   npm run db:down   matiin (data tetap aman di volume)
+#   npm run db:down   matiin Postgres
 name: zii-talk
 
 services:
@@ -25,6 +33,28 @@ services:
       interval: 2s
       timeout: 3s
       retries: 20
+
+  app:
+    build: .
+    image: zii-talk-app
+    container_name: zii-talk-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    # kunci API (LLM, Azure, LangSmith) dibaca dari .env waktu container jalan
+    env_file:
+      - path: .env
+        required: false
+    # yang di bawah ini menang atas isi .env
+    environment:
+      # di dalam jaringan compose, Postgres-nya dipanggil "db" — bukan 127.0.0.1:5439
+      DATABASE_URL: postgresql://zii:zii@db:5432/zii_talk
+      HOST: 0.0.0.0
+      PORT: "8787"
+    ports:
+      # 8080, bukan 8787: biar bisa jalan barengan `npm run dev` / `npm start`
+      - "127.0.0.1:${APP_PORT:-8080}:8787"
 
 volumes:
   pgdata:

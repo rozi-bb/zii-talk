@@ -1,0 +1,20 @@
+# Yang nggak perlu masuk build context / image.
+# .env sengaja dibuang: kunci API dibaca waktu container jalan (env_file di
+# docker-compose.yml), bukan dipanggang ke image.
+.env
+.env.*
+!.env.example
+
+.git
+.claude
+node_modules
+.venv
+dist
+**/__pycache__
+**/*.pyc
+.bridge.json
+.langgraph_api
+design
+docs
+*.log
+.DS_Store
