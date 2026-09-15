@@ -5,22 +5,31 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, field_validator
 
 from server import db
+from server.auth import User, current_user
 from server.util import clean, slug
 
 router = APIRouter(prefix="/api/topics", tags=["Topik"])
 
 HEX = r"^#[0-9A-Fa-f]{6}$"
 
+# Topiknya masih dipakai bareng semua akun; statistik tesnya punya akun yang
+# lagi login aja. Parameter pertama = user_id.
 SELECT = """
 SELECT t.id, t.name, t.category_id, t.icon, t.tint, t.ink, t.blurb, t.situations,
        s.tests, s.questions, s.last_tested_at
 FROM topics t
-JOIN topic_stats s ON s.id = t.id
+CROSS JOIN LATERAL (
+  SELECT count(*)::int                             AS tests,
+         coalesce(sum(r.question_count), 0)::int   AS questions,
+         max(r.ended_at)                           AS last_tested_at
+  FROM test_runs r
+  WHERE r.topic_id = t.id AND r.user_id = %s
+) s
 """
 
 
@@ -79,13 +88,13 @@ def _out(r: dict[str, Any]) -> TopicOut:
 
 
 @router.get("", response_model=list[TopicOut], summary="Semua topik + jumlah tes & jawaban")
-async def list_topics() -> list[TopicOut]:
-    rows = await db.fetch_all(SELECT + " ORDER BY t.sort_order, t.created_at")
+async def list_topics(user: User = Depends(current_user)) -> list[TopicOut]:
+    rows = await db.fetch_all(SELECT + " ORDER BY t.sort_order, t.created_at", (user.id,))
     return [_out(r) for r in rows]
 
 
 @router.post("", response_model=TopicOut, status_code=201, summary="Tambah topik baru")
-async def create_topic(body: TopicIn):
+async def create_topic(body: TopicIn, user: User = Depends(current_user)):
     base = slug(body.name, "topik")
     async with (await db.pool()).connection() as conn, conn.transaction():
         cur = await conn.execute("SELECT 1 FROM categories WHERE id = %s", (body.categoryId,))
@@ -108,7 +117,7 @@ async def create_topic(body: TopicIn):
             """,
             (id_, body.name, body.categoryId, body.icon, body.tint, body.ink, body.blurb, body.situations),
         )
-        cur = await conn.execute(SELECT + " WHERE t.id = %s", (id_,))
+        cur = await conn.execute(SELECT + " WHERE t.id = %s", (user.id, id_))
         row = await cur.fetchone()
     assert row is not None
     return _out(row)

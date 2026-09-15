@@ -267,14 +267,16 @@ npm run db:down    # matiin — data tetap aman di volume
 |---|---|
 | `categories` | kategori topik — awalnya Sehari-hari & Buat Kerja, bisa ditambah dari app |
 | `topics` | topik + skenario buat Zii, masing-masing di satu kategori. 9 topik awal di-seed dari `002_seed_topics.sql` |
-| `test_runs` | satu sesi tes: topik, tes ke-berapa, model, jumlah pertanyaan, mulai & aktivitas terakhir |
+| `test_runs` | satu sesi tes per akun: topik, tes ke-berapa, model, jumlah pertanyaan, mulai & aktivitas terakhir |
 | `messages` | transkrip per sesi, lengkap sama timestamp & kartu koreksi |
-| `phrases` | koleksi frasa |
-| `app_state` | model pilihan & momentum — satu baris, usernya cuma satu |
+| `phrases` | koleksi frasa per akun |
+| `app_state` | model & suara pilihan, momentum — satu baris per akun |
+| `users` | akun: email, hash password (scrypt), peran `admin` / `user` |
+| `sessions` | sesi login yang masih berlaku (yang disimpan sha256 token-nya, bukan token aslinya) |
 
 Status "sudah/belum dites", jumlah tes, dan total pertanyaan **nggak disimpan
-sebagai kolom**. Semuanya dihitung dari `test_runs` lewat view `topic_stats`,
-jadi nggak mungkin beda sama data aslinya.
+sebagai kolom**. Semuanya dihitung dari `test_runs` punya akun yang lagi login
+(query di `server/routes/topics.py`), jadi nggak mungkin beda sama data aslinya.
 
 **Kapan satu sesi jadi tes:** begitu **jawaban ke-10** masuk. Sebelum itu nggak
 ada yang ditulis ke database — keluar di jawaban ke-7 berarti sesi itu nggak
@@ -293,6 +295,34 @@ Yang gampang kelewat:
 - Gagal nyimpen (misal Postgres mati di tengah sesi) nggak ngehentiin obrolan —
   cuma muncul peringatan merah.
 
+## Akun & login
+
+Buka app → halaman **Masuk / Daftar**. Semua endpoint selain `/api/auth/*` wajib
+login, termasuk chat dan token Azure Speech.
+
+- **Akun pertama yang daftar jadi admin** dan ngambil semua data yang udah ada
+  dari zaman app ini masih satu user (frasa, riwayat tes, momentum, model, suara).
+  Akun berikutnya mulai dari kosong.
+- Frasa, riwayat tes, momentum, model, dan suara **per akun**. Topik & kategori
+  masih dipakai bareng semua akun.
+- Login disimpan di cookie `httpOnly` selama 30 hari. **Keluar** ada di
+  Pengaturan.
+- Salah password 5 kali → email itu harus nunggu 60 detik. Hitungannya di memori
+  server, jadi ke-reset kalau server restart.
+- Belum ada: login Google, lupa password, batas pemakaian AI per akun, topik per
+  akun. Rencananya di `docs/audit-fase-1/AUDIT.md` (Fase 3).
+
+| Endpoint | Isinya |
+|---|---|
+| `GET /api/auth/me` | akun yang lagi login (`null` kalau belum) + `firstAccount` |
+| `POST /api/auth/register` | daftar `{email, password}`, langsung login |
+| `POST /api/auth/login` | masuk `{email, password}` |
+| `POST /api/auth/logout` | keluar, sesi di server ikut dihapus |
+
+Lupa password akun lokal? Hapus akunnya lewat `npm run db:psql`
+(`DELETE FROM users WHERE email = '...';`), lalu daftar lagi. Frasa & riwayat
+akun itu ikut kehapus.
+
 ## Halaman
 
 Navigasinya sidebar di laptop, tab bar di HP. Sesi ngobrol sengaja tampil penuh
@@ -304,7 +334,7 @@ tanpa navigasi.
 | **Topik** `/topik` | semua topik: cari (tekan `/`), filter kategori & status, urutkan, tambah topik & kategori. Filternya ikut di URL, jadi bisa di-bookmark |
 | **Koleksi** `/koleksi` | frasa yang ditangkap dari kartu koreksi & disimpan dari Bengkel: cari, filter per topik, dengerin, hapus |
 | **Dashboard** `/dashboard` | ringkasan, status tes per topik, riwayat tes + transkrip, tombol **Retest** |
-| **Pengaturan** `/pengaturan` | suara Zii, model AI, aturan sesi, status sistem (API key, Azure, tracing) |
+| **Pengaturan** `/pengaturan` | akun & tombol keluar, suara Zii, model AI, aturan sesi, status sistem (API key, Azure, tracing) |
 
 **Rekomendasi hari ini** dipilih dari 5 topik yang paling perlu dilatih (belum
 pernah dicoba duluan, lalu yang paling lama nggak disentuh), dan ditentuin
@@ -317,8 +347,9 @@ lagi. Sesi yang dimulai dari halaman mana pun balik ke halaman itu waktu selesai
 
 ```
 server/main.py      FastAPI: rakit router + serve frontend build
-server/routes/      endpoint per fitur (config, speech, chat, translate, topics, categories, runs, state)
+server/routes/      endpoint per fitur (auth, config, speech, chat, translate, topics, categories, runs, state)
 server/agent/       graph LangGraph (conversation, workshop)
+server/auth.py      akun: hash password, cookie sesi login, batas salah password
 server/db.py        pool Postgres + runner migrasi
 server/runlog.py    nyatet sesi tes (aturan minimal 10 jawaban)
 server/migrations/  skema + seed 9 topik awal
@@ -334,7 +365,7 @@ src/lib/api.ts      client ke server
 src/lib/nav.ts      router mini: /, /topik, /koleksi, /dashboard, /pengaturan
 src/lib/topics.ts   cari, filter, urutkan topik + pilih rekomendasi hari ini
 src/lib/format.ts   format waktu ("3 jam yang lalu")
-src/screens/        Home (Latihan), Topics, Collection (Koleksi), Settings, Session, Dashboard
+src/screens/        Login, Home (Latihan), Topics, Collection (Koleksi), Settings, Session, Dashboard
 src/components/     Shell (navigasi), TopicCard, TopicForm, Bengkel, orb, waveform, ikon
 scripts/bridge.mjs  bridge Tailscale (HTTPS buat mic)
 design/             canvas desain
@@ -351,5 +382,5 @@ design/             canvas desain
 - **Momentum bukan streak.** Bolos sehari nggak ngapus apa-apa; baru mengecil
   (separuh, minimal 1) kalau nganggur lebih dari 2 hari. Ini disengaja.
 - Koleksi frasa, momentum, dan riwayat tes ada di **Postgres**, bukan di
-  browser — jadi sama di semua device yang buka app lewat server yang sama.
+  browser — jadi sama di semua device yang login pakai akun yang sama.
 - Mic butuh **HTTPS** kalau diakses bukan dari `localhost`.

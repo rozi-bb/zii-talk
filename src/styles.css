@@ -169,7 +169,14 @@ input, select, textarea { font: inherit; color: inherit; }
   .side-stat { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: #fdf8f3; }
   .side-stat b { display: block; font-family: var(--dsp); font-size: 17px; font-weight: 700; line-height: 1.1; }
   .side-stat span { font-size: 12px; font-weight: 600; color: var(--ink-mute); }
+  .side-user { display: flex; align-items: center; gap: 10px; min-width: 0; margin-top: 4px; padding: 8px 10px; border-radius: 12px; color: var(--ink-soft); text-decoration: none; font-size: 13px; font-weight: 700; transition: background 0.14s ease, color 0.14s ease; }
+  .side-user:hover { background: #f8f2fa; color: var(--ink); }
+  .side-user-mail { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 }
+
+/* inisial email: sidebar & kartu Akun */
+.avatar { display: grid; place-items: center; flex-shrink: 0; width: 30px; height: 30px; border-radius: 50%; background: var(--violet-wash); color: var(--violet-dark); font-family: var(--dsp); font-size: 15px; font-weight: 700; line-height: 1; }
+.avatar.lg { width: 44px; height: 44px; font-size: 20px; }
 
 /* ── halaman & tombol dasar ───────────────────────────── */
 .page { max-width: 1120px; margin: 0 auto; padding: max(20px, env(safe-area-inset-top)) 18px 40px; }
@@ -199,7 +206,8 @@ input, select, textarea { font: inherit; color: inherit; }
 .link { display: inline-flex; align-items: center; gap: 4px; color: var(--violet-dark); font-size: 14px; font-weight: 700; text-decoration: none; }
 .link:hover { text-decoration: underline; }
 .btn:focus-visible, .link:focus-visible, .nav-item:focus-visible, .tab:focus-visible, .cat-tile:focus-visible,
-.lib-cat:focus-visible, .lib-new:focus-visible, .chip-btn:focus-visible, .notice:focus-visible, .seg button:focus-visible {
+.lib-cat:focus-visible, .lib-new:focus-visible, .chip-btn:focus-visible, .notice:focus-visible, .seg button:focus-visible,
+.pw-eye:focus-visible, .side-user:focus-visible {
   outline: 3px solid #b99cf0; outline-offset: 2px;
 }
 
@@ -401,6 +409,17 @@ input, select, textarea { font: inherit; color: inherit; }
 .set-card code, .sys code { font-family: ui-monospace, monospace; font-size: 12.5px; background: rgba(0, 0, 0, 0.06); border-radius: 5px; padding: 1px 5px; overflow-wrap: anywhere; }
 .set-card .picker { max-width: 440px; }
 .set-card > .set-note { margin: 8px 0 0; font-size: 13px; color: var(--ink-mute); }
+
+/* kartu Akun */
+.acct { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
+.acct-id { flex: 1; min-width: 0; }
+.acct-id b { display: block; font-size: 15px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.acct-id span { font-size: 13px; font-weight: 600; color: var(--ink-mute); }
+.set-card > .set-note.acct-err { color: #b02a45; font-weight: 700; }
+@media (max-width: 440px) {
+  .acct { flex-wrap: wrap; }
+  .acct-out { width: 100%; }
+}
 .model-notes { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 6px; font-size: 13px; font-weight: 600; color: var(--ink-soft); }
 .model-notes b { margin-right: 8px; color: var(--ink); }
 .sys { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
@@ -721,6 +740,31 @@ input, select, textarea { font: inherit; color: inherit; }
 .spin.dark { border-color: rgba(123, 63, 228, 0.25); border-top-color: var(--violet); }
 
 .err { background: #fff0f3; border: 2px solid #ffd0da; border-radius: 16px; padding: 11px 13px; font-size: 12px; font-weight: 700; color: #b02a45; line-height: 1.45; margin: 0 18px 10px; }
+
+/* ── MASUK / DAFTAR ───────────────────────────────────────
+   Kartu di tengah. margin:auto (bukan place-items) biar kartunya tetap bisa
+   di-scroll dari atas waktu keyboard HP makan setengah layar. */
+.auth { flex: 1; min-height: 0; overflow-y: auto; display: flex; padding: max(24px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom)); background: radial-gradient(900px 480px at 50% -8%, var(--violet-wash), transparent 70%), var(--paper); }
+.auth-card { width: 100%; max-width: 400px; margin: auto; background: var(--card); border: 1px solid var(--line-soft); border-radius: 22px; padding: 26px 22px 24px; box-shadow: 0 14px 40px rgba(60, 30, 100, 0.08); }
+.auth-brand { display: flex; align-items: center; gap: 6px; margin: -6px 0 14px -8px; }
+.auth-brand b { font-family: var(--dsp); font-size: 20px; font-weight: 700; }
+.auth-card h1 { margin: 0; font-family: var(--dsp); font-size: 26px; font-weight: 700; line-height: 1.15; letter-spacing: -0.3px; }
+.auth-lede { margin: 6px 0 18px; font-size: 14px; font-weight: 600; line-height: 1.5; color: var(--ink-soft); }
+/* .seg. di depan: aturan .seg dasar ada di bawah file ini dan bakal menang */
+.seg.auth-seg { display: grid; grid-template-columns: 1fr 1fr; width: 100%; margin-bottom: 16px; }
+.seg.auth-seg button { justify-content: center; min-height: 40px; font-size: 14px; }
+.auth-note { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 16px; padding: 11px 13px; border-radius: 14px; background: var(--violet-wash); color: var(--violet-dark); font-size: 13px; font-weight: 600; line-height: 1.5; }
+.auth-note svg { flex-shrink: 0; margin-top: 1px; }
+.auth form { display: grid; gap: 14px; }
+/* 16px: di bawah itu Safari iOS nge-zoom halaman waktu kolomnya diketuk */
+.auth .fld input { min-height: 48px; font-size: 16px; }
+.auth .err { margin: 0; font-size: 13px; }
+.pw { position: relative; }
+.pw input { padding-right: 52px; }
+.pw-eye { position: absolute; top: 50%; right: 4px; transform: translateY(-50%); width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; color: var(--ink-mute); }
+.pw-eye:hover { background: #f6f0f8; color: var(--ink); }
+.auth-go { width: 100%; min-height: 48px; font-size: 15px; margin-top: 2px; }
+@media (max-width: 380px) { .auth-card { padding: 22px 16px 20px; } }
 
 /* ── DASHBOARD ────────────────────────────────────────── */
 /* Gaya sama kayak Latihan & Topik: kartu flat bertepi tipis, teks minimal 12px pakai

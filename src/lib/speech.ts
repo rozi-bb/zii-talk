@@ -1,4 +1,5 @@
 import * as SDK from 'microsoft-cognitiveservices-speech-sdk';
+import { signedOut } from './api';
 import { isSpoken, shown } from './expr';
 
 /* Token Azure umurnya 10 menit; kita perbarui tiap 8 menit. */
@@ -7,6 +8,7 @@ let cached: { token: string; region: string; at: number } | null = null;
 async function auth() {
   if (cached && Date.now() - cached.at < 8 * 60 * 1000) return cached;
   const r = await fetch('/api/speech/token');
+  if (r.status === 401) throw signedOut();
   const j = (await r.json().catch(() => ({}))) as { error?: string; token?: string; region?: string };
   if (!r.ok || !j.token || !j.region) throw new Error(j.error ?? 'Gagal ambil token Azure Speech');
   cached = { token: j.token, region: j.region, at: Date.now() };

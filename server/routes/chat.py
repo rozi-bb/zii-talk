@@ -15,19 +15,20 @@ from __future__ import annotations
 import json
 from typing import AsyncIterator
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from server import db, expressions, runlog
 from server.agent.conversation import graph as conversation
 from server.agent.models import MODELS, key_for, pick_model
+from server.auth import User, current_user
 from server.util import clean, to_messages
 
 router = APIRouter(prefix="/api/chat", tags=["Chat"])
 
 
 @router.post("/stream", summary="Streaming NDJSON: balasan Zii + koreksi (paralel)")
-async def chat_stream(req: Request):
+async def chat_stream(req: Request, user: User = Depends(current_user)):
     body = await req.json()
     model = pick_model(body.get("model"))
     if not key_for(model):
@@ -50,7 +51,7 @@ async def chat_stream(req: Request):
     warn: str | None = None
     if run_id and turns:
         try:
-            saved = await runlog.sync(run_id, topic_id, situation, model, turns)
+            saved = await runlog.sync(user.id, run_id, topic_id, situation, model, turns)
         except Exception as e:  # noqa: BLE001 — nyimpen itu pencatatan, jangan sampai ngerusak obrolan
             warn = f"Obrolan jalan terus, tapi gagal nyimpen ke database: {e}"
 
@@ -116,6 +117,7 @@ async def chat_stream(req: Request):
                 # = generator ini di-cancel sebelum sampai sini, balasannya nggak ditulis.
                 try:
                     await runlog.save_reply(
+                        user.id,
                         run_id,
                         seq=len(turns),
                         text=clean(said, 2000),

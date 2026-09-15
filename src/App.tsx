@@ -4,6 +4,7 @@ import { Topics } from './screens/Topics';
 import { Collection } from './screens/Collection';
 import { Dashboard } from './screens/Dashboard';
 import { Settings } from './screens/Settings';
+import { Login } from './screens/Login';
 import { Shell } from './components/Shell';
 
 /* SDK Azure Speech gede; dimuat baru saat sesi dibuka. */
@@ -13,13 +14,18 @@ import {
   addPhrase,
   loadCategories,
   loadConfig,
+  loadMe,
   loadState,
   loadTopics,
+  logout,
   saveModel,
   saveVoice,
+  SIGNED_OUT,
+  SignedOut,
   touchMomentum,
   type AppConfig,
   type AppState,
+  type AuthInfo,
   type Category,
   type Phrase,
   type Topic,
@@ -33,6 +39,7 @@ const PAGES = ['/', '/topik', '/koleksi', '/dashboard', '/pengaturan'];
 
 export default function App() {
   const [path, go] = usePath();
+  const [auth, setAuth] = useState<AuthInfo | null>(null);
   const [cfg, setCfg] = useState<AppConfig | null>(null);
   const [fatal, setFatal] = useState<string | null>(null);
   const [st, setSt] = useState<AppState | null>(null);
@@ -41,9 +48,30 @@ export default function App() {
   /* sesi yang lagi jalan + halaman buat balik habis selesai */
   const [active, setActive] = useState<{ id: string; back: string } | null>(null);
 
+  const user = auth?.user ?? null;
+
   useEffect(() => {
+    loadMe()
+      .then(setAuth)
+      .catch((e) => setFatal(errText(e)));
+    /* request mana pun yang dapet 401 = sesi login habis, balik ke halaman Masuk */
+    const expired = () => setAuth({ user: null, firstAccount: false });
+    window.addEventListener(SIGNED_OUT, expired);
+    return () => window.removeEventListener(SIGNED_OUT, expired);
+  }, []);
+
+  /* semua data di bawah ini punya akun yang lagi login — ganti akun = muat ulang dari nol */
+  useEffect(() => {
+    setCfg(null);
+    setSt(null);
+    setTopics(null);
+    setCategories(null);
+    setActive(null);
+    if (!user) return;
+    let live = true;
     Promise.all([loadConfig(), loadState(), loadTopics(), loadCategories()])
       .then(([c, s, t, k]) => {
+        if (!live) return;
         setCfg(c);
         setTopics(t);
         setCategories(k);
@@ -55,8 +83,20 @@ export default function App() {
         setSt({ ...s, model: first ? first.id : '' });
         if (first) saveModel(first.id).catch(() => {});
       })
-      .catch((e) => setFatal(errText(e)));
-  }, []);
+      .catch((e) => {
+        if (live && !(e instanceof SignedOut)) setFatal(errText(e));
+      });
+    return () => {
+      live = false;
+    };
+  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /* gagal (server mati) = tetap login; error-nya ditampilin di Pengaturan */
+  const signOut = async () => {
+    await logout();
+    setAuth({ user: null, firstAccount: false });
+    go('/');
+  };
 
   /* topik & kategori selalu dimuat bareng: jumlah per kategori ngikut topiknya */
   const refresh = useCallback(
@@ -92,6 +132,14 @@ export default function App() {
     );
   }
 
+  if (!auth) return <Booting label="Nyalain Zii..." />;
+  if (!user) {
+    return (
+      <div className="app">
+        <Login firstAccount={auth.firstAccount} onDone={(u) => setAuth({ user: u, firstAccount: false })} />
+      </div>
+    );
+  }
   if (!cfg || !st || !topics || !categories) return <Booting label="Nyalain Zii..." />;
 
   const topic = active && topics.find((t) => t.id === active.id);
@@ -126,7 +174,14 @@ export default function App() {
 
   return (
     <div className="app">
-      <Shell path={page} go={go} momentum={st.momentum} phrases={st.phrases} needsSetup={needsSetup}>
+      <Shell
+        path={page}
+        go={go}
+        email={user.email}
+        momentum={st.momentum}
+        phrases={st.phrases}
+        needsSetup={needsSetup}
+      >
         {page === '/topik' ? (
           <Topics cfg={cfg} topics={topics} categories={categories} onStart={start} onRefresh={refresh} />
         ) : page === '/koleksi' ? (
@@ -137,6 +192,8 @@ export default function App() {
           <Settings
             cfg={cfg}
             state={st}
+            user={user}
+            onLogout={signOut}
             onModel={(model) => {
               setSt((s) => s && { ...s, model });
               saveModel(model).catch(() => {});

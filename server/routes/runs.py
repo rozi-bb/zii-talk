@@ -5,11 +5,12 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Literal
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from server import db, runlog
+from server.auth import User, current_user
 
 router = APIRouter(prefix="/api", tags=["Riwayat Tes"])
 
@@ -79,19 +80,23 @@ def _not_found(what: str) -> JSONResponse:
     response_model=list[RunOut],
     summary="Semua sesi tes satu topik, terbaru dulu",
 )
-async def list_runs(topic_id: str):
+async def list_runs(topic_id: str, user: User = Depends(current_user)):
     if await db.fetch_one("SELECT 1 FROM topics WHERE id = %s", (topic_id,)) is None:
         return _not_found("Topik")
     rows = await db.fetch_all(
-        f"SELECT {COLUMNS} FROM test_runs WHERE topic_id = %s ORDER BY attempt_no DESC", (topic_id,)
+        f"SELECT {COLUMNS} FROM test_runs WHERE topic_id = %s AND user_id = %s ORDER BY attempt_no DESC",
+        (topic_id, user.id),
     )
     return [RunOut(**_run(r)) for r in rows]
 
 
 @router.get("/runs/{run_id}", response_model=RunDetail, summary="Satu sesi tes lengkap dengan transkripnya")
-async def get_run(run_id: str):
+async def get_run(run_id: str, user: User = Depends(current_user)):
     id_ = runlog.parse_uuid(run_id)
-    row = id_ and await db.fetch_one(f"SELECT {COLUMNS} FROM test_runs WHERE id = %s", (id_,))
+    # sesi akun lain = 404, sama kayak nggak ada
+    row = id_ and await db.fetch_one(
+        f"SELECT {COLUMNS} FROM test_runs WHERE id = %s AND user_id = %s", (id_, user.id)
+    )
     if not row:
         return _not_found("Sesi tes")
     msgs = await db.fetch_all(
@@ -110,7 +115,7 @@ async def get_run(run_id: str):
     response_model=RewindOut,
     summary="Buang transkrip mulai baris ke-`keep` (dipakai fitur betulin)",
 )
-async def rewind_run(run_id: str, body: RewindIn) -> RewindOut:
+async def rewind_run(run_id: str, body: RewindIn, user: User = Depends(current_user)) -> RewindOut:
     id_ = runlog.parse_uuid(run_id)
-    saved = await runlog.rewind(id_, body.keep) if id_ else None
+    saved = await runlog.rewind(user.id, id_, body.keep) if id_ else None
     return RewindOut(saved=SavedOut(**saved.dump()) if saved else None)

@@ -54,6 +54,19 @@ export type Run = {
 export type RunMessage = { role: 'ai' | 'me'; text: string; correction: Correction | null; at: string };
 export type RunDetail = Run & { messages: RunMessage[] };
 
+export type User = { id: number; email: string; role: 'admin' | 'user' };
+/* `firstAccount` = belum ada akun sama sekali; yang daftar duluan jadi admin */
+export type AuthInfo = { user: User | null; firstAccount: boolean };
+
+/* Server bilang belum login / sesinya habis. App dengerin event-nya dan balik
+   ke halaman Masuk — jadi layar mana pun nggak perlu ngurus ini sendiri. */
+export const SIGNED_OUT = 'zii:signed-out';
+export class SignedOut extends Error {}
+export function signedOut(): SignedOut {
+  window.dispatchEvent(new Event(SIGNED_OUT));
+  return new SignedOut('Sesi login habis. Masuk lagi ya.');
+}
+
 async function call<T>(method: string, url: string, body?: unknown): Promise<T> {
   const r = await fetch(
     url,
@@ -61,6 +74,8 @@ async function call<T>(method: string, url: string, body?: unknown): Promise<T> 
       ? { method }
       : { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) },
   );
+  /* 401 dari /api/auth/* = salah password, bukan sesi habis */
+  if (r.status === 401 && !url.startsWith('/api/auth/')) throw signedOut();
   const j = await r.json().catch(() => ({}) as Record<string, unknown>);
   if (!r.ok) throw new Error(String((j as { error?: string }).error ?? `Gagal (${r.status})`));
   return j as T;
@@ -69,12 +84,20 @@ async function call<T>(method: string, url: string, body?: unknown): Promise<T> 
 const get = <T>(url: string) => call<T>('GET', url);
 const post = <T>(url: string, body: unknown = {}) => call<T>('POST', url, body);
 
-export async function loadConfig(): Promise<AppConfig> {
-  const r = await fetch('/api/config');
-  if (!r.ok) throw new Error('Server API nggak nyaut. Udah jalanin "npm run dev"?');
-  return r.json();
-}
+const DOWN = 'Server API nggak nyaut. Udah jalanin "npm run dev"?';
 
+/* request pertama waktu app dibuka, jadi pesan "server mati" pindah ke sini */
+export async function loadMe(): Promise<AuthInfo> {
+  const r = await fetch('/api/auth/me').catch(() => null);
+  const j = r && ((await r.json().catch(() => null)) as (AuthInfo & { error?: string }) | null);
+  if (!r?.ok || !j) throw new Error(j?.error ?? DOWN);
+  return j;
+}
+export const login = (email: string, password: string) => post<User>('/api/auth/login', { email, password });
+export const register = (email: string, password: string) => post<User>('/api/auth/register', { email, password });
+export const logout = () => post<{ ok: boolean }>('/api/auth/logout');
+
+export const loadConfig = () => get<AppConfig>('/api/config');
 export const loadState = () => get<AppState>('/api/state');
 export const saveModel = (model: string) => call<AppState>('PUT', '/api/state/model', { model });
 export const saveVoice = (voice: string) => call<AppState>('PUT', '/api/state/voice', { voice });
@@ -129,6 +152,7 @@ export async function chatStream(
     signal,
   });
 
+  if (r.status === 401) throw signedOut();
   if (!r.ok) {
     const j = (await r.json().catch(() => ({}))) as { error?: string };
     throw new Error(j.error ?? `Gagal (${r.status})`);

@@ -16,6 +16,7 @@ const NAV = [
 export function Shell({
   path,
   go,
+  email,
   momentum,
   phrases,
   needsSetup,
@@ -23,6 +24,8 @@ export function Shell({
 }: {
   path: string;
   go: Go;
+  /* akun yang lagi login — di HP nongolnya di Pengaturan aja */
+  email: string;
   momentum: number;
   phrases: number;
   /* ada yang belum siap (API key / Azure) — titik oranye di Pengaturan */
@@ -63,6 +66,12 @@ export function Shell({
               <span>frasa tersimpan</span>
             </div>
           </div>
+          <a className="side-user" {...linkTo('/pengaturan', go)} title="Akun & pengaturan">
+            <span className="avatar" aria-hidden="true">
+              {email.charAt(0).toUpperCase()}
+            </span>
+            <span className="side-user-mail">{email}</span>
+          </a>
         </div>
       </aside>
 

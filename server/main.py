@@ -6,7 +6,7 @@ from pathlib import Path
 
 import psycopg
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -15,13 +15,15 @@ from starlette.responses import Response
 
 load_dotenv()
 
-from server import db  # noqa: E402
+from server import auth, db  # noqa: E402
 from server.agent.models import MODELS, key_for  # noqa: E402  (butuh .env kemuat duluan)
+from server.routes import auth as auth_routes  # noqa: E402
 from server.routes import categories, chat, config, runs, speech, state, topics, translate  # noqa: E402
 from server.voices import DEFAULT_VOICE, env_voice, is_voice_id  # noqa: E402
 
 # ── grouping buat Swagger (/docs) ──────────────────────────────────
 TAGS_METADATA = [
+    {"name": "Akun", "description": "Daftar, masuk, keluar. Semua endpoint lain wajib login (cookie sesi)."},
     {"name": "Config", "description": "Status server: model apa aja yang siap, Azure Speech, LangSmith tracing."},
     {"name": "Speech", "description": "Token sementara buat Azure Speech SDK (STT & TTS) di browser."},
     {"name": "Chat", "description": "Obrolan sama Zii — streaming NDJSON, respond + review paralel."},
@@ -39,17 +41,22 @@ app = FastAPI(
     openapi_tags=TAGS_METADATA,
 )
 
-app.include_router(config.router)
-app.include_router(speech.router)
-app.include_router(chat.router)
-app.include_router(translate.router)
-app.include_router(topics.router)
-app.include_router(categories.router)
-app.include_router(runs.router)
-app.include_router(state.router)
+app.include_router(auth_routes.router)
+
+# Selain /api/auth/*, semuanya wajib login — dipasang di sini biar router baru
+# otomatis ikut kekunci. Route yang butuh id akunnya minta `current_user` lagi;
+# FastAPI nge-cache dependency per request, jadi sesi cuma dicek sekali.
+LOGGED_IN = [Depends(auth.current_user)]
+for r in (config, speech, chat, translate, topics, categories, runs, state):
+    app.include_router(r.router, dependencies=LOGGED_IN)
 
 
 # Semua error dibalikin sebagai {"error": "..."} — itu yang dibaca frontend.
+@app.exception_handler(auth.NotLoggedIn)
+async def on_not_logged_in(_: Request, __: auth.NotLoggedIn) -> JSONResponse:
+    return JSONResponse(status_code=401, content={"error": "Sesi login habis. Masuk lagi ya."})
+
+
 @app.exception_handler(db.DatabaseDown)
 async def on_db_down(_: Request, e: db.DatabaseDown) -> JSONResponse:
     return JSONResponse(status_code=503, content={"error": str(e)})

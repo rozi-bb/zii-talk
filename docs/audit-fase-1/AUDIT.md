@@ -8,7 +8,7 @@
 > Dashboard, form Tambah topik · **Status kode:** commit `d1b3c11` + perubahan
 > suara HD & ekspresi yang belum di-commit.
 >
-> **Update status:** 14 September 2026, sampai perbaikan Sesi, Bengkel & Koleksi.
+> **Update status:** 15 September 2026, sampai login email & password.
 > Lihat [Status perbaikan](#status-perbaikan). Temuan di section 1–4 sengaja
 > dibiarkan apa adanya (kondisi **sebelum** diperbaiki), begitu juga screenshot di
 > `img/`.
@@ -70,7 +70,7 @@ suara HD dan ekspresi jalan, dan datanya udah rapi di Postgres. Yang bikin app i
 
 ## Status perbaikan
 
-> Update 14 September 2026.
+> Update 15 September 2026.
 
 ### Dikerjain di commit mana
 
@@ -80,6 +80,7 @@ suara HD dan ekspresi jalan, dan datanya udah rapi di Postgres. Yang bikin app i
 | `078eba9` | Review desain 4 halaman sidebar di laptop, tablet, dan HP: kontras, ukuran teks, layout responsif, Dashboard dirombak ke gaya baru, favicon |
 | `931f351` | Sisa target sentuh di HP (tombol status Dashboard, kotak cari Topik, tombol contoh suara) |
 | `1d0679a` | B1, B7, halaman **Koleksi** + API frasa, kontras & ukuran teks di Sesi, Bengkel, dan rail laptop |
+| branch `feat/login` | **Login email & password**, data per akun, akun pertama jadi admin. Lihat [Login & akun](#login--akun) |
 
 **Sesi & Bengkel baru digarap sebagian:** timer (B1), tombol Bengkel (B7),
 kontras, ukuran teks, dan target sentuh. Sisa temuan di
@@ -102,6 +103,7 @@ kontras, ukuran teks, dan target sentuh. Sisa temuan di
 | Target sentuh ([3.3](#33-target-sentuh)) | **Beres** | Tombol di HP minimal 40–44px di semua layar | Titik pilihan Bengkel 13×23px (panah 44px jadi alternatifnya) |
 | Utang CSS ([3.4](#34-konsistensi--utang-css)) | **Sebagian** | Favicon; CSS mati `.fcard`, `.side-head`, `.gloss`, `.round.plain`, `.use`, `.save` dihapus; bug `.ghost` yang nimpa `.btn.ghost` beres | `.pill`, `.dsp` masih ada; hex di CSS 182 (98 unik), `style={{…}}` inline 38; manifest & app icon |
 | Sesi ([2.2](#22-sesi-ngobrol), [4.4](#44-sesi-fokus-ke-obrolan-tutup-dengan-ringkasan)) | **Sebagian** | Timer menit:detik (B1), kontras, ukuran teks, target sentuh | Area obrolan ±61% layar HP, ringkasan sesi, dialog keluar (B11), kartu koreksi selalu "Hampir bener!", `lang="en"`, istilah "Tes #n" |
+| Akun & login ([Login & akun](#login--akun)) | **Sebagian** | Daftar & masuk pakai email + password, keluar, semua API wajib login, frasa / riwayat tes / momentum / model / suara per akun, akun pertama admin + dapet data lama, batas salah password | Login Google, topik per akun, batas pemakaian AI, lupa password, verifikasi email, menu admin, online |
 | Bengkel ([2.3](#23-bengkel-kalimat), [4.5](#45-bengkel-satu-tujuan-per-layar)) | **Sebagian** | Tombol "Simpan frasa" & "Balik ngobrol" nempel di bawah (B7), kontras, ukuran teks, tombol × & panah lebih gede | Highlight kata (B6), spasi kata (B8), backdrop HP (B12), tombol di dalam tombol (B14), tampilan bertahap |
 
 ### Yang berubah di review desain (`078eba9`, `931f351`)
@@ -185,6 +187,63 @@ minimal 40–44px, favicon.
   `.fix-toggle`.
 - Di laptop, footer Bengkel sempat bikin scrollbar horizontal & celah 15px di
   bawah tombol. Sekarang yang scroll panel kanan, footer nempel pas di bawah.
+
+### Login & akun
+
+> Dikerjain 15 September 2026 di branch `feat/login`. Keputusannya dari
+> [section 6 nomor 1](#6-keputusan-yang-perlu-kamu-ambil): app ini jadi
+> **banyak pengguna**.
+
+**Yang udah jalan:**
+
+- **Halaman Masuk / Daftar** (`src/screens/Login.tsx`): satu kartu dengan dua
+  tab, tombol lihat password, pesan error in-app. Kalau belum ada akun sama
+  sekali, langsung kebuka di tab Daftar dengan catatan "akun pertama jadi admin".
+  Kolom 16px biar Safari iOS nggak nge-zoom, tombol 48px.
+- **Server** (`server/auth.py`, `server/routes/auth.py`):
+  - `POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/logout`,
+    `GET /api/auth/me`.
+  - Password di-hash **scrypt** bawaan Python (tanpa package baru), minimal 8
+    karakter.
+  - Sesi login = token acak di cookie `httpOnly`, `SameSite=Lax`, 30 hari. Di
+    database cuma disimpan sha256-nya. Keluar = sesinya dihapus di server juga.
+  - **Semua `/api/*` selain `/api/auth/*` wajib login**, termasuk chat, Bengkel,
+    dan token Azure Speech. Dipasang di level router (`server/main.py`), jadi
+    router baru otomatis ikut kekunci.
+  - Salah password 5 kali → email itu dikunci 60 detik (disimpan di memori
+    server). Email yang nggak terdaftar makan waktu yang sama, jadi nggak
+    ngebocorin email mana yang punya akun.
+- **Data per akun** (migrasi `005_users.sql`): tabel `users` & `sessions`;
+  kolom `user_id` di `app_state`, `phrases`, `test_runs`.
+  - Model, suara, dan momentum punya masing-masing.
+  - Frasa kembar dicegah per akun.
+  - Nomor tes #1, #2 dihitung per akun per topik.
+  - Statistik topik (jumlah tes, jawaban, terakhir latihan) per akun. View
+    `topic_stats` dihapus karena ngitung semua orang jadi satu.
+  - Buka / rewind / nyambung ke sesi tes akun lain = 404, nggak pernah ditulis.
+- **Akun pertama = admin** dan ngambil semua data lama (frasa, riwayat tes,
+  momentum, model, suara) dalam satu transaksi.
+- **Pengaturan** punya kartu **Akun** (email, peran, tombol Keluar). Sidebar
+  laptop nampilin email di bawah.
+- Sesi login habis di tengah jalan (request mana pun dapet 401) → langsung balik
+  ke halaman Masuk.
+- Tabel `users` udah disiapin buat Google: kolom `google_sub`, `password_hash`
+  boleh kosong. Nambah Google nanti nggak perlu migrasi data.
+
+**Sengaja ditunda (fitur penting, masuk [Fase 3](#fase-3--akun--online)):**
+
+| Fitur | Kenapa ditunda | Catatan buat nanti |
+|---|---|---|
+| **Login Google** | Butuh setup Google Cloud Console, dan Google cuma nerima `localhost` atau domain HTTPS. Lewat tailnet dari HP (`100.x.x.x`) nggak bakal jalan | Kerjain bareng online, biar redirect URI langsung pakai domain final. Alur: authorization code di server lewat `httpx`, email Google yang sama digabung ke akun yang udah ada |
+| **Topik per akun** | Fokus form login dulu | Sekarang topik & kategori dipakai bareng; siapa pun yang login bisa nambah topik dan kelihatan semua orang. Perlu `user_id` di `topics` & `categories` (atau topik bawaan + topik pribadi) |
+| **Batas pemakaian AI per akun** | Belum online | Tiap akun yang login makan kuota LLM & Azure punya pemilik server. Perlu batas per akun per hari di `/api/chat/stream`, `/api/translate`, `/api/speech/token` |
+| **Online** (domain + HTTPS) | Nanti | Cookie otomatis `Secure` kalau lewat HTTPS. Batas salah password masih di memori; kalau servernya lebih dari satu proses, pindahin ke database |
+| **Lupa password & verifikasi email** | Butuh layanan kirim email | — |
+| **Menu admin** | Peran admin baru dicatat | Contoh isinya: daftar akun, kelola topik bawaan, lihat pemakaian AI |
+| **Pendaftaran tertutup** | Sekarang siapa pun yang bisa buka app bisa daftar | Opsi: cuma admin yang bikin akun, atau pakai kode undangan |
+
+**Cara ngetesnya:** database di-backup (`pg_dump`) sebelum tes, lalu dikembalikan
+lagi. Jadi akun pertama yang daftar tetap pemilik app, dan dia yang jadi admin.
 
 ---
 
@@ -810,13 +869,31 @@ Dicentang = beres per 14 September 2026.
 - [ ] Pecah `Session.tsx` (sekarang 907 baris) jadi komponen kecil
 - [ ] Jadiin skrip audit visual ini bagian dari cek rutin sebelum rilis
 
+### Fase 3 — Akun & online
+
+Detailnya di [Login & akun](#login--akun).
+
+- [x] **Login email & password**, data per akun, akun pertama admin
+- [ ] **Login Google** — *kolom `google_sub` udah disiapin; kerjain bareng online*
+- [ ] **Topik & kategori per akun** — *sekarang masih dipakai bareng*
+- [ ] **Batas pemakaian AI per akun** (chat, Bengkel, token suara)
+- [ ] **Online**: domain + HTTPS, batas salah password pindah ke database
+- [ ] Lupa password & verifikasi email
+- [ ] Menu admin
+- [ ] Pendaftaran tertutup / kode undangan
+
 ### Urutan berikutnya yang disarankan
 
-1. **Sisa bug kecil Sesi & Bengkel:** B8 + B6 (highlight & spasi kata), B12
+Semua fitur di bawah ini dibangun **per akun** dari awal.
+
+1. **Ringkasan sesi,** yang datanya udah lengkap.
+2. **Latihan ulang frasa** (kotak Leitner) + kartu "frasa perlu diulang" di
+   beranda.
+3. **Metrik kelancaran** di Dashboard.
+4. **Area obrolan di HP lebih lega** (orb mengecil setelah obrolan jalan).
+5. **Sisa bug kecil Sesi & Bengkel:** B8 + B6 (highlight & spasi kata), B12
    (backdrop), B11 (dialog keluar), B14 + B15 (aksesibilitas).
-2. **Ringkasan sesi,** yang datanya udah lengkap.
-3. **Latihan ulang frasa,** sekarang koleksinya udah bisa dibuka.
-4. **Edit & arsip topik.**
+6. **Edit & arsip topik,** sekalian mutusin topik per akun.
 
 ---
 
@@ -824,9 +901,10 @@ Dicentang = beres per 14 September 2026.
 
 Jawaban ini ngubah desain fase 2:
 
-1. **Satu pengguna atau nanti banyak pengguna (login)?** Sekarang `app_state`
-   cuma satu baris. Kalau mau dibagi ke orang lain, Koleksi & Progres harus
-   per-user dari awal.
+1. ~~**Satu pengguna atau nanti banyak pengguna (login)?**~~ **Diputuskan 15
+   Sep: banyak pengguna.** Login email & password dulu; Google, topik per akun,
+   batas pemakaian AI, dan online menyusul. Akun pertama jadi admin dan dapet
+   data lama. Lihat [Login & akun](#login--akun).
 2. **Prioritas perangkat: HP atau laptop?** Menentukan navigasi mana yang
    dirancang duluan.
 3. **Arah visual:** tetap ceria ala Duolingo tapi lebih rapi, atau lebih kalem

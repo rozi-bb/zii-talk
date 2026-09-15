@@ -1,20 +1,41 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { ModelPicker, VoicePicker } from '../components/bits';
-import type { AppConfig, AppState } from '../lib/api';
+import { Icon } from '../components/icons';
+import type { AppConfig, AppState, User } from '../lib/api';
 
-/* Semua yang sifatnya "atur sekali": suara, model, dan status sistem.
+const errText = (e: unknown) => (e instanceof Error ? e.message : String(e));
+
+/* Semua yang sifatnya "atur sekali": akun, suara, model, dan status sistem.
    Dulu nongol di atas daftar topik di Home. */
 export function Settings({
   cfg,
   state,
+  user,
+  onLogout,
   onModel,
   onVoice,
 }: {
   cfg: AppConfig;
   state: AppState;
+  user: User;
+  onLogout: () => Promise<void>;
   onModel: (id: string) => void;
   onVoice: (id: string) => void;
 }) {
+  const [leaving, setLeaving] = useState(false);
+  const [logoutErr, setLogoutErr] = useState<string | null>(null);
+
+  async function leave() {
+    setLeaving(true);
+    setLogoutErr(null);
+    try {
+      await onLogout();
+    } catch (e) {
+      setLogoutErr(errText(e));
+      setLeaving(false);
+    }
+  }
+
   useEffect(() => {
     const prev = document.title;
     document.title = 'Pengaturan — Zii Talk';
@@ -90,12 +111,30 @@ export function Settings({
       <header className="page-head">
         <div>
           <h1>Pengaturan</h1>
-          <p>Suara Zii, model AI, dan status sistem.</p>
+          <p>Akun, suara Zii, model AI, dan status sistem.</p>
         </div>
       </header>
 
       {/* ada yang belum siap = orang ke sini buat nyari tahu kenapa, jadi statusnya paling atas */}
       {broken && status}
+
+      <section className="set-card">
+        <h2>Akun</h2>
+        <div className="acct">
+          <span className="avatar lg" aria-hidden="true">
+            {user.email.charAt(0).toUpperCase()}
+          </span>
+          <div className="acct-id">
+            <b>{user.email}</b>
+            <span>{user.role === 'admin' ? 'Admin · akun pertama di app ini' : 'Pengguna'}</span>
+          </div>
+          <button className="btn ghost acct-out" onClick={() => void leave()} disabled={leaving}>
+            {leaving ? <span className="spin dark" /> : <Icon name="logout" size={17} />}
+            Keluar
+          </button>
+        </div>
+        {logoutErr && <p className="set-note acct-err">{logoutErr}</p>}
+      </section>
 
       <section className="set-card">
         <h2>Suara Zii</h2>
