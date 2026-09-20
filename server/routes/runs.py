@@ -14,7 +14,12 @@ from server.auth import User, current_user
 
 router = APIRouter(prefix="/api", tags=["Riwayat Tes"])
 
-COLUMNS = "id, topic_id, attempt_no, situation, model, question_count, started_at, ended_at"
+COLUMNS = (
+    "id, topic_id, attempt_no, situation, model, question_count, started_at, ended_at,"
+    # buat ringkasan sesi: "koreksi lebih sedikit dari sesi sebelumnya"
+    " (SELECT count(*) FROM messages m WHERE m.run_id = test_runs.id AND m.correction IS NOT NULL)::int"
+    " AS corrections"
+)
 
 
 class Correction(BaseModel):
@@ -30,6 +35,7 @@ class RunOut(BaseModel):
     situation: str
     model: str
     questions: int
+    corrections: int
     startedAt: datetime
     endedAt: datetime
 
@@ -66,6 +72,7 @@ def _run(r: dict[str, Any]) -> dict[str, Any]:
         situation=r["situation"],
         model=r["model"],
         questions=r["question_count"],
+        corrections=r["corrections"],
         startedAt=r["started_at"],
         endedAt=r["ended_at"],
     )

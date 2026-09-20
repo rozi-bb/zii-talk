@@ -2,6 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { Home } from './screens/Home';
 import { Topics } from './screens/Topics';
 import { Collection } from './screens/Collection';
+import { Review } from './screens/Review';
 import { Dashboard } from './screens/Dashboard';
 import { Settings } from './screens/Settings';
 import { Login } from './screens/Login';
@@ -35,7 +36,7 @@ import { usePath } from './lib/nav';
 const errText = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 /* halaman di dalam Shell; path lain jatuh ke Latihan */
-const PAGES = ['/', '/topik', '/koleksi', '/dashboard', '/pengaturan'];
+const PAGES = ['/', '/topik', '/koleksi', '/ulang', '/dashboard', '/pengaturan'];
 
 export default function App() {
   const [path, go] = usePath();
@@ -45,8 +46,10 @@ export default function App() {
   const [st, setSt] = useState<AppState | null>(null);
   const [topics, setTopics] = useState<Topic[] | null>(null);
   const [categories, setCategories] = useState<Category[] | null>(null);
-  /* sesi yang lagi jalan + halaman buat balik habis selesai */
-  const [active, setActive] = useState<{ id: string; back: string } | null>(null);
+  /* sesi yang lagi jalan + halaman buat balik habis selesai. `n` naik tiap
+     "Ulangi topik" dari ringkasan sesi — dipakai sebagai key biar sesinya
+     bener-bener mulai dari nol. */
+  const [active, setActive] = useState<{ id: string; back: string; n: number } | null>(null);
 
   const user = auth?.user ?? null;
 
@@ -114,7 +117,7 @@ export default function App() {
     setSt((prev) => (prev ? { ...s, model: prev.model, voice: prev.voice } : s));
 
   const start = (id: string) => {
-    setActive({ id, back: location.pathname + location.search });
+    setActive({ id, back: location.pathname + location.search, n: 0 });
     touchMomentum().then(merge).catch(() => {}); // momentum itu bonus, jangan halangin sesi
   };
 
@@ -148,7 +151,7 @@ export default function App() {
       <div className="app">
         <Suspense fallback={<Booting label="Nyiapin mikrofon..." />}>
           <Session
-            key={active.id}
+            key={`${active.id}#${active.n}`}
             cfg={cfg}
             topic={topic}
             model={st.model}
@@ -162,6 +165,12 @@ export default function App() {
               setActive(null);
               go(active.back);
               refresh().catch(() => {});
+            }}
+            /* "Ulangi topik" dari ringkasan sesi: sesi baru, topik yang sama */
+            onRestart={() => {
+              setActive({ ...active, n: active.n + 1 });
+              refresh().catch(() => {});
+              touchMomentum().then(merge).catch(() => {});
             }}
           />
         </Suspense>
@@ -185,7 +194,9 @@ export default function App() {
         {page === '/topik' ? (
           <Topics cfg={cfg} topics={topics} categories={categories} onStart={start} onRefresh={refresh} />
         ) : page === '/koleksi' ? (
-          <Collection cfg={cfg} voice={st.voice} go={go} onChanged={merge} />
+          <Collection cfg={cfg} voice={st.voice} due={st.due} go={go} onChanged={merge} />
+        ) : page === '/ulang' ? (
+          <Review cfg={cfg} voice={st.voice} go={go} onDue={(due) => setSt((s) => s && { ...s, due })} />
         ) : page === '/dashboard' ? (
           <Dashboard cfg={cfg} topics={topics} categories={categories} onRefresh={refresh} onStart={start} />
         ) : page === '/pengaturan' ? (

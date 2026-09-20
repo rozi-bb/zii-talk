@@ -469,6 +469,10 @@ input, select, textarea { font: inherit; color: inherit; }
 .phr-btn:hover { background: var(--violet-wash); color: var(--violet-dark); }
 .phr-btn.on { background: var(--violet); color: #fff; }
 .phr-btn:focus-visible { outline: 3px solid #b99cf0; outline-offset: 2px; }
+/* jadwal latihan ulang di tiap frasa */
+.phr-due, .phr-box { font-style: normal; margin-left: 6px; border-radius: 99px; padding: 1px 7px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+.phr-due { background: var(--violet-wash); color: var(--violet-dark); }
+.phr-box { background: #f4eef6; color: var(--ink-mute); }
 .btn.danger { background: #b02a45; color: #fff; }
 .btn.danger:hover:not(:disabled) { background: #951f38; }
 @media (pointer: coarse) { .phr-btn { width: 44px; height: 44px; } }
@@ -498,6 +502,11 @@ input, select, textarea { font: inherit; color: inherit; }
 .beats i.on { background: var(--teal); }
 
 .presence { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 0 4px; flex-shrink: 0; }
+/* Obrolan udah jalan: orb gede pindah ke header jadi avatar kecil, jatah
+   layarnya dikasih ke bubble (di HP: ±61% -> ±75%). */
+.head-orb { flex-shrink: 0; display: grid; place-items: center; }
+.sess-main.slim .goal { margin-top: 8px; }
+.sess-main.slim .dock { padding-top: 30px; }
 .presence small { font-family: var(--dsp); font-size: 12px; font-weight: 800; color: var(--ink-mute); letter-spacing: 0.3px; }
 
 .transcript { flex: 1; padding: 8px 18px 12px; }
@@ -765,6 +774,108 @@ input, select, textarea { font: inherit; color: inherit; }
 .pw-eye:hover { background: #f6f0f8; color: var(--ink); }
 .auth-go { width: 100%; min-height: 48px; font-size: 15px; margin-top: 2px; }
 @media (max-width: 380px) { .auth-card { padding: 22px 16px 20px; } }
+
+/* ── kartu "frasa perlu diulang" di beranda ───────────────
+   Ditaruh paling atas: latihannya cuma 1-2 menit, dan kalau kelewat terus
+   koleksinya numpuk jadi daftar mati. */
+.due-card { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; padding: 12px 14px; border-radius: 16px; background: var(--violet-wash); border: 1.5px solid #e4d6fb; color: var(--violet-dark); text-decoration: none; }
+.due-card:hover { border-color: #cdb4f5; }
+.due-card > i { display: grid; place-items: center; width: 40px; height: 40px; flex-shrink: 0; border-radius: 13px; background: var(--violet); color: #fff; }
+.due-card > span { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.due-card b { font-family: var(--dsp); font-size: 16px; font-weight: 700; }
+.due-card small { font-size: 13px; font-weight: 600; color: var(--violet-dark); }
+/* seluruh kartunya udah jadi link — tombolnya cuma penanda */
+.due-card .due-go { pointer-events: none; }
+@media (max-width: 520px) { .due-card .due-go { display: none; } }
+
+/* ── latihan ulang frasa ──────────────────────────────── */
+.rv-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; font-size: 13px; font-weight: 700; color: var(--ink-mute); }
+.rv-track { flex: 1; height: 8px; border-radius: 99px; background: #efe6f3; overflow: hidden; }
+.rv-track i { display: block; height: 100%; border-radius: 99px; background: var(--violet); transition: width 0.25s ease; }
+.rv-card { background: var(--card); border: 1px solid var(--line-soft); border-radius: 20px; padding: 20px; }
+.rv-kicker { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; color: var(--ink-mute); }
+.rv-box { background: var(--violet-wash); color: var(--violet-dark); border-radius: 99px; padding: 2px 9px; }
+.rv-ask { margin: 10px 0 0; font-family: var(--dsp); font-size: 22px; font-weight: 700; line-height: 1.3; }
+.rv-hint { margin: 6px 0 0; font-size: 15px; font-weight: 700; letter-spacing: 1px; color: var(--ink-mute); }
+.rv-fld { margin-top: 16px; }
+/* 16px: di bawah itu Safari iOS nge-zoom waktu kolomnya diketuk */
+.rv-fld input { min-height: 48px; font-size: 16px; }
+.rv-mic.on { background: var(--tang-ink); color: #fff; }
+.rv-mic.on:hover { background: var(--tang-deep); color: #fff; }
+.rv-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 16px; }
+.rv-acts .btn { min-height: 44px; }
+.rv-res { display: flex; flex-direction: column; gap: 2px; margin-top: 16px; padding: 12px 14px; border-radius: 14px; }
+.rv-res b { font-family: var(--dsp); font-size: 17px; font-weight: 700; }
+.rv-res span { font-size: 13px; font-weight: 600; }
+.rv-res.pas { background: #dcf7ec; color: var(--teal-ink); }
+.rv-res.hampir { background: var(--amber-wash); color: var(--amber-ink); }
+.rv-res.belum { background: #fff0f3; color: #b02a45; }
+.rv-answer { display: flex; align-items: center; gap: 10px; margin-top: 12px; padding: 12px 14px; border-radius: 14px; background: #fdf8f3; }
+.rv-answer > div { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.rv-answer small { font-size: 12px; font-weight: 700; color: var(--ink-mute); }
+.rv-answer b { font-family: var(--dsp); font-size: 18px; font-weight: 700; line-height: 1.3; overflow-wrap: anywhere; }
+.rv-said { margin: 8px 0 0; font-size: 13px; font-weight: 600; color: var(--ink-mute); overflow-wrap: anywhere; }
+.rv-fix { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-left: auto; font-size: 12px; font-weight: 700; color: var(--ink-mute); }
+.rv-done-acts { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 8px; }
+
+/* ── ringkasan sesi ───────────────────────────────────────
+   Sekalian gantiin dialog bawaan browser waktu jawabannya belum cukup. */
+.sum { height: 100%; overflow-y: auto; background: var(--paper); padding: max(20px, env(safe-area-inset-top)) 16px max(20px, env(safe-area-inset-bottom)); }
+.sum-card { max-width: 620px; margin: 0 auto; background: var(--card); border: 1px solid var(--line-soft); border-radius: 22px; padding: 20px; }
+.sum-head { display: flex; align-items: center; gap: 12px; }
+.sum-head i { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 15px; flex-shrink: 0; }
+.sum-head h1 { margin: 0; font-family: var(--dsp); font-size: 22px; font-weight: 700; line-height: 1.2; }
+.sum-head span { font-size: 13px; font-weight: 700; color: var(--ink-mute); }
+.sum-warn { margin-top: 14px; font-size: 13px; }
+.sum-nums { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 16px; }
+.sum-nums > div { background: #fdf8f3; border-radius: 14px; padding: 11px 13px; }
+.sum-nums b { display: block; font-family: var(--dsp); font-size: 21px; font-weight: 700; line-height: 1.15; }
+.sum-nums span { font-size: 12px; font-weight: 700; color: var(--ink-mute); }
+.sum-cmp { margin: 12px 0 0; padding: 11px 13px; border-radius: 14px; background: var(--violet-wash); color: var(--violet-dark); font-size: 13.5px; font-weight: 700; line-height: 1.45; }
+.sum-sec { margin-top: 18px; }
+.sum-sec h2 { margin: 0 0 8px; font-family: var(--dsp); font-size: 16px; font-weight: 700; }
+.sum-fix, .sum-phr { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.sum-fix li { padding: 10px 12px; border-radius: 13px; background: var(--amber-wash); }
+.sum-fix li > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; }
+.sum-fix s { font-size: 14px; font-weight: 600; color: var(--amber-ink); }
+.sum-fix b { font-size: 15px; font-weight: 800; }
+.sum-fix li > span { display: block; margin-top: 3px; font-size: 13px; font-weight: 600; line-height: 1.45; color: var(--amber-ink); }
+.sum-phr li { display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-radius: 12px; background: #fdf8f3; font-size: 14.5px; font-weight: 700; }
+.sum-phr svg { flex-shrink: 0; color: var(--amber-dark); }
+.sum-note { margin: 8px 0 0; font-size: 12.5px; font-weight: 600; color: var(--ink-mute); }
+.sum-acts { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+.sum-acts .btn { flex: 1 1 160px; min-height: 48px; }
+@media (min-width: 560px) { .sum-nums { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
+/* ── kelancaran (Dashboard) ───────────────────────────────
+   Dua ukuran beda skala = dua grafik. Satu grafik nggak boleh dua sumbu. */
+.prog { margin-top: 20px; }
+.prog-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; margin-bottom: 10px; }
+.prog-head h2 { margin: 0; font-family: var(--dsp); font-size: 19px; font-weight: 700; }
+.prog-head span { font-size: 12.5px; font-weight: 600; color: var(--ink-mute); }
+/* keterangan metriknya suka panjang — biar wrap, jangan kepotong */
+.prog-tiles small { white-space: normal; }
+.charts { display: grid; gap: 12px; margin-top: 12px; }
+.chart { margin: 0; background: var(--card); border: 1px solid var(--line-soft); border-radius: 16px; padding: 14px 16px 12px; }
+.chart figcaption { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; }
+.chart figcaption b { font-size: 14px; font-weight: 700; }
+.chart figcaption span { font-size: 12px; font-weight: 600; color: var(--ink-mute); }
+/* padding atas = tempat label angka minggu terakhir */
+.chart-plot { display: flex; align-items: flex-end; gap: 6px; height: 112px; padding-top: 20px; margin-top: 10px; border-bottom: 1.5px solid var(--line); }
+.chart-col { position: relative; flex: 1; height: 100%; display: flex; align-items: flex-end; }
+.chart-bar { display: block; width: 100%; border-radius: 4px 4px 0 0; background: var(--violet); }
+.chart.sky .chart-bar { background: var(--sky-dark); }
+.chart-nil { display: block; width: 100%; height: 2px; border-radius: 2px; background: #eee3ea; }
+.chart-col em { position: absolute; left: 50%; transform: translateX(-50%); font-style: normal; font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.chart-x { display: flex; gap: 6px; margin-top: 6px; }
+.chart-x span { flex: 1; min-width: 0; font-size: 12px; font-weight: 600; color: var(--ink-mute); white-space: nowrap; }
+.chart-x span:last-child { text-align: right; }
+.chart-data { margin-top: 10px; }
+.chart-data summary { font-size: 12.5px; font-weight: 700; color: var(--ink-mute); cursor: pointer; }
+.chart-data ul { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; }
+.chart-data li { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; font-weight: 600; }
+.chart-data li span { color: var(--ink-mute); }
+@media (min-width: 760px) { .charts { grid-template-columns: 1fr 1fr; } }
 
 /* ── DASHBOARD ────────────────────────────────────────── */
 /* Gaya sama kayak Latihan & Topik: kartu flat bertepi tipis, teks minimal 12px pakai

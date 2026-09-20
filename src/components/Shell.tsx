@@ -33,7 +33,8 @@ export function Shell({
   children: ReactNode;
 }) {
   const item = (n: (typeof NAV)[number], cls: 'nav-item' | 'tab') => {
-    const on = path === n.to;
+    /* Latihan ulang nggak punya menu sendiri — dia bagian dari Koleksi */
+    const on = path === n.to || (n.to === '/koleksi' && path === '/ulang');
     return (
       <a key={n.to} className={`${cls}${on ? ' on' : ''}`} aria-current={on ? 'page' : undefined} {...linkTo(n.to, go)}>
         <Icon name={n.icon} size={cls === 'tab' ? 21 : 19} />

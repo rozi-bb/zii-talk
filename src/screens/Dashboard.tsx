@@ -1,7 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Icon } from '../components/icons';
 import { Orb } from '../components/bits';
-import { loadRun, loadRuns, type AppConfig, type Category, type Run, type RunDetail, type Topic } from '../lib/api';
+import {
+  loadProgress,
+  loadRun,
+  loadRuns,
+  type AppConfig,
+  type Category,
+  type Progress,
+  type Run,
+  type RunDetail,
+  type Topic,
+  type Week,
+} from '../lib/api';
 import { ago, dateTime } from '../lib/format';
 import { lastPracticed, STATUSES, type Status } from '../lib/topics';
 
@@ -35,6 +46,7 @@ export function Dashboard({
   /* topik yang dipilih ikut di URL: balik dari sesi (atau reload) tetap di topik yang sama */
   const [sel, setSel] = useState<string | null>(() => new URLSearchParams(location.search).get('topic'));
   const [err, setErr] = useState<string | null>(null);
+  const [prog, setProg] = useState<Progress | null>(null);
   const root = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -56,6 +68,11 @@ export function Dashboard({
     onRefresh()
       .then(() => setErr(null))
       .catch((e) => setErr(errText(e)));
+    loadProgress()
+      .then(setProg)
+      .catch(() => {
+        /* metriknya pelengkap — daftar topiknya tetap jalan */
+      });
   }, [onRefresh]);
 
   useEffect(() => {
@@ -111,6 +128,8 @@ export function Dashboard({
           sub={last ? last.name : 'belum pernah'}
         />
       </section>
+
+      {prog && prog.total.sessions > 0 && <Fluency p={prog} />}
 
       <div className={`dash-cols${topic ? ' has-sel' : ''}`}>
         <section className="dash-list" aria-label="Daftar topik">
@@ -211,6 +230,137 @@ function Tile({ label, value, sub, accent = false }: { label: string; value: num
 
 function Status({ tests }: { tests: number }) {
   return <span className={`st ${tests ? 'yes' : 'no'}`}>{tests ? 'Tersimpan' : 'Belum dicoba'}</span>;
+}
+
+const week = new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short' });
+const label = (w: Week) => week.format(new Date(`${w.start}T00:00:00`));
+
+/* Kelancaran: bukan "berapa kali latihan", tapi "makin lancar atau nggak".
+   Dua ukuran beda skala sengaja dipisah jadi dua grafik — satu grafik nggak
+   boleh punya dua sumbu. */
+function Fluency({ p }: { p: Progress }) {
+  const now = p.week.perTen;
+  const before = p.prevWeek.perTen;
+  const gap = now !== null && before !== null ? Math.round((now - before) * 10) / 10 : null;
+
+  return (
+    <section className="prog" aria-label="Kelancaran">
+      <div className="prog-head">
+        <h2>Kelancaran</h2>
+        <span>8 minggu terakhir · dari sesi yang tersimpan</span>
+      </div>
+
+      <div className="tiles prog-tiles">
+        <Tile
+          label="Ngomong minggu ini"
+          value={`${p.week.minutes} menit`}
+          sub={`${p.week.answers} jawaban di ${p.week.sessions} sesi`}
+          accent
+        />
+        <Tile
+          label="Koreksi per 10 jawaban"
+          value={now === null ? '—' : now}
+          sub={
+            gap === null
+              ? 'belum ada pembanding minggu lalu'
+              : gap < 0
+                ? `turun ${Math.abs(gap)} dari minggu lalu`
+                : gap > 0
+                  ? `naik ${gap} dari minggu lalu`
+                  : 'sama kayak minggu lalu'
+          }
+        />
+        <Tile label="Topik aktif" value={p.activeTopics} sub="dilatih 7 hari terakhir" />
+        <Tile
+          label="Total ngomong"
+          value={`${p.total.minutes} menit`}
+          sub={`${p.total.answers} jawaban, ${p.total.corrections} koreksi`}
+        />
+      </div>
+
+      <div className="charts">
+        <Bars
+          title="Jawaban per minggu"
+          weeks={p.weeks}
+          value={(w) => w.answers}
+          fmt={(v) => `${v} jawaban`}
+        />
+        <Bars
+          title="Koreksi per 10 jawaban"
+          note="makin rendah makin lancar"
+          weeks={p.weeks}
+          value={(w) => w.perTen}
+          fmt={(v) => `${v} per 10 jawaban`}
+          tone="sky"
+        />
+      </div>
+    </section>
+  );
+}
+
+/* Batang CSS, bukan SVG: teksnya tetap teks beneran (nggak ikut mengecil waktu
+   grafiknya dipersempit) dan angkanya kebaca screen reader. */
+function Bars({
+  title,
+  note,
+  weeks,
+  value,
+  fmt,
+  tone = 'violet',
+}: {
+  title: string;
+  note?: string;
+  weeks: Week[];
+  value: (w: Week) => number | null;
+  fmt: (v: number) => string;
+  tone?: 'violet' | 'sky';
+}) {
+  const vals = weeks.map(value);
+  const top = Math.max(...vals.map((v) => v ?? 0), 1);
+  const last = vals[vals.length - 1];
+
+  return (
+    <figure className={`chart ${tone}`}>
+      <figcaption>
+        <b>{title}</b>
+        {note && <span>{note}</span>}
+      </figcaption>
+      <div className="chart-plot">
+        {weeks.map((w, i) => {
+          const v = vals[i];
+          const pct = v === null || v === 0 ? 0 : Math.max(4, (v / top) * 100);
+          return (
+            <div key={w.start} className="chart-col" title={`Minggu ${label(w)}: ${v === null ? 'belum ada sesi' : fmt(v)}`}>
+              {/* label langsung cuma di minggu terakhir, nempel di ujung batangnya */}
+              {i === vals.length - 1 && last !== null && <em style={{ bottom: `calc(${pct}% + 4px)` }}>{last}</em>}
+              {v === null || v === 0 ? (
+                <i className="chart-nil" aria-hidden="true" />
+              ) : (
+                <i className="chart-bar" style={{ height: `${pct}%` }} aria-hidden="true" />
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <div className="chart-x" aria-hidden="true">
+        {weeks.map((w, i) => (
+          <span key={w.start}>{i === 0 || i === weeks.length - 1 ? label(w) : ''}</span>
+        ))}
+      </div>
+      {/* angkanya buat screen reader & yang mau baca persisnya */}
+      <details className="chart-data">
+        <summary>Angkanya</summary>
+        <ul>
+          {weeks.map((w, i) => (
+            <li key={w.start}>
+              <span>{label(w)}</span>
+              <b>{vals[i] === null ? '—' : fmt(vals[i] as number)}</b>
+            </li>
+          ))}
+        </ul>
+      </details>
+    </figure>
+  );
 }
 
 function TopicDetail({

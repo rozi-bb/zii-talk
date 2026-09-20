@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
@@ -17,6 +17,14 @@ from server.voices import is_voice_id, pick_voice
 
 router = APIRouter(prefix="/api", tags=["State"])
 
+Result = Literal["pas", "hampir", "belum"]
+
+# Kotak Leitner: jarak ulang (hari) per kotak. Pas = naik satu kotak,
+# hampir = kotaknya tetap, belum = balik ke kotak 1. Dua yang terakhir
+# diulang besok, biar yang belum nyantol nggak nunggu lama.
+BOX_DAYS = {1: 1, 2: 3, 3: 7, 4: 14, 5: 30}
+MAX_BOX = 5
+
 
 class StateOut(BaseModel):
     model: str
@@ -24,6 +32,7 @@ class StateOut(BaseModel):
     momentum: int
     lastPlayed: date | None
     phrases: int
+    due: int  # frasa yang waktunya diulang hari ini
 
 
 class ModelIn(BaseModel):
@@ -47,20 +56,55 @@ class PhraseOut(BaseModel):
     topicId: str | None
     topicName: str | None  # topik udah dihapus = None
     createdAt: datetime
+    box: int  # kotak Leitner 1-5
+    nextReviewAt: datetime
+    lastResult: Result | None
+    reviews: int
+
+
+class ReviewIn(BaseModel):
+    result: Result
+
+
+class ReviewOut(BaseModel):
+    phrase: PhraseOut
+    due: int  # sisa frasa yang masih jatuh tempo
+
+
+PHRASE_COLUMNS = """
+    p.id, p.en, p.meaning, p.topic_id, t.name AS topic_name, p.created_at,
+    p.box, p.next_review_at, p.last_result, p.reviews
+"""
+
+
+def _phrase(r: dict[str, Any]) -> PhraseOut:
+    return PhraseOut(
+        id=r["id"],
+        en=r["en"],
+        meaning=r["meaning"],
+        topicId=r["topic_id"],
+        topicName=r["topic_name"],
+        createdAt=r["created_at"],
+        box=r["box"],
+        nextReviewAt=r["next_review_at"],
+        lastResult=r["last_result"],
+        reviews=r["reviews"],
+    )
 
 
 async def _read(conn: Any, user_id: int) -> StateOut:
     sql = (
         "SELECT model, voice, momentum, last_played,"
-        " (SELECT count(*) FROM phrases WHERE user_id = %s)::int AS phrases"
+        " (SELECT count(*) FROM phrases WHERE user_id = %s)::int AS phrases,"
+        " (SELECT count(*) FROM phrases WHERE user_id = %s AND next_review_at <= now())::int AS due"
         " FROM app_state WHERE user_id = %s"
     )
-    cur = await conn.execute(sql, (user_id, user_id))
+    cur = await conn.execute(sql, (user_id, user_id, user_id))
     r = await cur.fetchone()
     if r is None:
         # barisnya dibikin waktu daftar; ini jaga-jaga buat akun yang dibikin di luar app
         await conn.execute("INSERT INTO app_state (user_id) VALUES (%s) ON CONFLICT (user_id) DO NOTHING", (user_id,))
-        cur = await conn.execute(sql, (user_id, user_id))
+        cur = await conn.execute(sql, (user_id, user_id, user_id))
         r = await cur.fetchone()
     return StateOut(
         model=r["model"],
@@ -68,6 +112,7 @@ async def _read(conn: Any, user_id: int) -> StateOut:
         momentum=r["momentum"],
         lastPlayed=r["last_played"],
         phrases=r["phrases"],
+        due=r["due"],
     )
 
 
@@ -123,8 +168,8 @@ async def touch(user: User = Depends(current_user)) -> StateOut:
 @router.get("/phrases", response_model=list[PhraseOut], summary="Semua frasa di koleksi, terbaru dulu")
 async def list_phrases(user: User = Depends(current_user)) -> list[PhraseOut]:
     rows = await db.fetch_all(
-        """
-        SELECT p.id, p.en, p.meaning, p.topic_id, t.name AS topic_name, p.created_at
+        f"""
+        SELECT {PHRASE_COLUMNS}
         FROM phrases p
         LEFT JOIN topics t ON t.id = p.topic_id
         WHERE p.user_id = %s
@@ -132,17 +177,77 @@ async def list_phrases(user: User = Depends(current_user)) -> list[PhraseOut]:
         """,
         (user.id,),
     )
-    return [
-        PhraseOut(
-            id=r["id"],
-            en=r["en"],
-            meaning=r["meaning"],
-            topicId=r["topic_id"],
-            topicName=r["topic_name"],
-            createdAt=r["created_at"],
+    return [_phrase(r) for r in rows]
+
+
+@router.get(
+    "/phrases/due",
+    response_model=list[PhraseOut],
+    summary="Frasa yang waktunya diulang, yang paling lama nunggu duluan",
+)
+async def due_phrases(limit: int = 20, user: User = Depends(current_user)) -> list[PhraseOut]:
+    rows = await db.fetch_all(
+        f"""
+        SELECT {PHRASE_COLUMNS}
+        FROM phrases p
+        LEFT JOIN topics t ON t.id = p.topic_id
+        WHERE p.user_id = %s AND p.next_review_at <= now()
+        ORDER BY p.next_review_at, p.id
+        LIMIT %s
+        """,
+        (user.id, max(1, min(limit, 50))),
+    )
+    return [_phrase(r) for r in rows]
+
+
+@router.post(
+    "/phrases/{phrase_id}/review",
+    response_model=ReviewOut,
+    summary="Catat hasil latihan ulang & jadwalin ulangan berikutnya",
+)
+async def review_phrase(phrase_id: int, body: ReviewIn, user: User = Depends(current_user)):
+    async with (await db.pool()).connection() as conn, conn.transaction():
+        cur = await conn.execute(
+            "SELECT box FROM phrases WHERE id = %s AND user_id = %s FOR UPDATE", (phrase_id, user.id)
         )
-        for r in rows
-    ]
+        row = await cur.fetchone()
+        if row is None:
+            return JSONResponse(status_code=404, content={"error": "Frasa nggak ketemu — mungkin udah dihapus"})
+
+        if body.result == "pas":
+            box = min(row["box"] + 1, MAX_BOX)
+            days = BOX_DAYS[box]
+        else:
+            # hampir = kotaknya ditahan, belum = balik dari awal; dua-duanya diulang besok
+            box = row["box"] if body.result == "hampir" else 1
+            days = 1
+
+        await conn.execute(
+            """
+            UPDATE phrases
+            SET box = %s,
+                next_review_at = now() + make_interval(days => %s),
+                last_result = %s,
+                reviewed_at = now(),
+                reviews = reviews + 1
+            WHERE id = %s
+            """,
+            (box, days, body.result, phrase_id),
+        )
+        # dibaca ulang lewat join yang sama kayak daftar frasa, biar nama topiknya ikut
+        cur = await conn.execute(
+            f"SELECT {PHRASE_COLUMNS} FROM phrases p LEFT JOIN topics t ON t.id = p.topic_id WHERE p.id = %s",
+            (phrase_id,),
+        )
+        updated = await cur.fetchone()
+
+        cur = await conn.execute(
+            "SELECT count(*)::int AS due FROM phrases WHERE user_id = %s AND next_review_at <= now()",
+            (user.id,),
+        )
+        due = (await cur.fetchone())["due"]
+        assert updated is not None
+        return ReviewOut(phrase=_phrase(updated), due=due)
 
 
 @router.post("/phrases", response_model=StateOut, summary="Simpan frasa ke koleksi (dobel diabaikan)")

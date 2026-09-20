@@ -5,10 +5,12 @@ import { Bengkel } from '../components/Bengkel';
 import { shown } from '../lib/expr';
 import {
   chatStream,
+  loadRuns,
   rewindRun,
   type AppConfig,
   type Correction,
   type Phrase,
+  type Run,
   type SavedRun,
   type Topic,
 } from '../lib/api';
@@ -54,6 +56,7 @@ export function Session({
   frasa,
   momentum,
   onExit,
+  onRestart,
   onPhrase,
 }: {
   cfg: AppConfig;
@@ -63,6 +66,8 @@ export function Session({
   frasa: number;
   momentum: number;
   onExit: () => void;
+  /* sesi baru di topik yang sama, dari ringkasan */
+  onRestart: () => void;
   onPhrase: (p: Phrase) => void;
 }) {
   const speechReady = cfg.speech.ready;
@@ -84,6 +89,13 @@ export function Session({
     null,
   );
   const [bump, setBump] = useState(false);
+  /* layar ringkasan waktu sesi ditutup — sekalian gantiin window.confirm */
+  const [summary, setSummary] = useState(false);
+  /* sesi sebelumnya di topik yang sama, buat dibandingin */
+  const [prev, setPrev] = useState<Run | null>(null);
+  /* frasa yang ketangkap sesi ini (kartu koreksi + Bengkel) */
+  const [caught, setCaught] = useState<string[]>([]);
+  const startedAt = useRef(Date.now());
 
   const situation = useRef(topic.situations[Math.floor(Math.random() * topic.situations.length)] ?? '');
   const runId = useRef(newRunId());
@@ -454,6 +466,7 @@ export function Session({
   function grab(i: number, p: Phrase, e: React.MouseEvent) {
     if (grabbed[i]) return;
     setGrabbed((g) => ({ ...g, [i]: true }));
+    setCaught((c) => [...c, p.en]);
     onPhrase(p);
 
     const from = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -477,22 +490,70 @@ export function Session({
     }
   }
 
-  /* Keluar sebelum minimum = sesi ini nggak disimpan sama sekali. Tanya dulu. */
+  /* Tutup sesi: yang nongol ringkasannya dulu, bukan langsung balik. Kalau
+     belum sampai minimum, ringkasannya sekalian jadi konfirmasi keluar —
+     dulu ini dialog bawaan browser. */
   const leave = () => {
-    if (
-      myTurns > 0 &&
-      myTurns < min &&
-      !window.confirm(
-        `Baru ${myTurns} dari ${min} jawaban — sesi ini belum tersimpan dan bakal dianggap nggak ada. Tetap keluar?`,
-      )
-    ) {
+    if (myTurns === 0) {
+      onExit();
       return;
     }
-    onExit();
+    abort.current?.abort();
+    voiceRef.current?.kill();
+    stopSpeaking();
+    void listener.current?.stop();
+    listener.current = null;
+    if (tick.current) clearInterval(tick.current);
+    setPaused(false);
+    goPhase('idle');
+    setSummary(true);
   };
+
+  /* sesi sebelumnya di topik ini — buat "koreksinya lebih sedikit dari sesi lalu" */
+  useEffect(() => {
+    if (!summary) return;
+    let alive = true;
+    loadRuns(topic.id)
+      .then((runs) => {
+        if (!alive) return;
+        const mine = runs.filter((r) => r.id !== runId.current);
+        setPrev(mine.length ? mine.reduce((a, b) => (a.attempt > b.attempt ? a : b)) : null);
+      })
+      .catch(() => {
+        /* perbandingannya bonus — kalau gagal, ringkasannya tetap tampil */
+      });
+    return () => {
+      alive = false;
+    };
+  }, [summary, topic.id]);
   const progress = saved
     ? `${myTurns} jawaban · Tes #${saved.attempt} tersimpan`
     : `${myTurns}/${min} jawaban`;
+
+  if (summary) {
+    return (
+      <Summary
+        topic={topic}
+        saved={saved}
+        min={min}
+        answers={myTurns}
+        seconds={Math.round((Date.now() - startedAt.current) / 1000)}
+        corrections={lines.filter((l) => l.correction).map((l) => l.correction as Correction)}
+        caught={caught}
+        prev={prev}
+        onBack={() => setSummary(false)}
+        onRestart={onRestart}
+        onExit={onExit}
+      />
+    );
+  }
+
+  /* Obrolan udah jalan = orb gede pindah jadi avatar kecil di header dan
+     petunjuk aturannya disembunyiin. Di HP ini nambahin area obrolan dari
+     ±61% jadi ±75% layar; di laptop bubble-nya juga kebagian lebih banyak. */
+  const slim = myTurns > 0;
+  const orbMode =
+    phase === 'thinking' ? 'think' : phase === 'talking' ? 'talk' : phase === 'rec' ? 'hush' : 'idle';
 
   const status =
     phase === 'rec'
@@ -549,11 +610,16 @@ export function Session({
       </div>
 
       {/* tengah */}
-      <div className="sess-main">
+      <div className={`sess-main${slim ? ' slim' : ''}`}>
         <div className="sess-head safe-top">
           <button className="icon-btn" onClick={leave} aria-label="Keluar">
             <Icon name="back" size={19} />
           </button>
+          {slim && (
+            <div className="head-orb">
+              <Orb size={26} rings={false} mode={orbMode} />
+            </div>
+          )}
           <div className="sess-title">
             <b>{topic.name}</b>
             <span>{status}</span>
@@ -572,27 +638,19 @@ export function Session({
           <Beats done={Math.min(min, myTurns)} total={min} />
           <span className={saved ? 'ok' : ''}>{progress}</span>
         </div>
-        {!saved && (
+        {/* aturannya cuma perlu dibaca sekali, di awal */}
+        {!saved && !slim && (
           <p className="goal-hint">
             Jawab minimal {min} kali biar sesi ini selesai &amp; tersimpan — kurang dari itu dianggap nggak ada.
           </p>
         )}
 
-        <div className="presence">
-          <Orb
-            size={64}
-            mode={
-              phase === 'thinking'
-                ? 'think'
-                : phase === 'talking'
-                  ? 'talk'
-                  : phase === 'rec'
-                    ? 'hush'
-                    : 'idle'
-            }
-          />
-          <small>ZII</small>
-        </div>
+        {!slim && (
+          <div className="presence">
+            <Orb size={64} mode={orbMode} />
+            <small>ZII</small>
+          </div>
+        )}
 
         {err && <div className="err">{err}</div>}
 
@@ -790,6 +848,7 @@ export function Session({
             speechReady={speechReady}
             onSave={(en, id) => {
               onPhrase({ en, id });
+              setCaught((c) => [...c, en]);
               setBump(true);
               window.setTimeout(() => setBump(false), 600);
             }}
@@ -815,6 +874,158 @@ export function Session({
           {flier.text.length > 28 ? '…' : ''}
         </div>
       )}
+    </div>
+  );
+}
+
+function lamanya(s: number): string {
+  if (s < 60) return `${s} detik`;
+  const m = Math.round(s / 60);
+  return m < 60 ? `${m} menit` : `${Math.floor(m / 60)} jam ${m % 60} menit`;
+}
+
+const perTen = (corrections: number, answers: number) =>
+  answers ? Math.round((corrections * 10 * 10) / answers) / 10 : 0;
+
+/* Ringkasan pas sesi ditutup. Dua peran sekaligus: laporan hasil kalau sesinya
+   udah tersimpan, dan konfirmasi keluar kalau jawabannya belum cukup. */
+function Summary({
+  topic,
+  saved,
+  min,
+  answers,
+  seconds,
+  corrections,
+  caught,
+  prev,
+  onBack,
+  onRestart,
+  onExit,
+}: {
+  topic: Topic;
+  saved: SavedRun | null;
+  min: number;
+  answers: number;
+  seconds: number;
+  corrections: Correction[];
+  caught: string[];
+  prev: Run | null;
+  onBack: () => void;
+  onRestart: () => void;
+  onExit: () => void;
+}) {
+  const now = perTen(corrections.length, answers);
+  const before = prev && prev.questions ? perTen(prev.corrections, prev.questions) : null;
+  const gap = before === null ? null : Math.round((now - before) * 10) / 10;
+
+  const compare =
+    !saved || before === null || gap === null
+      ? null
+      : gap < -0.05
+        ? `Lebih lancar dari sesi #${prev?.attempt}: ${now} koreksi per 10 jawaban, sebelumnya ${before}.`
+        : gap > 0.05
+          ? `Koreksinya lebih banyak dari sesi #${prev?.attempt} (${before} → ${now} per 10 jawaban).`
+          : `Setara sesi #${prev?.attempt}: ${now} koreksi per 10 jawaban.`;
+
+  return (
+    <div className="sum scroll">
+      <div className="sum-card">
+        <div className="sum-head">
+          <i style={{ background: topic.tint, color: topic.ink }}>
+            <Icon name={topic.icon} size={22} />
+          </i>
+          <div>
+            <h1>{saved ? `Sesi #${saved.attempt} tersimpan` : 'Sesi belum tersimpan'}</h1>
+            <span>{topic.name}</span>
+          </div>
+        </div>
+
+        {!saved && (
+          <div className="warn sum-warn">
+            <div>
+              Baru <b>{answers} dari {min} jawaban</b>. Kalau keluar sekarang, sesi ini nggak masuk riwayat dan
+              nggak kehitung di Dashboard — frasa yang udah kamu simpan tetap aman.
+            </div>
+          </div>
+        )}
+
+        <div className="sum-nums">
+          <div>
+            <b>{answers}</b>
+            <span>jawaban</span>
+          </div>
+          <div>
+            <b>{lamanya(seconds)}</b>
+            <span>lama sesi</span>
+          </div>
+          <div>
+            <b>{corrections.length}</b>
+            <span>koreksi</span>
+          </div>
+          <div>
+            <b>{caught.length}</b>
+            <span>frasa disimpan</span>
+          </div>
+        </div>
+
+        {compare && <p className="sum-cmp">{compare}</p>}
+
+        {corrections.length > 0 && (
+          <section className="sum-sec">
+            <h2>Yang dibetulin</h2>
+            <ul className="sum-fix">
+              {corrections.map((c, i) => (
+                <li key={i}>
+                  <div>
+                    {c.wrong && <s lang="en">{c.wrong}</s>}
+                    <b lang="en">{c.right}</b>
+                  </div>
+                  {c.why && <span>{c.why}</span>}
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {caught.length > 0 && (
+          <section className="sum-sec">
+            <h2>Frasa yang kamu simpan</h2>
+            <ul className="sum-phr">
+              {caught.map((p, i) => (
+                <li key={i}>
+                  <Icon name="bookmark" size={14} />
+                  <span lang="en">{p}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="sum-note">Nanti muncul lagi di Latihan ulang, jadwalnya diatur otomatis.</p>
+          </section>
+        )}
+
+        <div className="sum-acts">
+          {saved ? (
+            <>
+              <button className="btn ghost" onClick={onRestart}>
+                <Icon name="replay" size={17} />
+                Ulangi topik ini
+              </button>
+              <button className="btn primary" onClick={onExit}>
+                Selesai
+              </button>
+            </>
+          ) : (
+            <>
+              <button className="btn primary" onClick={onBack}>
+                <Icon name="mic" size={17} />
+                Lanjut ngobrol
+              </button>
+              <button className="btn ghost" onClick={onExit}>
+                Keluar aja
+              </button>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

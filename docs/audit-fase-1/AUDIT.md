@@ -8,7 +8,8 @@
 > Dashboard, form Tambah topik · **Status kode:** commit `d1b3c11` + perubahan
 > suara HD & ekspresi yang belum di-commit.
 >
-> **Update status:** 15 September 2026, sampai login email & password.
+> **Update status:** 20 September 2026, sampai siklus belajar (ringkasan sesi,
+> latihan ulang frasa, metrik kelancaran).
 > Lihat [Status perbaikan](#status-perbaikan). Temuan di section 1–4 sengaja
 > dibiarkan apa adanya (kondisi **sebelum** diperbaiki), begitu juga screenshot di
 > `img/`.
@@ -61,16 +62,16 @@ suara HD dan ekspresi jalan, dan datanya udah rapi di Postgres. Yang bikin app i
 | 4 | Tombol Bengkel: "Pakai & Lanjut" cuma nutup, "Simpan" ketutup | Bug UX | kecil | **Beres** |
 | 5 | Pindahin model & suara ke halaman **Pengaturan** | Konsep | sedang | **Beres** |
 | 6 | Halaman **Topik** dengan cari, kategori, filter, urutkan | Konsep | besar | **Beres**; edit & arsip topik belum |
-| 7 | **Ringkasan sesi** setelah selesai | Konsep | sedang | **Belum** |
-| 8 | **Koleksi frasa** yang bisa dilihat & diulang | Konsep | besar | **Sebagian**: bisa dilihat, dicari, didengerin, dihapus; latihan ulang belum |
-| 9 | Dashboard → **Progres**: metrik kelancaran, bukan cuma jumlah tes | Konsep | sedang | **Sebagian**: ringkasan & istilah dirapiin; metrik kelancaran belum |
+| 7 | **Ringkasan sesi** setelah selesai | Konsep | sedang | **Beres** (20 Sep) |
+| 8 | **Koleksi frasa** yang bisa dilihat & diulang | Konsep | besar | **Beres** (20 Sep): dilihat, dicari, didengerin, dihapus, dan dilatih ulang pakai kotak Leitner |
+| 9 | Dashboard → **Progres**: metrik kelancaran, bukan cuma jumlah tes | Konsep | sedang | **Beres** (20 Sep): menit ngomong, koreksi per 10 jawaban, grafik 8 minggu |
 | 10 | Navigasi app yang konsisten (tab bawah di HP, sidebar di laptop) | Konsep | sedang | **Beres** |
 
 ---
 
 ## Status perbaikan
 
-> Update 15 September 2026.
+> Update 20 September 2026.
 
 ### Dikerjain di commit mana
 
@@ -80,7 +81,9 @@ suara HD dan ekspresi jalan, dan datanya udah rapi di Postgres. Yang bikin app i
 | `078eba9` | Review desain 4 halaman sidebar di laptop, tablet, dan HP: kontras, ukuran teks, layout responsif, Dashboard dirombak ke gaya baru, favicon |
 | `931f351` | Sisa target sentuh di HP (tombol status Dashboard, kotak cari Topik, tombol contoh suara) |
 | `1d0679a` | B1, B7, halaman **Koleksi** + API frasa, kontras & ukuran teks di Sesi, Bengkel, dan rail laptop |
-| branch `feat/login` | **Login email & password**, data per akun, akun pertama jadi admin. Lihat [Login & akun](#login--akun) |
+| `ef74a15` | **Login email & password**, data per akun, akun pertama jadi admin. Lihat [Login & akun](#login--akun) |
+| `5c776fd` | **Full container**: app + Postgres di Docker (`Dockerfile`, `docker-compose.yml`) |
+| branch `feat/siklus-belajar` | **Ringkasan sesi**, **latihan ulang frasa** (kotak Leitner), **metrik kelancaran**, area obrolan HP jadi ±77%. Lihat [Siklus belajar](#siklus-belajar) |
 
 **Sesi & Bengkel baru digarap sebagian:** timer (B1), tombol Bengkel (B7),
 kontras, ukuran teks, dan target sentuh. Sisa temuan di
@@ -92,17 +95,17 @@ kontras, ukuran teks, dan target sentuh. Sisa temuan di
 
 | Area | Status | Yang udah | Yang belum |
 |---|---|---|---|
-| Beranda ([2.1](#21-home), [4.2](#42-beranda-latihan-dirancang-buat-100-topik)) | **Beres** | Rekomendasi hari ini (rotasi harian), Terakhir dilatih, Belum pernah dicoba, Waktunya diulang, Jelajah kategori; model & suara pindah ke Pengaturan | Kartu "frasa perlu diulang" (nunggu latihan ulang) |
+| Beranda ([2.1](#21-home), [4.2](#42-beranda-latihan-dirancang-buat-100-topik)) | **Beres** | Rekomendasi hari ini (rotasi harian), Terakhir dilatih, Belum pernah dicoba, Waktunya diulang, Jelajah kategori, kartu "frasa perlu diulang"; model & suara pindah ke Pengaturan | — |
 | Navigasi ([4.1](#41-arsitektur-informasi--navigasi)) | **Beres** | 5 tujuan: Latihan, Topik, Koleksi, Dashboard, Pengaturan. Sidebar di laptop, tab bar 5 menu di HP, disembunyiin saat sesi | — |
 | Topik ([4.3](#43-halaman-topik-perpustakaan)) | **Sebagian** | Cari, filter kategori & status, 5 urutan, filter ikut URL, daftar ringkas, tambah kategori dari app | Edit, arsip, sematkan topik (`archived_at`, `pinned`, `PATCH`); ikon kategori |
-| Koleksi frasa ([4.6](#46-koleksi-frasa--latihan-ulang-fitur-yang-hilang)) | **Sebagian** | Halaman `/koleksi`: daftar frasa + arti + asal topik, cari, filter topik, dengerin, hapus (konfirmasi in-app). API `GET` & `DELETE /api/phrases` | Latihan ulang (kotak Leitner), kolom `box` / `next_review_at` |
+| Koleksi frasa ([4.6](#46-koleksi-frasa--latihan-ulang-fitur-yang-hilang)) | **Beres** | Halaman `/koleksi` (daftar, cari, filter topik, dengerin, hapus) + halaman `/ulang`: kotak Leitner 1/3/7/14/30 hari, jawab ketik atau mic, penilaian longgar & bisa ditimpa manual | Latihan ulang belum bisa dibatasi per topik |
 | Pengaturan ([4.8](#48-pengaturan--onboarding)) | **Sebagian** | Suara + contoh, model AI, aturan sesi, status sistem (LLM, Azure, LangSmith) | Kecepatan bicara, ekspresi on/off, koreksi on/off, target jawaban, status database, onboarding |
-| Dashboard → Progres ([2.4](#24-dashboard--tambah-topik), [4.7](#47-progres-pengganti-dashboard)) | **Sebagian** | Ringkasan nggak redundan, istilah "sesi", kotak statistik minggir di HP saat detail dibuka, tambah topik pindah ke Topik | Metrik kelancaran (koreksi per 10 jawaban, menit ngomong), grafik mingguan, riwayat lintas topik |
+| Dashboard → Progres ([2.4](#24-dashboard--tambah-topik), [4.7](#47-progres-pengganti-dashboard)) | **Beres** | Ringkasan, istilah "sesi", bagian **Kelancaran**: menit ngomong minggu ini, koreksi per 10 jawaban (+ beda sama minggu lalu), topik aktif, grafik 8 minggu | Riwayat lintas topik dalam satu daftar |
 | Kontras ([3.1](#31-kontras-warna-wcag-aa-teks-normal--451)) | **Beres** | Semua layar. Token baru `--ink-mute`, `--tang-ink`/`--tang-deep`, `--sky-ink`/`--sky-deep`; tombol "Tangkap frasa" pakai tinta gelap; `--muted` dihapus | — |
 | Ukuran teks ([3.2](#32-ukuran-teks)) | **Beres** | Nol teks yang kelihatan di bawah 12px, di semua layar | 2 aturan dasar form (`.fld > span`, `.tf-lbl`) masih 11px di CSS, tapi ditimpa 13px |
 | Target sentuh ([3.3](#33-target-sentuh)) | **Beres** | Tombol di HP minimal 40–44px di semua layar | Titik pilihan Bengkel 13×23px (panah 44px jadi alternatifnya) |
 | Utang CSS ([3.4](#34-konsistensi--utang-css)) | **Sebagian** | Favicon; CSS mati `.fcard`, `.side-head`, `.gloss`, `.round.plain`, `.use`, `.save` dihapus; bug `.ghost` yang nimpa `.btn.ghost` beres | `.pill`, `.dsp` masih ada; hex di CSS 182 (98 unik), `style={{…}}` inline 38; manifest & app icon |
-| Sesi ([2.2](#22-sesi-ngobrol), [4.4](#44-sesi-fokus-ke-obrolan-tutup-dengan-ringkasan)) | **Sebagian** | Timer menit:detik (B1), kontras, ukuran teks, target sentuh | Area obrolan ±61% layar HP, ringkasan sesi, dialog keluar (B11), kartu koreksi selalu "Hampir bener!", `lang="en"`, istilah "Tes #n" |
+| Sesi ([2.2](#22-sesi-ngobrol), [4.4](#44-sesi-fokus-ke-obrolan-tutup-dengan-ringkasan)) | **Sebagian** | Timer menit:detik (B1), kontras, ukuran teks, target sentuh, **ringkasan sesi**, konfirmasi keluar in-app (B11), area obrolan HP ±77% (dari ±61%) | Kartu koreksi selalu "Hampir bener!", `lang="en"` di bubble, istilah "Tes #n" di progres |
 | Akun & login ([Login & akun](#login--akun)) | **Sebagian** | Daftar & masuk pakai email + password, keluar, semua API wajib login, frasa / riwayat tes / momentum / model / suara per akun, akun pertama admin + dapet data lama, batas salah password | Login Google, topik per akun, batas pemakaian AI, lupa password, verifikasi email, menu admin, online |
 | Bengkel ([2.3](#23-bengkel-kalimat), [4.5](#45-bengkel-satu-tujuan-per-layar)) | **Sebagian** | Tombol "Simpan frasa" & "Balik ngobrol" nempel di bawah (B7), kontras, ukuran teks, tombol × & panah lebih gede | Highlight kata (B6), spasi kata (B8), backdrop HP (B12), tombol di dalam tombol (B14), tampilan bertahap |
 
@@ -244,6 +247,63 @@ minimal 40–44px, favicon.
 
 **Cara ngetesnya:** database di-backup (`pg_dump`) sebelum tes, lalu dikembalikan
 lagi. Jadi akun pertama yang daftar tetap pemilik app, dan dia yang jadi admin.
+
+### Siklus belajar
+
+> Dikerjain 20 September 2026 di branch `feat/siklus-belajar`. Ini nutup
+> temuan nomor 2 di [Ringkasan](#ringkasan): "siklus belajarnya putus di
+> tengah".
+
+**1. Ringkasan sesi** (`src/screens/Session.tsx`, komponen `Summary`)
+
+- Nongol begitu sesi ditutup: jumlah jawaban, lama sesi, jumlah koreksi, dan
+  frasa yang kesimpan.
+- Daftar semua koreksi (salah → benar + alasannya) dan frasa yang ditangkap.
+- Perbandingan sama sesi sebelumnya di topik yang sama, pakai **koreksi per 10
+  jawaban** biar adil walau jumlah jawabannya beda. Butuh kolom baru di API:
+  `corrections` di `GET /api/topics/{id}/runs`.
+- Sesi yang belum nyampe 10 jawaban: ringkasannya sekalian jadi konfirmasi
+  keluar (**Lanjut ngobrol** / **Keluar aja**) — ini yang nutup **B11**
+  (`window.confirm`).
+- Sesi yang udah tersimpan dapat tombol **Ulangi topik ini** (sesi baru, topik
+  sama).
+
+**2. Latihan ulang frasa** (`src/screens/Review.tsx`, migrasi `006_review.sql`)
+
+- Kolom baru di `phrases`: `box` (1-5), `next_review_at`, `last_result`,
+  `reviewed_at`, `reviews`.
+- Jadwal kotak Leitner: **1, 3, 7, 14, 30 hari**. *Pas* naik satu kotak,
+  *hampir* kotaknya tetap, *belum* balik ke kotak 1; dua yang terakhir diulang
+  besok. Frasa baru langsung jatuh tempo.
+- Halaman `/ulang`: artinya yang ditampilin, kamu yang nyusun kalimat
+  Inggrisnya — ketik atau pakai mic. Ada tombol nyerah, dengerin kalimat
+  aslinya, dan penilaiannya bisa ditimpa manual.
+- Penilaian otomatis di `src/lib/match.ts`: jarak Levenshtein **per kata**,
+  tanda baca / huruf besar / aksen diabaikan, singkatan ("I'd" = "I would")
+  disamain. ≥ 0.85 = pas, ≥ 0.5 = hampir, sisanya belum.
+- `GET /api/phrases/due`, `POST /api/phrases/{id}/review`, dan `due` di
+  `GET /api/state` — dipakai kartu "N frasa perlu diulang" di beranda dan
+  tombol di Koleksi. Tiap frasa di Koleksi nampilin kotaknya.
+
+**3. Metrik kelancaran** (`server/routes/progress.py`, bagian Kelancaran di Dashboard)
+
+- `GET /api/progress`: 8 minggu terakhir (sesi, jawaban, koreksi, menit),
+  minggu ini vs minggu lalu, topik aktif 7 hari, dan totalnya. Semua dihitung
+  dari data yang udah ada — nggak ada kolom baru.
+- Dashboard nampilin: menit ngomong minggu ini, **koreksi per 10 jawaban** plus
+  bedanya sama minggu lalu, topik aktif, total ngomong.
+- Dua grafik batang terpisah (jawaban per minggu, koreksi per 10 jawaban) —
+  sengaja nggak digabung jadi satu grafik dua sumbu. Batangnya HTML/CSS, bukan
+  SVG, biar angkanya tetap teks beneran ≥ 12px dan kebaca screen reader; ada
+  juga `<details> Angkanya` buat baca nilainya persis.
+
+**4. Area obrolan di HP** — begitu ada jawaban pertama, orb gede pindah ke
+header jadi avatar kecil dan petunjuk "jawab minimal 10 kali" disembunyiin.
+Diukur di 375×812: transkrip **61% → 77%** layar (laptop 71%).
+
+**Cara ngetesnya:** akun uji sendiri (bukan akun kamu), mic & balasan AI
+dipalsuin sementara biar nggak ada biaya dan nggak perlu ngomong; stub-nya
+dibalikin sebelum commit, akun ujinya dihapus habis tes.
 
 ---
 
@@ -842,6 +902,7 @@ Dicentang = beres per 14 September 2026.
 - [x] B3 + B4 + B5 hero, rotasi harian, buang bar palsu
 - [x] B7 tombol Bengkel ("Simpan frasa" & "Balik ngobrol")
 - [ ] B8 + B6 spasi kata, highlight pakai offset
+- [x] B11 konfirmasi keluar in-app (jadi bagian ringkasan sesi)
 - [x] Token warna AA (tabel 3.1) + minimal font 12px + fokus keyboard
 - [ ] Favicon, app icon, manifest — *favicon beres; app icon & manifest belum*
 - [ ] Istilah (4.9) + konfirmasi keluar in-app — *istilah beres di halaman sidebar; Sesi & konfirmasi keluar belum*
@@ -857,10 +918,10 @@ Dicentang = beres per 14 September 2026.
 
 ### Fase 2b — Siklus belajar (± 1–2 minggu)
 
-- [ ] **Ringkasan sesi**
+- [x] **Ringkasan sesi**
 - [x] **Koleksi frasa**: lihat, cari, filter, dengerin, hapus
-- [ ] **Latihan ulang** frasa (kotak Leitner) + kartu "frasa perlu diulang" di beranda
-- [ ] **Progres** dengan metrik kelancaran — *ringkasan & istilah Dashboard udah dirapiin*
+- [x] **Latihan ulang** frasa (kotak Leitner) + kartu "frasa perlu diulang" di beranda
+- [x] **Progres** dengan metrik kelancaran (menit ngomong, koreksi per 10 jawaban, grafik 8 minggu)
 
 ### Fase 2c — Poles (menyusul)
 
@@ -885,16 +946,18 @@ Detailnya di [Login & akun](#login--akun).
 
 ### Urutan berikutnya yang disarankan
 
-Semua fitur di bawah ini dibangun **per akun** dari awal.
+Siklus belajarnya (ringkasan sesi, latihan ulang, metrik kelancaran, area
+obrolan HP) udah beres 20 Sep — lihat [Siklus belajar](#siklus-belajar).
 
-1. **Ringkasan sesi,** yang datanya udah lengkap.
-2. **Latihan ulang frasa** (kotak Leitner) + kartu "frasa perlu diulang" di
-   beranda.
-3. **Metrik kelancaran** di Dashboard.
-4. **Area obrolan di HP lebih lega** (orb mengecil setelah obrolan jalan).
-5. **Sisa bug kecil Sesi & Bengkel:** B8 + B6 (highlight & spasi kata), B12
-   (backdrop), B11 (dialog keluar), B14 + B15 (aksesibilitas).
-6. **Edit & arsip topik,** sekalian mutusin topik per akun.
+1. **Bantuan ngingat kalimat Bengkel:** kartu contekan tersamar setelah Bengkel
+   ditutup, biar kalimatnya nggak perlu dihafal dalam hitungan detik. Lanjutan
+   opsionalnya: langkah "Latih dulu" di Bengkel (dengar → tirukan → ucapkan
+   tanpa lihat).
+2. **Sisa bug kecil Sesi & Bengkel:** B8 + B6 (highlight & spasi kata), B12
+   (backdrop HP), B14 + B15 (aksesibilitas).
+3. **Edit & arsip topik,** sekalian mutusin topik per akun.
+4. **Pengaturan yang belum ada:** kecepatan bicara, ekspresi on/off, koreksi
+   on/off, target jawaban, status database.
 
 ---
 

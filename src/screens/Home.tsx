@@ -81,6 +81,21 @@ export function Home({
         </a>
       )}
 
+      {/* frasa yang jatuh tempo: ditaruh paling atas karena cuma butuh 1-2 menit,
+          dan kalau kelewat terus, koleksinya numpuk jadi daftar mati */}
+      {state.due > 0 && (
+        <a className="due-card" {...linkTo('/ulang', go)}>
+          <i aria-hidden="true">
+            <Icon name="replay" size={20} />
+          </i>
+          <span>
+            <b>{state.due} frasa perlu diulang</b>
+            <small>Baca artinya, ucapkan versi Inggrisnya. Sebentar aja.</small>
+          </span>
+          <span className="btn primary due-go">Latihan ulang</span>
+        </a>
+      )}
+
       {topics.length === 0 ? (
         <div className="empty">
           <b>Belum ada topik</b>

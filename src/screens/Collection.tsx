@@ -17,11 +17,14 @@ const NO_TOPIC = '__none';
 export function Collection({
   cfg,
   voice,
+  due,
   go,
   onChanged,
 }: {
   cfg: AppConfig;
   voice: string;
+  /* berapa frasa yang waktunya diulang — tombol latihan ulang di header */
+  due: number;
   go: Go;
   /* jumlah frasa di sidebar ikut turun habis hapus */
   onChanged: (s: AppState) => void;
@@ -124,6 +127,12 @@ export function Collection({
           <h1>Koleksi frasa</h1>
           <p>Kalimat yang kamu tangkap dari kartu koreksi & simpan dari Bengkel Kalimat.</p>
         </div>
+        {due > 0 && (
+          <a className="btn primary" {...linkTo('/ulang', go)}>
+            <Icon name="replay" size={16} />
+            Latihan ulang · {due}
+          </a>
+        )}
       </header>
 
       {err && <div className="err dash-err">{err}</div>}
@@ -201,6 +210,12 @@ export function Collection({
                     {p.meaning && <span>{p.meaning}</span>}
                     <small>
                       {p.topicName ?? 'Tanpa topik'} · {ago(p.createdAt)}
+                      {/* jadwal latihan ulang: jatuh tempo ditandai, sisanya cukup kotaknya */}
+                      {Date.parse(p.nextReviewAt) <= Date.now() ? (
+                        <em className="phr-due">perlu diulang</em>
+                      ) : (
+                        <em className="phr-box">kotak {p.box}</em>
+                      )}
                     </small>
                   </div>
                   <div className="phr-acts">

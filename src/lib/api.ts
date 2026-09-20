@@ -29,8 +29,16 @@ export type Topic = {
 };
 export type NewTopic = Pick<Topic, 'name' | 'categoryId' | 'blurb' | 'situations' | 'icon' | 'tint' | 'ink'>;
 
-/* `voice` selalu valid: kalau belum pernah milih, server ngisi default-nya */
-export type AppState = { model: string; voice: string; momentum: number; lastPlayed: string | null; phrases: number };
+/* `voice` selalu valid: kalau belum pernah milih, server ngisi default-nya.
+   `due` = frasa yang waktunya diulang hari ini. */
+export type AppState = {
+  model: string;
+  voice: string;
+  momentum: number;
+  lastPlayed: string | null;
+  phrases: number;
+  due: number;
+};
 
 export type Correction = { wrong: string; right: string; why: string };
 export type Phrase = { en: string; id: string };
@@ -48,6 +56,8 @@ export type Run = {
   situation: string;
   model: string;
   questions: number;
+  /* jumlah kartu koreksi di sesi itu — dipakai ringkasan sesi buat mbandingin */
+  corrections: number;
   startedAt: string;
   endedAt: string;
 };
@@ -104,7 +114,9 @@ export const saveVoice = (voice: string) => call<AppState>('PUT', '/api/state/vo
 export const touchMomentum = () => post<AppState>('/api/state/touch');
 export const addPhrase = (p: Phrase, topicId: string) => post<AppState>('/api/phrases', { ...p, topicId });
 
-/* frasa di koleksi. `meaning` = arti / kalimat Indonesia-nya; `topicName` null kalau topiknya udah dihapus */
+/* frasa di koleksi. `meaning` = arti / kalimat Indonesia-nya; `topicName` null kalau topiknya udah dihapus.
+   `box` 1-5 = kotak Leitner; makin tinggi, makin jarang diulang. */
+export type ReviewResult = 'pas' | 'hampir' | 'belum';
 export type SavedPhrase = {
   id: number;
   en: string;
@@ -112,9 +124,28 @@ export type SavedPhrase = {
   topicId: string | null;
   topicName: string | null;
   createdAt: string;
+  box: number;
+  nextReviewAt: string;
+  lastResult: ReviewResult | null;
+  reviews: number;
 };
 export const loadPhrases = () => get<SavedPhrase[]>('/api/phrases');
 export const deletePhrase = (id: number) => call<AppState>('DELETE', `/api/phrases/${id}`);
+export const loadDuePhrases = (limit = 20) => get<SavedPhrase[]>(`/api/phrases/due?limit=${limit}`);
+export const reviewPhrase = (id: number, result: ReviewResult) =>
+  post<{ phrase: SavedPhrase; due: number }>(`/api/phrases/${id}/review`, { result });
+
+/* metrik kelancaran buat Dashboard. `perTen` = koreksi per 10 jawaban (makin kecil makin lancar) */
+export type Span = { sessions: number; answers: number; corrections: number; minutes: number; perTen: number | null };
+export type Week = Span & { start: string };
+export type Progress = {
+  weeks: Week[]; // 8 minggu terakhir, paling lama duluan
+  week: Span;
+  prevWeek: Span;
+  activeTopics: number;
+  total: Span;
+};
+export const loadProgress = () => get<Progress>('/api/progress');
 
 export const loadTopics = () => get<Topic[]>('/api/topics');
 export const createTopic = (t: NewTopic) => post<Topic>('/api/topics', t);

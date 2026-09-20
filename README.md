@@ -77,8 +77,8 @@ yang manggil LLM, dan buat Azure dia cuma nyetak token sementara (umur 10 menit)
 yang aman dipegang browser. Jangan pindahin panggilan ini ke frontend.
 
 Endpoint-nya kekelompok per fitur di `server/routes/`, dan Swagger-nya
-otomatis ada di `/docs` — 8 grup: Config, Speech, Chat, Bengkel Kalimat, Topik,
-Kategori, Riwayat Tes, State.
+otomatis ada di `/docs` — 10 grup: Akun, Config, Speech, Chat, Bengkel Kalimat,
+Topik, Kategori, Riwayat Tes, State, Progres.
 
 ## Model LLM
 
@@ -296,7 +296,7 @@ npm run db:down    # matiin — data tetap aman di volume
 | `topics` | topik + skenario buat Zii, masing-masing di satu kategori. 9 topik awal di-seed dari `002_seed_topics.sql` |
 | `test_runs` | satu sesi tes per akun: topik, tes ke-berapa, model, jumlah pertanyaan, mulai & aktivitas terakhir |
 | `messages` | transkrip per sesi, lengkap sama timestamp & kartu koreksi |
-| `phrases` | koleksi frasa per akun |
+| `phrases` | koleksi frasa per akun + jadwal latihan ulang (`box`, `next_review_at`) |
 | `app_state` | model & suara pilihan, momentum — satu baris per akun |
 | `users` | akun: email, hash password (scrypt), peran `admin` / `user` |
 | `sessions` | sesi login yang masih berlaku (yang disimpan sha256 token-nya, bukan token aslinya) |
@@ -360,8 +360,28 @@ tanpa navigasi.
 | **Latihan** `/` | rekomendasi hari ini, topik terakhir dilatih, beberapa topik yang belum dicoba / waktunya diulang, dan jalan pintas per kategori. Sengaja **bukan** daftar semua topik |
 | **Topik** `/topik` | semua topik: cari (tekan `/`), filter kategori & status, urutkan, tambah topik & kategori. Filternya ikut di URL, jadi bisa di-bookmark |
 | **Koleksi** `/koleksi` | frasa yang ditangkap dari kartu koreksi & disimpan dari Bengkel: cari, filter per topik, dengerin, hapus |
+| **Latihan ulang** `/ulang` | frasa yang jatuh tempo: artinya ditampilin, kamu yang nyusun kalimat Inggrisnya (ketik atau mic) |
 | **Dashboard** `/dashboard` | ringkasan, status tes per topik, riwayat tes + transkrip, tombol **Retest** |
 | **Pengaturan** `/pengaturan` | akun & tombol keluar, suara Zii, model AI, aturan sesi, status sistem (API key, Azure, tracing) |
+
+### Siklus belajarnya
+
+1. **Sesi** — ngobrol sama Zii, kartu koreksi nongol waktu ada yang keliru.
+2. **Frasa** — ketuk *Tangkap frasa* di kartu koreksi, atau *Simpan frasa* di
+   Bengkel. Semuanya ngumpul di **Koleksi**.
+3. **Ringkasan sesi** — begitu sesinya ditutup: jumlah jawaban, lama sesi,
+   daftar koreksi, frasa yang kesimpan, dan perbandingan koreksi per 10 jawaban
+   sama sesi sebelumnya di topik yang sama. Kalau jawabannya belum nyampe 10,
+   ringkasan ini sekalian jadi konfirmasi keluar.
+4. **Latihan ulang** — frasa balik lagi sesuai **kotak Leitner**: kotak 1-5 =
+   1, 3, 7, 14, 30 hari. *Pas* naik satu kotak, *hampir* kotaknya tetap,
+   *belum* balik ke kotak 1; dua yang terakhir diulang besok. Jawabannya
+   dicocokin longgar (tanda baca, huruf besar, dan singkatan kayak "I'd" vs
+   "I would" dianggap sama — `src/lib/match.ts`), dan penilaiannya bisa ditimpa
+   manual. Jumlah yang jatuh tempo nongol di beranda & Koleksi.
+5. **Dashboard** — metrik kelancaran: menit ngomong, **koreksi per 10 jawaban**
+   (makin kecil makin lancar), topik aktif, dan grafik 8 minggu terakhir
+   (`GET /api/progress`).
 
 **Rekomendasi hari ini** dipilih dari 5 topik yang paling perlu dilatih (belum
 pernah dicoba duluan, lalu yang paling lama nggak disentuh), dan ditentuin
@@ -374,7 +394,7 @@ lagi. Sesi yang dimulai dari halaman mana pun balik ke halaman itu waktu selesai
 
 ```
 server/main.py      FastAPI: rakit router + serve frontend build
-server/routes/      endpoint per fitur (auth, config, speech, chat, translate, topics, categories, runs, state)
+server/routes/      endpoint per fitur (auth, config, speech, chat, translate, topics, categories, runs, state, progress)
 server/agent/       graph LangGraph (conversation, workshop)
 server/auth.py      akun: hash password, cookie sesi login, batas salah password
 server/db.py        pool Postgres + runner migrasi
@@ -392,8 +412,9 @@ src/lib/expr.ts     tag suara: dibuang dari layar, nggak dihitung sebagai kata
 src/lib/api.ts      client ke server
 src/lib/nav.ts      router mini: /, /topik, /koleksi, /dashboard, /pengaturan
 src/lib/topics.ts   cari, filter, urutkan topik + pilih rekomendasi hari ini
+src/lib/match.ts    nilai jawaban latihan ulang (cocokin longgar, per kata)
 src/lib/format.ts   format waktu ("3 jam yang lalu")
-src/screens/        Login, Home (Latihan), Topics, Collection (Koleksi), Settings, Session, Dashboard
+src/screens/        Login, Home (Latihan), Topics, Collection (Koleksi), Review (Latihan ulang), Settings, Session, Dashboard
 src/components/     Shell (navigasi), TopicCard, TopicForm, Bengkel, orb, waveform, ikon
 scripts/bridge.mjs  bridge Tailscale (HTTPS buat mic)
 design/             canvas desain
