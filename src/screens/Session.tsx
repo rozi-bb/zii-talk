@@ -28,6 +28,12 @@ import {
 const BARS = 15;
 const flat = () => new Array(BARS).fill(7) as number[];
 
+/* Sekian lama nggak ada satu pun potongan teks dari Zii = anggap nyangkut.
+   Tanpa ini, koneksi yang putus di tengah stream bikin layar mentok di
+   "Zii mikir..." selamanya — mic mati, dan "betulin" nggak nolong di giliran
+   pembuka. */
+const STALL_MS = 30_000;
+
 type Phase = 'idle' | 'rec' | 'thinking' | 'talking';
 type Line = {
   role: 'ai' | 'me';
@@ -115,6 +121,15 @@ export function Session({
   const min = cfg.minAnswers;
   const voiceRef = useRef<Voice | null>(null);
   const listener = useRef<Listener | null>(null);
+  /* Nyambung ke Azure makan waktu. Kalau mic-nya udah dilepas sebelum itu
+     kelar, `listen()` yang nyusul harus langsung dimatiin — tanpa ini
+     perekamnya nyangkut hidup di belakang (mic nyala terus, dan hasil
+     dengarannya nongol di giliran yang salah). */
+  const micTok = useRef(0);
+  /* Salinan `partial` yang selalu up-to-date. State-nya kebaca telat satu
+     render, dan itu dulu bikin teks giliran SEBELUMNYA kekirim lagi waktu
+     mic-nya cuma diketuk sekilas. */
+  const partialRef = useRef('');
   const meter = useRef<Meter | null>(null);
   const tick = useRef<number | null>(null);
   const scroller = useRef<HTMLDivElement | null>(null);
@@ -213,6 +228,19 @@ export function Session({
       };
 
       let opened = false;
+      /* jam pasir: di-reset tiap ada teks masuk; kalau habis, stream-nya
+         dibatalin dan user dapet jalan keluar */
+      let stalled = false;
+      let hourglass: number | null = null;
+      const bump = () => {
+        if (hourglass) clearTimeout(hourglass);
+        hourglass = window.setTimeout(() => {
+          stalled = true;
+          ac.abort();
+        }, STALL_MS);
+      };
+      bump();
+
       try {
         await chatStream(
           {
@@ -229,6 +257,7 @@ export function Session({
           },
           {
             delta: (delta) => {
+              bump();
               if (!opened) {
                 opened = true;
                 if (live() && phaseRef.current === 'thinking') goPhase('talking');
@@ -252,8 +281,19 @@ export function Session({
       } catch (e) {
         v.kill();
         /* dibatalin sengaja lewat "betulin" — bukan error, dan layarnya
-           udah diurus di sana. Jangan timpa apa pun. */
-        if (e instanceof Error && e.name === 'AbortError') return;
+           udah diurus di sana. Jangan timpa apa pun. Beda cerita kalau yang
+           batalin itu jam pasir: di situ user malah lagi nunggu. */
+        if (e instanceof Error && e.name === 'AbortError' && !stalled) return;
+        if (stalled && live()) {
+          setErr('Zii nggak nyaut dari tadi — koneksinya mungkin putus. Coba ngomong lagi.');
+          setLines((prev) =>
+            prev[aiIndex]?.role === 'ai' && !shown(prev[aiIndex].text)
+              ? prev.filter((_, i) => i !== aiIndex)
+              : prev,
+          );
+          goPhase('idle');
+          return;
+        }
         if (!live()) return; // udah ada giliran baru — jangan diganggu
         setErr(e instanceof Error ? e.message : String(e));
         // buang slot balasan kalau masih kosong; kalau udah sempat keisi, biarin
@@ -264,6 +304,8 @@ export function Session({
         );
         if (phaseRef.current === 'thinking' || phaseRef.current === 'talking') goPhase('idle');
         return;
+      } finally {
+        if (hourglass) clearTimeout(hourglass);
       }
 
       await v.drain();
@@ -290,6 +332,7 @@ export function Session({
       stopSpeaking();
       if (tick.current) clearInterval(tick.current);
       if (peekTimer.current) clearTimeout(peekTimer.current);
+      micTok.current++; // `listen()` yang nyusul habis sesi ditutup mati sendiri
       meter.current?.close();
       void listener.current?.stop();
     };
@@ -316,15 +359,25 @@ export function Session({
        bikin dua sesi Azure — yang satu bakal bocor. */
     goPhase('rec');
     setErr(null);
+    partialRef.current = '';
     setPartial('');
     setMs(0);
+    const mine = ++micTok.current;
     try {
       meter.current = meter.current ?? (await openMeter());
       tick.current = window.setInterval(() => {
         setLevels(meter.current ? meter.current.read(BARS) : fakeLevels(BARS));
         setMs((m) => m + 90);
       }, 90);
-      listener.current = await listen('en-US', setPartial);
+      const s = await listen('en-US', (t) => {
+        partialRef.current = t;
+        setPartial(t);
+      });
+      if (micTok.current !== mine) {
+        void s.stop(); // keburu dilepas — jangan ditinggal nyala
+        return;
+      }
+      listener.current = s;
     } catch (e) {
       if (tick.current) clearInterval(tick.current);
       setLevels(flat());
@@ -342,11 +395,16 @@ export function Session({
        kalinya — versi live-nya, tanpa tanda baca final. */
     goPhase('thinking');
     sent.current = ''; // belum ada yang beneran kekirim: jangan tawarin "betulin" dulu
+    micTok.current++; // batalin `listen()` yang mungkin masih nyambung
     if (tick.current) clearInterval(tick.current);
     setLevels(flat());
     const l = listener.current;
     listener.current = null;
-    const text = l ? await l.stop() : partial;
+    /* Nggak ada perekam = nggak ada yang didenger (mic-nya keburu dilepas
+       sebelum Azure nyambung). Jangan jatuh ke `partial`: isinya bisa
+       kalimat giliran sebelumnya, dan itu bakal kekirim dobel. */
+    const text = l ? await l.stop() : '';
+    partialRef.current = '';
     setPartial('');
     /* draft = kalimat yang tadi ketahan waktu mampir ke Bengkel. Disambung
        di depan, jadi Zii nerima satu giliran utuh, bukan potongan. */
@@ -357,7 +415,7 @@ export function Session({
     }
     setDraft('');
     await send(whole);
-  }, [partial, draft, send]);
+  }, [draft, send]);
 
   /* TAHAN rekaman: mic dimatiin, tapi yang udah diucapin disimpen di draft
      — bukan dibuang, bukan dikirim. Ini yang bikin kamu bisa ngomong dua
@@ -367,20 +425,24 @@ export function Session({
     if (phaseRef.current !== 'rec') return;
     /* goPhase duluan: handler keyup bisa nembak sebelum React render ulang. */
     goPhase('idle');
+    micTok.current++;
     if (tick.current) clearInterval(tick.current);
     setLevels(flat());
     const l = listener.current;
     listener.current = null;
+    const live = partialRef.current;
+    partialRef.current = '';
+    setPartial('');
+    if (!l) return; // belum sempat ngerekam apa-apa
     /* stop() cuma balikin segmen yang udah difinalisasi Azure. Di sini kita
        sering motong persis di tengah kata, jadi ekor kalimatnya bisa ketinggal
-       — `partial` (hasil recognizing) biasanya lebih panjang. Ambil yang
-       terpanjang biar nggak ada yang hilang. */
-    const settled = l ? await l.stop() : '';
-    const text = settled.length >= partial.length ? settled : partial;
-    setPartial('');
+       — hasil `recognizing` biasanya lebih panjang. Ambil yang terpanjang
+       biar nggak ada yang hilang. */
+    const settled = await l.stop();
+    const text = settled.length >= live.length ? settled : live;
     const t = text.trim();
     if (t) setDraft((d) => (d ? `${d} ${t}` : t));
-  }, [partial]);
+  }, []);
 
   const openBengkel = useCallback(() => {
     voiceRef.current?.kill();

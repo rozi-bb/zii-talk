@@ -40,9 +40,13 @@ export function Drill({
   const [err, setErr] = useState<string | null>(null);
   const ses = useRef<Session | null>(null);
   const box = useRef<HTMLInputElement | null>(null);
+  /* mic distop (atau panelnya ditutup) sebelum Azure kelar nyambung:
+     `listen()` yang nyusul langsung dimatiin, jangan ditinggal nyala */
+  const micTok = useRef(0);
 
   useEffect(() => {
     return () => {
+      micTok.current++;
       stopSpeaking();
       void ses.current?.stop();
     };
@@ -62,6 +66,7 @@ export function Drill({
   async function mic() {
     if (!speechReady) return;
     if (rec) {
+      micTok.current++; // batalin `listen()` yang mungkin masih nyambung
       const s = ses.current;
       ses.current = null;
       setRec(false);
@@ -71,8 +76,14 @@ export function Drill({
     }
     setErr(null);
     setRec(true);
+    const mine = ++micTok.current;
     try {
-      ses.current = await listen('en-US', setSaid);
+      const s = await listen('en-US', setSaid);
+      if (micTok.current !== mine) {
+        void s.stop();
+        return;
+      }
+      ses.current = s;
     } catch (e) {
       setRec(false);
       setErr(errText(e));

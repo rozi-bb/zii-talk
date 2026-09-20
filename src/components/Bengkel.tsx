@@ -59,6 +59,11 @@ export function Bengkel({
   const [fresh, setFresh] = useState(false);
 
   const ses = useRef<Session | null>(null);
+  /* mic dilepas sebelum Azure kelar nyambung: `listen()` yang nyusul
+     langsung dimatiin, biar nggak ada perekam nyangkut di belakang */
+  const micTok = useRef(0);
+  /* salinan `said` yang selalu up-to-date — state-nya kebaca telat satu render */
+  const saidRef = useRef('');
   /* speak() nutup player lama, tapi promise & event kata-nya bisa nyusul
      belakangan. Tanpa penanda ini, dengerin kartu A lalu B bikin sisa
      suara A nimpa highlight & status kartu B. */
@@ -70,6 +75,7 @@ export function Bengkel({
     return () => {
       stopSpeaking();
       if (timer.current) clearInterval(timer.current);
+      micTok.current++; // `listen()` yang nyusul habis panel ditutup mati sendiri
       meter.current?.close();
       void ses.current?.stop();
     };
@@ -111,14 +117,24 @@ export function Bengkel({
   async function startListen() {
     if (!speechReady || stage === 'listening' || busy) return;
     setErr(null);
+    saidRef.current = '';
     setSaid('');
     setStage('listening');
+    const mine = ++micTok.current;
     try {
       meter.current = meter.current ?? (await openMeter());
       timer.current = window.setInterval(() => {
         setLevels(meter.current ? meter.current.read(BARS) : fakeLevels(BARS));
       }, 90);
-      ses.current = await listen('id-ID', setSaid);
+      const s = await listen('id-ID', (t) => {
+        saidRef.current = t;
+        setSaid(t);
+      });
+      if (micTok.current !== mine) {
+        void s.stop();
+        return;
+      }
+      ses.current = s;
     } catch (e) {
       if (timer.current) clearInterval(timer.current);
       setLevels(flat());
@@ -129,12 +145,19 @@ export function Bengkel({
 
   async function stopListen() {
     if (stage !== 'listening') return;
+    micTok.current++; // batalin `listen()` yang mungkin masih nyambung
     if (timer.current) clearInterval(timer.current);
     setLevels(flat());
     const s = ses.current;
     ses.current = null;
-    const text = s ? await s.stop() : said;
-    await go(text);
+    /* Nggak ada perekam = mic-nya keburu dilepas sebelum Azure nyambung.
+       Jangan jatuh ke `said`: isinya kalimat yang tadi udah diterjemahin,
+       dan itu bakal manggil AI lagi buat hasil yang sama. */
+    if (!s) {
+      setStage(res ? 'done' : 'empty');
+      return;
+    }
+    await go(await s.stop());
   }
 
   /* SPASI = tahan buat ngomong, sama kayak di layar obrolan utama —

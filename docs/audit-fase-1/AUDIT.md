@@ -353,6 +353,26 @@ pemisahan kotak Leitner tetap bener waktu dua review nyampe barengan
 | B18 | React nggak punya *error boundary* | Satu error waktu render = **layar putih total**; di tengah sesi, obrolannya ilang tanpa penjelasan | `src/components/Boom.tsx` — nampilin pesan error, tombol **Muat ulang** & **Coba lanjut** |
 | B19 | Petunjuk huruf awal di Latihan ulang nggak tahan spasi dobel | Kalimat dengan spasi dobel nampilin `undefined` di petunjuknya | `initials()` dipindah ke `src/lib/match.ts`, dipakai bareng Latihan ulang & "Latih dulu" |
 
+### Perburuan bug di fitur inti — ngobrol & Bengkel (20 Sep)
+
+Diuji pakai mic & balasan AI palsu yang sengaja dibikin lambat (Azure baru
+"nyambung" setelah 0,6 detik), jadi celah waktunya kebuka lebar. Skenario:
+ketuk mic sekilas, nyela Zii di tengah ngomong, "betulin" pas Zii lagi mikir,
+server balik error, dan stream yang nggak pernah ngirim apa-apa.
+
+**Yang aman:** nyela Zii tetap bener (teksnya utuh, giliran nggak dobel),
+"betulin" narik balik kalimat + buka kotak edit, error dari server nongol
+sebagai pita merah dan bubble kosongnya dibuang, dan fase dock balik ke idle
+di semua kasus.
+
+**Yang bocor, sekarang udah diperbaiki:**
+
+| # | Bug | Efeknya | Perbaikannya |
+|---|---|---|---|
+| B20 | Mic dilepas **sebelum** Azure kelar nyambung: `listen()` yang nyusul tetap dipasang | Perekam **nyangkut hidup di belakang** — mic nyala terus sampai layarnya ditutup, tetap makan kuota Azure, dan hasil dengarannya bisa nongol di giliran yang salah. Kebukti di tes: ketukan 100 ms ninggalin 1 perekam hidup | Token `micTok` di Sesi, Bengkel, Latihan ulang, dan "Latih dulu": `listen()` yang telat nyampe langsung di-`stop()`. Token-nya juga dinaikin waktu layarnya ditutup |
+| B21 | Waktu perekamnya belum ada, kode jatuh ke teks `partial` / `said` — yang isinya **giliran sebelumnya** | Ketuk mic sekilas = **kalimat lama kekirim lagi** (di tes muncul 3 jawaban identik padahal cuma 2 kali ngomong). Di Bengkel: manggil AI lagi buat kalimat yang sama, alias bayar dua kali | Nggak ada perekam = nggak ada yang didenger: nggak ngirim apa-apa. Teks hidupnya juga dipindah ke ref (`partialRef` / `saidRef`) biar nggak kebaca telat satu render |
+| B22 | Stream yang putus di tengah jalan nggak ada batas waktunya | Layar mentok di **"Zii mikir…" selamanya**: mic mati, dan "betulin" nggak nolong di giliran pembuka. Satu-satunya jalan keluar: tinggalin sesinya | Jam pasir 30 detik di `Session.tsx` — di-reset tiap ada teks masuk, habisnya = stream dibatalin, pesan "Zii nggak nyaut dari tadi", balik idle. `/api/translate` dikasih batas 60 detik |
+
 ---
 
 ## Cara risetnya

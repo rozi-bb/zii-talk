@@ -77,13 +77,22 @@ export function signedOut(): SignedOut {
   return new SignedOut('Sesi login habis. Masuk lagi ya.');
 }
 
-async function call<T>(method: string, url: string, body?: unknown): Promise<T> {
-  const r = await fetch(
-    url,
-    body === undefined
-      ? { method }
-      : { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) },
-  );
+async function call<T>(method: string, url: string, body?: unknown, signal?: AbortSignal): Promise<T> {
+  let r: Response;
+  try {
+    r = await fetch(
+      url,
+      body === undefined
+        ? { method, signal }
+        : { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal },
+    );
+  } catch (e) {
+    /* AbortSignal.timeout: server nggak nyaut sama sekali */
+    if (e instanceof Error && e.name === 'TimeoutError') {
+      throw new Error('Kelamaan nunggu jawaban server. Coba lagi.');
+    }
+    throw e;
+  }
   /* 401 dari /api/auth/* = salah password, bukan sesi habis */
   if (r.status === 401 && !url.startsWith('/api/auth/')) throw signedOut();
   const j = await r.json().catch(() => ({}) as Record<string, unknown>);
@@ -92,7 +101,7 @@ async function call<T>(method: string, url: string, body?: unknown): Promise<T> 
 }
 
 const get = <T>(url: string) => call<T>('GET', url);
-const post = <T>(url: string, body: unknown = {}) => call<T>('POST', url, body);
+const post = <T>(url: string, body: unknown = {}, signal?: AbortSignal) => call<T>('POST', url, body, signal);
 
 const DOWN = 'Server API nggak nyaut. Udah jalanin "npm run dev"?';
 
@@ -231,5 +240,7 @@ export async function chatStream(
   return full;
 }
 
+/* Bengkel nungguin ini sambil ngunci mic-nya, jadi kasih batas: server yang
+   diem-diem aja nggak boleh bikin panelnya muter selamanya. */
 export const translate = (p: { model: string; text: string; topic: string }) =>
-  post<Translation>('/api/translate', p);
+  post<Translation>('/api/translate', p, AbortSignal.timeout(60_000));

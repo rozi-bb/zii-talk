@@ -44,6 +44,9 @@ export function Review({
   const lib = useRef<SpeechLib | null>(null);
   const listener = useRef<{ stop: () => Promise<string> } | null>(null);
   const tok = useRef(0);
+  /* mic udah distop (atau layarnya ditutup) sebelum Azure kelar nyambung:
+     `listen()` yang nyusul langsung dimatiin, jangan ditinggal nyala */
+  const micTok = useRef(0);
 
   useEffect(() => {
     const prev = document.title;
@@ -51,6 +54,7 @@ export function Review({
     return () => {
       document.title = prev;
       tok.current++;
+      micTok.current++;
       lib.current?.stopSpeaking();
       void listener.current?.stop();
     };
@@ -94,6 +98,7 @@ export function Review({
   async function mic() {
     if (!cfg.speech.ready) return;
     if (rec) {
+      micTok.current++; // batalin `listen()` yang mungkin masih nyambung
       const l = listener.current;
       listener.current = null;
       setRec(false);
@@ -103,9 +108,15 @@ export function Review({
     }
     setRec(true);
     setErr(null);
+    const mine = ++micTok.current;
     try {
       lib.current ??= await import('../lib/speech');
-      listener.current = await lib.current.listen('en-US', setSaid);
+      const s = await lib.current.listen('en-US', setSaid);
+      if (micTok.current !== mine) {
+        void s.stop();
+        return;
+      }
+      listener.current = s;
     } catch (e) {
       setRec(false);
       setErr(errText(e));
