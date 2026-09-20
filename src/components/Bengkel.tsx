@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Icon } from './icons';
 import { Wave } from './bits';
+import { Drill } from './Drill';
 import { translate, type Translation } from '../lib/api';
 import { listen, speak, stopSpeaking, openMeter, fakeLevels, type Meter, type Session } from '../lib/speech';
 
@@ -22,6 +23,7 @@ export function Bengkel({
   speechReady,
   onClose,
   onSave,
+  onPick,
 }: {
   model: string;
   topic: string;
@@ -29,6 +31,9 @@ export function Bengkel({
   speechReady: boolean;
   onClose: () => void;
   onSave: (en: string, id: string) => void;
+  /* kalimat yang lagi dipilih — dipakai layar sesi buat kartu contekan
+     waktu bengkelnya ditutup (termasuk kalau ditutup pakai ESC) */
+  onPick: (en: string) => void;
 }) {
   const [stage, setStage] = useState<Stage>(speechReady ? 'empty' : 'typing');
   const [said, setSaid] = useState('');
@@ -48,6 +53,8 @@ export function Bengkel({
   const [savedTexts, setSavedTexts] = useState<string[]>([]);
   /* naik tiap hasil baru -> kartu di-remount, geserannya balik ke pilihan pertama */
   const [gen, setGen] = useState(0);
+  /* kalimat yang lagi dilatih di "Latih dulu"; null = lagi di layar terjemahan */
+  const [drill, setDrill] = useState<string | null>(null);
   const tracks = useRef<Partial<Record<Ver, HTMLDivElement | null>>>({});
   const [fresh, setFresh] = useState(false);
 
@@ -138,13 +145,13 @@ export function Bengkel({
       return !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
     };
     const down = (e: KeyboardEvent) => {
-      if (e.code !== 'Space' || isField(e.target) || stage === 'typing') return;
+      if (e.code !== 'Space' || isField(e.target) || stage === 'typing' || drill) return;
       e.preventDefault();
       if (e.repeat) return;
       void startListen();
     };
     const up = (e: KeyboardEvent) => {
-      if (e.code !== 'Space' || isField(e.target) || stage === 'typing') return;
+      if (e.code !== 'Space' || isField(e.target) || stage === 'typing' || drill) return;
       e.preventDefault();
       void stopListen();
     };
@@ -154,7 +161,7 @@ export function Bengkel({
       window.removeEventListener('keydown', down);
       window.removeEventListener('keyup', up);
     };
-  }, [speechReady, stage, busy]);
+  }, [speechReady, stage, busy, drill]);
 
   function hush() {
     playTok.current++;
@@ -206,6 +213,26 @@ export function Bengkel({
   const pickLabel = vers.find((v) => v.key === pick)?.label ?? 'Formal';
   const current = res ? (res[pick][slide[pick]] ?? res[pick][0]) : '';
   const saved = savedTexts.includes(current);
+
+  /* layar sesi ikut tau kalimat mana yang lagi dipilih */
+  useEffect(() => {
+    onPick(current);
+  }, [current, onPick]);
+
+  if (drill) {
+    return (
+      <div className="bengkel">
+        <div className="handle" />
+        <Drill
+          sentence={drill}
+          voice={voice}
+          speechReady={speechReady}
+          onBack={() => setDrill(null)}
+          onReady={onClose}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="bengkel">
@@ -475,6 +502,13 @@ export function Bengkel({
                   res[pick].length > 1 ? ` · pilihan ${slide[pick] + 1}` : ''
                 }`}
           </p>
+        )}
+        {/* latihan kilat 3 langkah — bantuannya makin dikit tiap langkah */}
+        {res && (
+          <button className="btn ghost bk-drill" onClick={() => setDrill(current)}>
+            <Icon name="replay" size={16} />
+            Latih dulu biar nempel
+          </button>
         )}
         <div className="bk-acts">
           <button className="btn ghost" onClick={onClose}>

@@ -107,7 +107,7 @@ kontras, ukuran teks, dan target sentuh. Sisa temuan di
 | Utang CSS ([3.4](#34-konsistensi--utang-css)) | **Sebagian** | Favicon; CSS mati `.fcard`, `.side-head`, `.gloss`, `.round.plain`, `.use`, `.save` dihapus; bug `.ghost` yang nimpa `.btn.ghost` beres | `.pill`, `.dsp` masih ada; hex di CSS 182 (98 unik), `style={{…}}` inline 38; manifest & app icon |
 | Sesi ([2.2](#22-sesi-ngobrol), [4.4](#44-sesi-fokus-ke-obrolan-tutup-dengan-ringkasan)) | **Sebagian** | Timer menit:detik (B1), kontras, ukuran teks, target sentuh, **ringkasan sesi**, konfirmasi keluar in-app (B11), area obrolan HP ±77% (dari ±61%) | Kartu koreksi selalu "Hampir bener!", `lang="en"` di bubble, istilah "Tes #n" di progres |
 | Akun & login ([Login & akun](#login--akun)) | **Sebagian** | Daftar & masuk pakai email + password, keluar, semua API wajib login, frasa / riwayat tes / momentum / model / suara per akun, akun pertama admin + dapet data lama, batas salah password | Login Google, topik per akun, batas pemakaian AI, lupa password, verifikasi email, menu admin, online |
-| Bengkel ([2.3](#23-bengkel-kalimat), [4.5](#45-bengkel-satu-tujuan-per-layar)) | **Sebagian** | Tombol "Simpan frasa" & "Balik ngobrol" nempel di bawah (B7), kontras, ukuran teks, tombol × & panah lebih gede | Highlight kata (B6), spasi kata (B8), backdrop HP (B12), tombol di dalam tombol (B14), tampilan bertahap |
+| Bengkel ([2.3](#23-bengkel-kalimat), [4.5](#45-bengkel-satu-tujuan-per-layar)) | **Sebagian** | Tombol "Simpan frasa" & "Balik ngobrol" nempel di bawah (B7), kontras, ukuran teks, tombol × & panah lebih gede, **kartu contekan** waktu panelnya ditutup, **Latih dulu** 3 langkah | Highlight kata (B6), spasi kata (B8), backdrop HP (B12), tombol di dalam tombol (B14), tampilan bertahap |
 
 ### Yang berubah di review desain (`078eba9`, `931f351`)
 
@@ -300,6 +300,33 @@ lagi. Jadi akun pertama yang daftar tetap pemilik app, dan dia yang jadi admin.
 **4. Area obrolan di HP** — begitu ada jawaban pertama, orb gede pindah ke
 header jadi avatar kecil dan petunjuk "jawab minimal 10 kali" disembunyiin.
 Diukur di 375×812: transkrip **61% → 77%** layar (laptop 71%).
+
+**5. Contekan dari Bengkel** (`src/screens/Session.tsx`) — masalahnya: Bengkel
+ditutup (apalagi pakai ESC), kalimatnya ikut hilang, jadi mau nggak mau
+dihafal dalam hitungan detik.
+
+- Kalimat yang lagi dipilih dilaporin ke layar sesi lewat prop `onPick`, jadi
+  **semua** jalan keluar bawa kalimatnya: tombol Balik ngobrol, tombol ×,
+  ESC, dan selesai latihan.
+- Kartunya nempel di atas mic, teksnya **tersamar** (`filter: blur`). Ketuk =
+  ngintip, nyamar lagi sendiri setelah 5 detik atau diketuk lagi.
+- Hilang otomatis begitu kalimatnya kepakai (satu giliran kekirim), dan bisa
+  dibuang manual lewat ×.
+- Ingatannya tetap dipaksa kerja (recall dulu, ngintip kalau mentok), tapi
+  obrolan nggak pernah buntu gara-gara lupa satu kalimat.
+
+**6. "Latih dulu" di Bengkel** (`src/components/Drill.tsx`) — latihan kilat 3
+langkah dengan bantuan yang makin dikit (*fading cues*):
+
+1. Kalimatnya kelihatan — dengerin (bisa dipelanin), terus tirukan.
+2. Cuma huruf awalnya (`C···· I g·· t·· b···· p······`) — ucapkan atau ketik.
+3. Tanpa petunjuk sama sekali.
+
+Jawabannya dinilai pakai `src/lib/match.ts` yang sama kayak latihan ulang
+(gratis, nggak manggil AI); salah = kalimat aslinya dibuka lagi buat
+dibandingin, plus tombol **Coba lagi**. Selesai = balik ngobrol, kalimatnya
+otomatis jadi contekan. Semua langkah bisa dilewati — latihan ini opsional,
+biar yang lagi buru-buru nggak ketahan.
 
 **Cara ngetesnya:** akun uji sendiri (bukan akun kamu), mic & balasan AI
 dipalsuin sementara biar nggak ada biaya dan nggak perlu ngomong; stub-nya
@@ -922,6 +949,7 @@ Dicentang = beres per 14 September 2026.
 - [x] **Koleksi frasa**: lihat, cari, filter, dengerin, hapus
 - [x] **Latihan ulang** frasa (kotak Leitner) + kartu "frasa perlu diulang" di beranda
 - [x] **Progres** dengan metrik kelancaran (menit ngomong, koreksi per 10 jawaban, grafik 8 minggu)
+- [x] **Contekan** dari Bengkel + **Latih dulu** (3 langkah, bantuannya makin dikit)
 
 ### Fase 2c — Poles (menyusul)
 
@@ -947,17 +975,16 @@ Detailnya di [Login & akun](#login--akun).
 ### Urutan berikutnya yang disarankan
 
 Siklus belajarnya (ringkasan sesi, latihan ulang, metrik kelancaran, area
-obrolan HP) udah beres 20 Sep — lihat [Siklus belajar](#siklus-belajar).
+obrolan HP, contekan & Latih dulu di Bengkel) udah beres 20 Sep — lihat
+[Siklus belajar](#siklus-belajar).
 
-1. **Bantuan ngingat kalimat Bengkel:** kartu contekan tersamar setelah Bengkel
-   ditutup, biar kalimatnya nggak perlu dihafal dalam hitungan detik. Lanjutan
-   opsionalnya: langkah "Latih dulu" di Bengkel (dengar → tirukan → ucapkan
-   tanpa lihat).
-2. **Sisa bug kecil Sesi & Bengkel:** B8 + B6 (highlight & spasi kata), B12
+1. **Sisa bug kecil Sesi & Bengkel:** B8 + B6 (highlight & spasi kata), B12
    (backdrop HP), B14 + B15 (aksesibilitas).
-3. **Edit & arsip topik,** sekalian mutusin topik per akun.
-4. **Pengaturan yang belum ada:** kecepatan bicara, ekspresi on/off, koreksi
+2. **Edit & arsip topik,** sekalian mutusin topik per akun.
+3. **Pengaturan yang belum ada:** kecepatan bicara, ekspresi on/off, koreksi
    on/off, target jawaban, status database.
+4. **Poles latihan ulang:** filter per topik, dan catat berapa kali contekan
+   diintip sebagai tanda frasa itu masih susah.
 
 ---
 

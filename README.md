@@ -369,17 +369,23 @@ tanpa navigasi.
 1. **Sesi** — ngobrol sama Zii, kartu koreksi nongol waktu ada yang keliru.
 2. **Frasa** — ketuk *Tangkap frasa* di kartu koreksi, atau *Simpan frasa* di
    Bengkel. Semuanya ngumpul di **Koleksi**.
-3. **Ringkasan sesi** — begitu sesinya ditutup: jumlah jawaban, lama sesi,
+3. **Balik dari Bengkel** — kalimat yang kamu pilih ikut balik jadi **contekan**
+   di atas mic: tersamar, ketuk buat ngintip (nyamar lagi setelah 5 detik),
+   dan hilang sendiri begitu kalimatnya kepakai. Jadi nggak perlu dihafal
+   dalam hitungan detik. Mau lebih nempel: tombol **Latih dulu** di Bengkel —
+   3 langkah dengan bantuan yang makin dikit (lihat → huruf awal → tanpa
+   petunjuk), dinilai pakai pencocokan yang sama dengan latihan ulang.
+4. **Ringkasan sesi** — begitu sesinya ditutup: jumlah jawaban, lama sesi,
    daftar koreksi, frasa yang kesimpan, dan perbandingan koreksi per 10 jawaban
    sama sesi sebelumnya di topik yang sama. Kalau jawabannya belum nyampe 10,
    ringkasan ini sekalian jadi konfirmasi keluar.
-4. **Latihan ulang** — frasa balik lagi sesuai **kotak Leitner**: kotak 1-5 =
+5. **Latihan ulang** — frasa balik lagi sesuai **kotak Leitner**: kotak 1-5 =
    1, 3, 7, 14, 30 hari. *Pas* naik satu kotak, *hampir* kotaknya tetap,
    *belum* balik ke kotak 1; dua yang terakhir diulang besok. Jawabannya
    dicocokin longgar (tanda baca, huruf besar, dan singkatan kayak "I'd" vs
    "I would" dianggap sama — `src/lib/match.ts`), dan penilaiannya bisa ditimpa
    manual. Jumlah yang jatuh tempo nongol di beranda & Koleksi.
-5. **Dashboard** — metrik kelancaran: menit ngomong, **koreksi per 10 jawaban**
+6. **Dashboard** — metrik kelancaran: menit ngomong, **koreksi per 10 jawaban**
    (makin kecil makin lancar), topik aktif, dan grafik 8 minggu terakhir
    (`GET /api/progress`).
 
@@ -415,7 +421,7 @@ src/lib/topics.ts   cari, filter, urutkan topik + pilih rekomendasi hari ini
 src/lib/match.ts    nilai jawaban latihan ulang (cocokin longgar, per kata)
 src/lib/format.ts   format waktu ("3 jam yang lalu")
 src/screens/        Login, Home (Latihan), Topics, Collection (Koleksi), Review (Latihan ulang), Settings, Session, Dashboard
-src/components/     Shell (navigasi), TopicCard, TopicForm, Bengkel, orb, waveform, ikon
+src/components/     Shell (navigasi), TopicCard, TopicForm, Bengkel, Drill (latih dulu), orb, waveform, ikon
 scripts/bridge.mjs  bridge Tailscale (HTTPS buat mic)
 design/             canvas desain
 ```

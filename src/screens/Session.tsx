@@ -96,6 +96,16 @@ export function Session({
   /* frasa yang ketangkap sesi ini (kartu koreksi + Bengkel) */
   const [caught, setCaught] = useState<string[]>([]);
   const startedAt = useRef(Date.now());
+  /* Contekan: kalimat pilihan dari Bengkel, nempel di atas dock dalam keadaan
+     tersamar. Ingatannya tetap dipaksa kerja, tapi obrolan nggak pernah buntu
+     cuma gara-gara lupa satu kalimat. */
+  const [cue, setCue] = useState<string | null>(null);
+  const [peek, setPeek] = useState(false);
+  /* kalimat yang lagi dipilih di Bengkel — dibaca waktu panelnya ditutup,
+     lewat tombol mana pun (termasuk ESC) */
+  const picked = useRef('');
+  /* ngintip nyamar lagi sendiri — biar nggak keterusan kebaca */
+  const peekTimer = useRef<number | null>(null);
 
   const situation = useRef(topic.situations[Math.floor(Math.random() * topic.situations.length)] ?? '');
   const runId = useRef(newRunId());
@@ -180,6 +190,7 @@ export function Session({
       const live = () => turnRef.current === turn;
 
       setErr(null);
+      if (mine) setCue(null); // udah kepakai — contekannya nggak perlu lagi
       goPhase('thinking');
       setLines([...base, { role: 'ai', text: '', at: Date.now() }]);
 
@@ -278,6 +289,7 @@ export function Session({
       voiceRef.current?.kill();
       stopSpeaking();
       if (tick.current) clearInterval(tick.current);
+      if (peekTimer.current) clearTimeout(peekTimer.current);
       meter.current?.close();
       void listener.current?.stop();
     };
@@ -374,8 +386,19 @@ export function Session({
     voiceRef.current?.kill();
     void holdRec(); // lagi ngerekam? tahan dulu, jangan hilang
     if (phaseRef.current === 'talking') goPhase('idle');
+    picked.current = '';
+    setCue(null);
+    setPeek(false);
     setPaused(true);
   }, [holdRec]);
+
+  /* Semua jalan keluar dari Bengkel lewat sini — tombol, ×, dan ESC — biar
+     kalimat yang tadi dipilih selalu kebawa jadi contekan. */
+  const closeBengkel = useCallback(() => {
+    setPaused(false);
+    setPeek(false);
+    setCue(picked.current.trim() || null);
+  }, []);
 
   /* Tarik balik giliran yang barusan dikirim, sebelum Zii sempat nyaut.
      Dipicu waktu kamu ketuk SPASI lagi pas Zii masih mikir — biasanya
@@ -450,7 +473,7 @@ export function Session({
       void stopRec();
     };
     const esc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && paused) setPaused(false);
+      if (e.key === 'Escape' && paused) closeBengkel();
     };
     window.addEventListener('keydown', down);
     window.addEventListener('keyup', up);
@@ -460,7 +483,7 @@ export function Session({
       window.removeEventListener('keyup', up);
       window.removeEventListener('keydown', esc);
     };
-  }, [startRec, stopRec, openBengkel, betulin, paused]);
+  }, [startRec, stopRec, openBengkel, closeBengkel, betulin, paused]);
 
   /* ── tangkap frasa: animasi terbang ke counter ───────── */
   function grab(i: number, p: Phrase, e: React.MouseEvent) {
@@ -768,6 +791,38 @@ export function Session({
           </div>
         </div>
 
+        {/* contekan dari Bengkel: tersamar, tahan buat ngintip */}
+        {!paused && cue && (
+          <div className="cue">
+            <button
+              type="button"
+              className={`cue-peek${peek ? ' on' : ''}`}
+              aria-pressed={peek}
+              onClick={() => {
+                if (peekTimer.current) clearTimeout(peekTimer.current);
+                setPeek((p) => {
+                  /* kebuka = nyamar lagi 5 detik kemudian, atau ketuk lagi */
+                  if (!p) peekTimer.current = window.setTimeout(() => setPeek(false), 5000);
+                  return !p;
+                });
+              }}
+              aria-label={`Contekan dari Bengkel: ${cue}`}
+            >
+              <span className="cue-lbl">
+                <Icon name="bookmark" size={13} />
+                Contekan
+                <em>{peek ? 'ketuk buat nyamarin' : 'ketuk buat ngintip'}</em>
+              </span>
+              <span className="cue-text" lang="en" aria-hidden="true">
+                {cue}
+              </span>
+            </button>
+            <button className="cue-x" onClick={() => setCue(null)} aria-label="Buang contekan">
+              <Icon name="x" size={14} />
+            </button>
+          </div>
+        )}
+
         {/* dock */}
         {!paused && (
           <div className="dock">
@@ -852,7 +907,10 @@ export function Session({
               setBump(true);
               window.setTimeout(() => setBump(false), 600);
             }}
-            onClose={() => setPaused(false)}
+            onPick={(en) => {
+              picked.current = en;
+            }}
+            onClose={closeBengkel}
           />
         </div>
       )}
