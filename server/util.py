@@ -4,8 +4,23 @@ from __future__ import annotations
 
 import re
 import unicodedata
+from typing import Any
 
+from fastapi import Request
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
+
+
+async def json_body(req: Request) -> dict[str, Any] | None:
+    """Body JSON sebagai dict, atau None kalau rusak / bukan objek.
+
+    Dua route (chat & translate) baca body-nya manual, bukan lewat model
+    pydantic. Tanpa ini, body yang kepotong di tengah jalan bikin 500 yang
+    isinya HTML — padahal frontend nunggu {"error": "..."}."""
+    try:
+        body = await req.json()
+    except Exception:  # noqa: BLE001 — JSON rusak, bukan urusan kita kenapanya
+        return None
+    return body if isinstance(body, dict) else None
 
 
 def clean(s: object, max_len: int = 400) -> str:

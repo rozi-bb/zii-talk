@@ -8,7 +8,7 @@ from pydantic import BaseModel
 
 from server.agent.models import MODELS, key_for, pick_model
 from server.agent.workshop import graph as workshop
-from server.util import clean
+from server.util import clean, json_body
 
 router = APIRouter(prefix="/api", tags=["Bengkel Kalimat"])
 
@@ -29,7 +29,10 @@ def _clean_all(xs: object) -> list[str]:
     summary="Terjemah Indonesia -> Inggris, 3 pilihan formal & 3 santai",
 )
 async def translate_endpoint(req: Request):
-    body = await req.json()
+    body = await json_body(req)
+    if body is None:
+        return JSONResponse(status_code=400, content={"error": "Data yang dikirim nggak kebaca. Coba lagi."})
+
     said = clean(body.get("text"), 500)
     if not said:
         return JSONResponse(status_code=400, content={"error": "Belum ada yang mau diterjemahin"})

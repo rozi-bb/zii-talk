@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Icon } from '../components/icons';
 import { loadDuePhrases, reviewPhrase, type AppConfig, type ReviewResult, type SavedPhrase } from '../lib/api';
-import { grade } from '../lib/match';
+import { grade, initials } from '../lib/match';
 import { linkTo, type Go } from '../lib/nav';
 
 type SpeechLib = typeof import('../lib/speech');
@@ -197,10 +197,7 @@ export function Review({
             <p className="rv-ask">{card.meaning || 'Ingat kalimat yang kamu simpan ini'}</p>
             {!card.meaning && !result && (
               <p className="rv-hint" lang="en">
-                {card.en
-                  .split(' ')
-                  .map((w) => `${w[0]}${'·'.repeat(Math.max(0, w.length - 1))}`)
-                  .join(' ')}
+                {initials(card.en)}
               </p>
             )}
 

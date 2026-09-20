@@ -1,17 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { Icon } from './icons';
-import { grade } from '../lib/match';
+import { grade, initials } from '../lib/match';
 import { listen, speak, stopSpeaking, type Session } from '../lib/speech';
 import type { ReviewResult } from '../lib/api';
 
 const errText = (e: unknown) => (e instanceof Error ? e.message : String(e));
-
-/* huruf awal tiap kata: "I'd like to go" -> "I·· l··· t· g·" */
-const initials = (s: string) =>
-  s
-    .split(' ')
-    .map((w) => `${w[0] ?? ''}${'·'.repeat(Math.max(0, w.length - 1))}`)
-    .join(' ');
 
 const STEPS = [
   { title: 'Dengerin, terus tirukan keras-keras.', hint: 'Kalimatnya masih kelihatan.' },

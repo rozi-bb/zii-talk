@@ -22,14 +22,17 @@ from server import db, expressions, runlog
 from server.agent.conversation import graph as conversation
 from server.agent.models import MODELS, key_for, pick_model
 from server.auth import User, current_user
-from server.util import clean, to_messages
+from server.util import clean, json_body, to_messages
 
 router = APIRouter(prefix="/api/chat", tags=["Chat"])
 
 
 @router.post("/stream", summary="Streaming NDJSON: balasan Zii + koreksi (paralel)")
 async def chat_stream(req: Request, user: User = Depends(current_user)):
-    body = await req.json()
+    body = await json_body(req)
+    if body is None:
+        return JSONResponse(status_code=400, content={"error": "Data yang dikirim nggak kebaca. Coba lagi."})
+
     model = pick_model(body.get("model"))
     if not key_for(model):
         spec = MODELS[model]

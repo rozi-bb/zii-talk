@@ -77,6 +77,15 @@ export function similarity(said: string, target: string): number {
   return 1 - distance(a, b) / Math.max(a.length, b.length);
 }
 
+/** Petunjuk huruf awal: "I'd like to go" -> "I·· l··· t· g·". */
+export function initials(s: string): string {
+  return s
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => `${w[0]}${'·'.repeat(w.length - 1)}`)
+    .join(' ');
+}
+
 /** Nilai otomatis. Bisa ditimpa manual di layar latihan. */
 export function grade(said: string, target: string): ReviewResult {
   const s = similarity(said, target);

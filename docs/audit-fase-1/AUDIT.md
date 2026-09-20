@@ -332,6 +332,27 @@ biar yang lagi buru-buru nggak ketahan.
 dipalsuin sementara biar nggak ada biaya dan nggak perlu ngomong; stub-nya
 dibalikin sebelum commit, akun ujinya dihapus habis tes.
 
+### Perburuan bug (20 Sep)
+
+Semua endpoint ditembakin data ngawur pakai dua akun uji: body rusak, JSON
+bukan objek, teks 5.000 huruf, string SQL injection, emoji, `limit` bukan
+angka, id ngawur, data akun lain, dan dua request barengan ke frasa yang sama.
+
+**Yang aman:** data antar akun tetap kepisah (404 semua), SQL injection nggak
+mempan (query-nya berparameter), teks kepanjangan kepotong di 300 huruf,
+pemisahan kotak Leitner tetap bener waktu dua review nyampe barengan
+(`SELECT … FOR UPDATE`), dan endpoint baru (`/api/phrases/due`,
+`/api/phrases/{id}/review`, `/api/progress`) nolak yang belum login.
+
+**Yang bocor, sekarang udah diperbaiki:**
+
+| # | Bug | Efeknya | Perbaikannya |
+|---|---|---|---|
+| B16 | `POST /api/chat/stream` & `/api/translate` baca body manual (`await req.json()`) tanpa pengaman | Body yang rusak / bukan objek bikin **500 berisi HTML**, bukan `{"error": …}` — di layar cuma kebaca "Gagal (500)" | Helper `json_body()` di `server/util.py`; body rusak dijawab 400 + pesan yang kebaca |
+| B17 | Nggak ada jaring buat error yang nggak kepikiran | Error apa pun yang lolos jadi 500 HTML, sama bingungnya buat user | Handler `Exception` di `server/main.py`: tetap `{"error": …}` + traceback lengkap ke log |
+| B18 | React nggak punya *error boundary* | Satu error waktu render = **layar putih total**; di tengah sesi, obrolannya ilang tanpa penjelasan | `src/components/Boom.tsx` — nampilin pesan error, tombol **Muat ulang** & **Coba lanjut** |
+| B19 | Petunjuk huruf awal di Latihan ulang nggak tahan spasi dobel | Kalimat dengan spasi dobel nampilin `undefined` di petunjuknya | `initials()` dipindah ke `src/lib/match.ts`, dipakai bareng Latihan ulang & "Latih dulu" |
+
 ---
 
 ## Cara risetnya

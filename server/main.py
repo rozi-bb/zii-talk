@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import traceback
 from pathlib import Path
 
 import psycopg
@@ -74,6 +75,18 @@ async def on_invalid(_: Request, e: RequestValidationError) -> JSONResponse:
     field = ".".join(str(p) for p in first.get("loc", [])[1:])
     msg = first.get("msg", "Data nggak valid").removeprefix("Value error, ")
     return JSONResponse(status_code=422, content={"error": f"{field}: {msg}" if field else msg})
+
+
+# Jaring terakhir: error yang nggak kepikiran pun tetap keluar sebagai
+# {"error": "..."} — dulu jadi 500 berisi HTML, dan di layar cuma kebaca
+# "Gagal (500)". Detail lengkapnya tetap ke log server.
+@app.exception_handler(Exception)
+async def on_crash(_: Request, e: Exception) -> JSONResponse:
+    traceback.print_exception(e)
+    return JSONResponse(
+        status_code=500,
+        content={"error": f"Ada yang error di server ({type(e).__name__}). Cek log-nya buat detail."},
+    )
 
 # ── frontend hasil build ────────────────────────────────────────────
 DIST = Path(__file__).resolve().parent.parent / "dist"
