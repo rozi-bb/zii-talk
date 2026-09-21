@@ -196,7 +196,7 @@ export default function App() {
         ) : page === '/koleksi' ? (
           <Collection cfg={cfg} voice={st.voice} due={st.due} go={go} onChanged={merge} />
         ) : page === '/ulang' ? (
-          <Review cfg={cfg} voice={st.voice} go={go} onDue={(due) => setSt((s) => s && { ...s, due })} />
+          <Review cfg={cfg} model={st.model} voice={st.voice} go={go} onDue={(due) => setSt((s) => s && { ...s, due })} />
         ) : page === '/dashboard' ? (
           <Dashboard cfg={cfg} topics={topics} categories={categories} onRefresh={refresh} onStart={start} />
         ) : page === '/pengaturan' ? (

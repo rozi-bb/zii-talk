@@ -1,4 +1,4 @@
-import type { ReviewResult } from './api';
+import { gradeAnswer, type ReviewResult, type Verdict } from './api';
 
 /* Nilai jawaban latihan ulang. Sengaja longgar: yang dilatih itu kemampuan
    ngomong, bukan hafal tanda baca. Huruf besar, tanda baca, aksen, dan
@@ -91,4 +91,23 @@ export function grade(said: string, target: string): ReviewResult {
   const s = similarity(said, target);
   if (s >= 0.85) return 'pas';
   return s >= 0.5 ? 'hampir' : 'belum';
+}
+
+/**
+ * Nilai berdasarkan MAKNA. Yang hampir sama persis langsung "pas" (instan,
+ * gratis); sisanya dinilai LLM — beda kata/susunan nggak masalah asal
+ * maknanya sama, grammar-nya benar, dan lazim diucapin. Kalau LLM-nya gagal,
+ * balik ke pencocokan kata biar layarnya nggak nyangkut.
+ */
+export async function judge(p: { model: string; meaning: string; target: string; answer: string }): Promise<Verdict> {
+  if (similarity(p.answer, p.target) >= 0.85) return { result: 'pas', why: null, better: null };
+  try {
+    return await gradeAnswer(p);
+  } catch {
+    return {
+      result: grade(p.answer, p.target),
+      why: 'AI penilainya lagi nggak bisa dihubungi, jadi ini cuma dicocokin kata per kata.',
+      better: null,
+    };
+  }
 }

@@ -1180,3 +1180,7 @@ button.trow:focus-visible, .run:focus-visible, .td-sit summary:focus-visible { o
 svg { transition: transform 0.2s ease; }
 .ar { color: #c79a2e; }
 .fix-diff .ar { flex-shrink: 0; }
+.rv-why { margin: 2px 0 4px; font-size: 14px; font-weight: 600; line-height: 1.45; color: var(--ink); }
+.rv-better { display: flex; flex-direction: column; gap: 2px; margin-top: 12px; padding: 12px 14px; border-radius: 14px; border: 1.5px dashed var(--line, #e6dccf); }
+.rv-better small { font-size: 12px; font-weight: 700; color: var(--ink-mute); }
+.rv-better b { font-family: var(--dsp); font-size: 17px; font-weight: 700; line-height: 1.3; overflow-wrap: anywhere; }

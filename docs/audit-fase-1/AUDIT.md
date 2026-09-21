@@ -98,7 +98,7 @@ kontras, ukuran teks, dan target sentuh. Sisa temuan di
 | Beranda ([2.1](#21-home), [4.2](#42-beranda-latihan-dirancang-buat-100-topik)) | **Beres** | Rekomendasi hari ini (rotasi harian), Terakhir dilatih, Belum pernah dicoba, Waktunya diulang, Jelajah kategori, kartu "frasa perlu diulang"; model & suara pindah ke Pengaturan | — |
 | Navigasi ([4.1](#41-arsitektur-informasi--navigasi)) | **Beres** | 5 tujuan: Latihan, Topik, Koleksi, Dashboard, Pengaturan. Sidebar di laptop, tab bar 5 menu di HP, disembunyiin saat sesi | — |
 | Topik ([4.3](#43-halaman-topik-perpustakaan)) | **Sebagian** | Cari, filter kategori & status, 5 urutan, filter ikut URL, daftar ringkas, tambah kategori dari app | Edit, arsip, sematkan topik (`archived_at`, `pinned`, `PATCH`); ikon kategori |
-| Koleksi frasa ([4.6](#46-koleksi-frasa--latihan-ulang-fitur-yang-hilang)) | **Beres** | Halaman `/koleksi` (daftar, cari, filter topik, dengerin, hapus) + halaman `/ulang`: kotak Leitner 1/3/7/14/30 hari, jawab ketik atau mic, penilaian longgar & bisa ditimpa manual | Latihan ulang belum bisa dibatasi per topik |
+| Koleksi frasa ([4.6](#46-koleksi-frasa--latihan-ulang-fitur-yang-hilang)) | **Beres** | Halaman `/koleksi` (daftar, cari, filter topik, dengerin, hapus) + halaman `/ulang`: kotak Leitner 1/3/7/14/30 hari, jawab ketik atau mic, penilaian berdasarkan makna (AI) & bisa ditimpa manual | Latihan ulang belum bisa dibatasi per topik |
 | Pengaturan ([4.8](#48-pengaturan--onboarding)) | **Sebagian** | Suara + contoh, model AI, aturan sesi, status sistem (LLM, Azure, LangSmith) | Kecepatan bicara, ekspresi on/off, koreksi on/off, target jawaban, status database, onboarding |
 | Dashboard → Progres ([2.4](#24-dashboard--tambah-topik), [4.7](#47-progres-pengganti-dashboard)) | **Beres** | Ringkasan, istilah "sesi", bagian **Kelancaran**: menit ngomong minggu ini, koreksi per 10 jawaban (+ beda sama minggu lalu), topik aktif, grafik 8 minggu | Riwayat lintas topik dalam satu daftar |
 | Kontras ([3.1](#31-kontras-warna-wcag-aa-teks-normal--451)) | **Beres** | Semua layar. Token baru `--ink-mute`, `--tang-ink`/`--tang-deep`, `--sky-ink`/`--sky-deep`; tombol "Tangkap frasa" pakai tinta gelap; `--muted` dihapus | — |
@@ -278,9 +278,18 @@ lagi. Jadi akun pertama yang daftar tetap pemilik app, dan dia yang jadi admin.
 - Halaman `/ulang`: artinya yang ditampilin, kamu yang nyusun kalimat
   Inggrisnya — ketik atau pakai mic. Ada tombol nyerah, dengerin kalimat
   aslinya, dan penilaiannya bisa ditimpa manual.
-- Penilaian otomatis di `src/lib/match.ts`: jarak Levenshtein **per kata**,
-  tanda baca / huruf besar / aksen diabaikan, singkatan ("I'd" = "I would")
-  disamain. ≥ 0.85 = pas, ≥ 0.5 = hampir, sisanya belum.
+- Penilaian berdasarkan **makna** (`judge()` di `src/lib/match.ts`):
+  - Jarak Levenshtein **per kata** dulu (tanda baca / huruf besar / aksen
+    diabaikan, "I'd" = "I would"). ≥ 0.85 = langsung pas, tanpa AI.
+  - Sisanya ke `POST /api/grade` (`server/agent/grader.py`, prompt
+    `GRADE_SYSTEM`): AI nilai makna, grammar, dan kelaziman — kalimat asli
+    cuma contoh, beda kata/susunan tetap pas. Balikannya alasan 1 kalimat +
+    versi rapi kalimatmu sendiri. Pakai model yang dipilih di Pengaturan.
+  - AI gagal / lewat 20 detik = balik ke pencocokan kata (≥ 0.5 = hampir),
+    plus catatan kalau ini cuma dicocokin kata per kata.
+  - Dites ke dua model: "1 espresso" vs "one espresso" = pas, kalimat
+    berulang + suara nyasar dari mic = hampir, "I want order" = hampir,
+    makna beda = belum.
 - `GET /api/phrases/due`, `POST /api/phrases/{id}/review`, dan `due` di
   `GET /api/state` — dipakai kartu "N frasa perlu diulang" di beranda dan
   tombol di Koleksi. Tiap frasa di Koleksi nampilin kotaknya.
@@ -322,8 +331,8 @@ langkah dengan bantuan yang makin dikit (*fading cues*):
 2. Cuma huruf awalnya (`C···· I g·· t·· b···· p······`) — ucapkan atau ketik.
 3. Tanpa petunjuk sama sekali.
 
-Jawabannya dinilai pakai `src/lib/match.ts` yang sama kayak latihan ulang
-(gratis, nggak manggil AI); salah = kalimat aslinya dibuka lagi buat
+Jawabannya dinilai berdasarkan makna, sama kayak latihan ulang (patokan
+maknanya kalimat Indonesia yang tadi diterjemahin); salah = kalimat aslinya dibuka lagi buat
 dibandingin, plus tombol **Coba lagi**. Selesai = balik ngobrol, kalimatnya
 otomatis jadi contekan. Semua langkah bisa dilewati — latihan ini opsional,
 biar yang lagi buru-buru nggak ketahan.

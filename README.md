@@ -374,7 +374,7 @@ tanpa navigasi.
    dan hilang sendiri begitu kalimatnya kepakai. Jadi nggak perlu dihafal
    dalam hitungan detik. Mau lebih nempel: tombol **Latih dulu** di Bengkel —
    3 langkah dengan bantuan yang makin dikit (lihat → huruf awal → tanpa
-   petunjuk), dinilai pakai pencocokan yang sama dengan latihan ulang.
+   petunjuk), dinilai berdasarkan makna, sama kayak latihan ulang.
 4. **Ringkasan sesi** — begitu sesinya ditutup: jumlah jawaban, lama sesi,
    daftar koreksi, frasa yang kesimpan, dan perbandingan koreksi per 10 jawaban
    sama sesi sebelumnya di topik yang sama. Kalau jawabannya belum nyampe 10,
@@ -382,9 +382,11 @@ tanpa navigasi.
 5. **Latihan ulang** — frasa balik lagi sesuai **kotak Leitner**: kotak 1-5 =
    1, 3, 7, 14, 30 hari. *Pas* naik satu kotak, *hampir* kotaknya tetap,
    *belum* balik ke kotak 1; dua yang terakhir diulang besok. Jawabannya
-   dicocokin longgar (tanda baca, huruf besar, dan singkatan kayak "I'd" vs
-   "I would" dianggap sama — `src/lib/match.ts`), dan penilaiannya bisa ditimpa
-   manual. Jumlah yang jatuh tempo nongol di beranda & Koleksi.
+   dinilai berdasarkan **makna, grammar, dan kelaziman**, bukan harus sama
+   persis: yang hampir sama langsung *pas* (dicocokin per kata, gratis);
+   sisanya dinilai AI (`POST /api/grade`) plus alasan singkat dan versi rapi
+   kalimatmu sendiri. AI gagal = balik ke pencocokan kata. Penilaiannya tetap
+   bisa ditimpa manual. Jumlah yang jatuh tempo nongol di beranda & Koleksi.
 6. **Dashboard** — metrik kelancaran: menit ngomong, **koreksi per 10 jawaban**
    (makin kecil makin lancar), topik aktif, dan grafik 8 minggu terakhir
    (`GET /api/progress`).
@@ -418,7 +420,7 @@ src/lib/expr.ts     tag suara: dibuang dari layar, nggak dihitung sebagai kata
 src/lib/api.ts      client ke server
 src/lib/nav.ts      router mini: /, /topik, /koleksi, /dashboard, /pengaturan
 src/lib/topics.ts   cari, filter, urutkan topik + pilih rekomendasi hari ini
-src/lib/match.ts    nilai jawaban latihan ulang (cocokin longgar, per kata)
+src/lib/match.ts    nilai jawaban latihan: cocokin per kata dulu, sisanya AI (makna)
 src/lib/format.ts   format waktu ("3 jam yang lalu")
 src/screens/        Login, Home (Latihan), Topics, Collection (Koleksi), Review (Latihan ulang), Settings, Session, Dashboard
 src/components/     Shell (navigasi), TopicCard, TopicForm, Bengkel, Drill (latih dulu), orb, waveform, ikon

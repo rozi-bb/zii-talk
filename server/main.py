@@ -19,7 +19,7 @@ load_dotenv()
 from server import auth, db  # noqa: E402
 from server.agent.models import MODELS, key_for  # noqa: E402  (butuh .env kemuat duluan)
 from server.routes import auth as auth_routes  # noqa: E402
-from server.routes import categories, chat, config, progress, runs, speech, state, topics, translate  # noqa: E402
+from server.routes import categories, chat, config, grade, progress, runs, speech, state, topics, translate  # noqa: E402
 from server.voices import DEFAULT_VOICE, env_voice, is_voice_id  # noqa: E402
 
 # ── grouping buat Swagger (/docs) ──────────────────────────────────
@@ -49,7 +49,7 @@ app.include_router(auth_routes.router)
 # otomatis ikut kekunci. Route yang butuh id akunnya minta `current_user` lagi;
 # FastAPI nge-cache dependency per request, jadi sesi cuma dicek sekali.
 LOGGED_IN = [Depends(auth.current_user)]
-for r in (config, speech, chat, translate, topics, categories, runs, state, progress):
+for r in (config, speech, chat, translate, grade, topics, categories, runs, state, progress):
     app.include_router(r.router, dependencies=LOGGED_IN)
 
 

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Icon } from './icons';
-import { grade, initials } from '../lib/match';
+import { initials, judge } from '../lib/match';
 import { listen, speak, stopSpeaking, type Session } from '../lib/speech';
 import type { ReviewResult } from '../lib/api';
 
@@ -19,12 +19,17 @@ const LABEL: Record<ReviewResult, string> = { pas: 'Pas!', hampir: 'Hampir', bel
    yang dibutuhin buat balik ngobrol, bukan dihafal mati. */
 export function Drill({
   sentence,
+  meaning,
+  model,
   voice,
   speechReady,
   onBack,
   onReady,
 }: {
   sentence: string;
+  /* kalimat Indonesia yang tadi diterjemahin — patokan makna buat penilai */
+  meaning: string;
+  model: string;
   voice: string;
   speechReady: boolean;
   /* batal, balik ke hasil terjemahan */
@@ -35,6 +40,10 @@ export function Drill({
   const [step, setStep] = useState(0);
   const [said, setSaid] = useState('');
   const [result, setResult] = useState<ReviewResult | null>(null);
+  const [note, setNote] = useState<{ why: string | null; better: string | null } | null>(null);
+  const [checking, setChecking] = useState(false);
+  /* naik tiap ganti langkah / coba lagi: penilaian telat nggak nempel ke langkah lain */
+  const gradeTok = useRef(0);
   const [rec, setRec] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -47,6 +56,7 @@ export function Drill({
   useEffect(() => {
     return () => {
       micTok.current++;
+      gradeTok.current++;
       stopSpeaking();
       void ses.current?.stop();
     };
@@ -90,14 +100,27 @@ export function Drill({
     }
   }
 
-  function check() {
-    if (!said.trim() || result) return;
-    setResult(grade(said, sentence));
+  async function check() {
+    if (!said.trim() || result || checking) return;
+    const mine = ++gradeTok.current;
+    setChecking(true);
+    const v = await judge({ model, meaning, target: sentence, answer: said.trim() });
+    if (gradeTok.current !== mine) return;
+    setChecking(false);
+    setResult(v.result);
+    setNote({ why: v.why, better: v.better });
+  }
+
+  function reset() {
+    gradeTok.current++;
+    setChecking(false);
+    setSaid('');
+    setResult(null);
+    setNote(null);
   }
 
   function retry() {
-    setSaid('');
-    setResult(null);
+    reset();
     window.setTimeout(() => box.current?.focus(), 0);
   }
 
@@ -107,8 +130,7 @@ export function Drill({
       return;
     }
     setStep(step + 1);
-    setSaid('');
-    setResult(null);
+    reset();
     window.setTimeout(() => box.current?.focus(), 0);
   }
 
@@ -177,16 +199,16 @@ export function Drill({
               spellCheck={false}
               value={said}
               placeholder={speechReady ? 'Ketik atau pakai mic' : 'Ketik kalimatnya'}
-              disabled={!!result}
+              disabled={!!result || checking}
               onChange={(e) => setSaid(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key !== 'Enter') return;
                 e.preventDefault();
                 if (result) next();
-                else check();
+                else void check();
               }}
             />
-            {speechReady && !result && (
+            {speechReady && !result && !checking && (
               <button
                 type="button"
                 className={`pw-eye rv-mic${rec ? ' on' : ''}`}
@@ -204,11 +226,19 @@ export function Drill({
       {result && (
         <div className={`rv-res ${result}`}>
           <b>{LABEL[result]}</b>
+          {note?.why && <p className="rv-why">{note.why}</p>}
           <span>
             {result === 'pas'
               ? 'Mantap, lanjut.'
               : 'Nggak apa-apa — bandingin sama kalimat di atas, terus coba lagi.'}
           </span>
+        </div>
+      )}
+
+      {note?.better && (
+        <div className="rv-better">
+          <small>Kalimatmu, dirapiin</small>
+          <b lang="en">{note.better}</b>
         </div>
       )}
 
@@ -230,10 +260,16 @@ export function Drill({
           </>
         ) : (
           <>
-            <button className="btn primary" disabled={!said.trim()} onClick={check}>
-              Cek
+            <button className="btn primary" disabled={!said.trim() || checking} onClick={() => void check()}>
+              {checking ? (
+                <>
+                  <span className="spin" /> Ngecek…
+                </>
+              ) : (
+                'Cek'
+              )}
             </button>
-            <button className="btn ghost" onClick={next}>
+            <button className="btn ghost" disabled={checking} onClick={next}>
               Lewati
             </button>
           </>

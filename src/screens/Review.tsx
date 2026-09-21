@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Icon } from '../components/icons';
 import { loadDuePhrases, reviewPhrase, type AppConfig, type ReviewResult, type SavedPhrase } from '../lib/api';
-import { grade, initials } from '../lib/match';
+import { initials, judge } from '../lib/match';
 import { linkTo, type Go } from '../lib/nav';
 
 type SpeechLib = typeof import('../lib/speech');
@@ -20,11 +20,14 @@ const NEXT: Record<ReviewResult, string> = {
    (1, 3, 7, 14, 30 hari), diatur server. */
 export function Review({
   cfg,
+  model,
   voice,
   go,
   onDue,
 }: {
   cfg: AppConfig;
+  /* model yang dipilih di Pengaturan — dipakai buat nilai jawaban */
+  model: string;
   voice: string;
   go: Go;
   /* angka "perlu diulang" di beranda & Koleksi ikut turun */
@@ -35,6 +38,9 @@ export function Review({
   const [at, setAt] = useState(0);
   const [said, setSaid] = useState('');
   const [result, setResult] = useState<ReviewResult | null>(null);
+  /* alasan dari AI penilai + kalimatmu yang dirapiin (kalau ada) */
+  const [note, setNote] = useState<{ why: string | null; better: string | null } | null>(null);
+  const [checking, setChecking] = useState(false);
   const [busy, setBusy] = useState(false);
   const [rec, setRec] = useState(false);
   const [playing, setPlaying] = useState(false);
@@ -44,6 +50,8 @@ export function Review({
   const lib = useRef<SpeechLib | null>(null);
   const listener = useRef<{ stop: () => Promise<string> } | null>(null);
   const tok = useRef(0);
+  /* naik tiap kartu ganti: penilaian yang telat nyampe nggak nempel ke kartu berikutnya */
+  const gradeTok = useRef(0);
   /* mic udah distop (atau layarnya ditutup) sebelum Azure kelar nyambung:
      `listen()` yang nyusul langsung dimatiin, jangan ditinggal nyala */
   const micTok = useRef(0);
@@ -55,6 +63,7 @@ export function Review({
       document.title = prev;
       tok.current++;
       micTok.current++;
+      gradeTok.current++;
       lib.current?.stopSpeaking();
       void listener.current?.stop();
     };
@@ -65,6 +74,8 @@ export function Review({
     setAt(0);
     setSaid('');
     setResult(null);
+    setNote(null);
+    gradeTok.current++;
     setTally({ pas: 0, hampir: 0, belum: 0 });
     loadDuePhrases()
       .then((list) => {
@@ -123,14 +134,25 @@ export function Review({
     }
   }
 
-  function check() {
-    if (!card || result) return;
-    setResult(grade(said, card.en));
+  async function check() {
+    if (!card || result || checking || !said.trim()) return;
+    const mine = ++gradeTok.current;
+    setChecking(true);
+    const v = await judge({ model, meaning: card.meaning, target: card.en, answer: said.trim() });
+    if (gradeTok.current !== mine) return;
+    setChecking(false);
+    setResult(v.result);
+    setNote({ why: v.why, better: v.better });
   }
 
   function reveal() {
-    if (!card || result) return;
-    setResult(said.trim() ? grade(said, card.en) : 'belum');
+    if (!card || result || checking) return;
+    if (said.trim()) {
+      void check();
+      return;
+    }
+    setResult('belum');
+    setNote(null);
   }
 
   async function next() {
@@ -143,6 +165,7 @@ export function Review({
       setAt((i) => i + 1);
       setSaid('');
       setResult(null);
+      setNote(null);
       setErr(null);
       window.setTimeout(() => box.current?.focus(), 0);
     } catch (e) {
@@ -229,11 +252,11 @@ export function Review({
                     if (e.key !== 'Enter') return;
                     e.preventDefault();
                     if (result) void next();
-                    else check();
+                    else void check();
                   }}
-                  disabled={!!result}
+                  disabled={!!result || checking}
                 />
-                {cfg.speech.ready && !result && (
+                {cfg.speech.ready && !result && !checking && (
                   <button
                     type="button"
                     className={`pw-eye rv-mic${rec ? ' on' : ''}`}
@@ -249,10 +272,16 @@ export function Review({
 
             {!result ? (
               <div className="rv-acts">
-                <button className="btn primary" onClick={check} disabled={!said.trim()}>
-                  Cek jawaban
+                <button className="btn primary" onClick={() => void check()} disabled={!said.trim() || checking}>
+                  {checking ? (
+                    <>
+                      <span className="spin" /> Ngecek maknanya…
+                    </>
+                  ) : (
+                    'Cek jawaban'
+                  )}
                 </button>
-                <button className="btn ghost" onClick={reveal}>
+                <button className="btn ghost" onClick={reveal} disabled={checking}>
                   Nyerah, lihat jawabannya
                 </button>
               </div>
@@ -260,12 +289,20 @@ export function Review({
               <>
                 <div className={`rv-res ${result}`}>
                   <b>{LABEL[result]}</b>
+                  {note?.why && <p className="rv-why">{note.why}</p>}
                   <span>{NEXT[result]}</span>
                 </div>
 
+                {note?.better && (
+                  <div className="rv-better">
+                    <small>Kalimatmu, dirapiin</small>
+                    <b lang="en">{note.better}</b>
+                  </div>
+                )}
+
                 <div className="rv-answer">
                   <div>
-                    <small>Kalimat aslinya</small>
+                    <small>{result === 'pas' ? 'Kalimat aslinya (boleh beda, asal maknanya sama)' : 'Kalimat aslinya'}</small>
                     <b lang="en">{card.en}</b>
                   </div>
                   {cfg.speech.ready && (

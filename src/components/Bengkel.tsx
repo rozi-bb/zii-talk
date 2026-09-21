@@ -248,6 +248,8 @@ export function Bengkel({
         <div className="handle" />
         <Drill
           sentence={drill}
+          meaning={said}
+          model={model}
           voice={voice}
           speechReady={speechReady}
           onBack={() => setDrill(null)}

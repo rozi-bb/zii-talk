@@ -244,3 +244,8 @@ export async function chatStream(
    diem-diem aja nggak boleh bikin panelnya muter selamanya. */
 export const translate = (p: { model: string; text: string; topic: string }) =>
   post<Translation>('/api/translate', p, AbortSignal.timeout(60_000));
+
+/* Latihan: LLM nilai makna, grammar, kelaziman. `better` = kalimatmu sendiri yang dirapiin. */
+export type Verdict = { result: ReviewResult; why: string | null; better: string | null };
+export const gradeAnswer = (p: { model: string; meaning: string; target: string; answer: string }) =>
+  post<Verdict>('/api/grade', p, AbortSignal.timeout(20_000));
