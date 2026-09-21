@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Icon } from './icons';
 import { initials, judge } from '../lib/match';
 import { listen, speak, stopSpeaking, type Session } from '../lib/speech';
+import { useSpaceToTalk } from '../lib/useSpaceToTalk';
 import type { ReviewResult } from '../lib/api';
 
 const errText = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -73,17 +74,27 @@ export function Drill({
     setPlaying(false);
   }
 
+  async function stopMic() {
+    micTok.current++; // batalin `listen()` yang mungkin masih nyambung
+    const s = ses.current;
+    ses.current = null;
+    setRec(false);
+    const text = s ? await s.stop() : '';
+    if (text.trim()) setSaid(text.trim());
+  }
+
   async function mic() {
     if (!speechReady) return;
     if (rec) {
-      micTok.current++; // batalin `listen()` yang mungkin masih nyambung
-      const s = ses.current;
-      ses.current = null;
-      setRec(false);
-      const text = s ? await s.stop() : '';
-      if (text.trim()) setSaid(text.trim());
+      await stopMic();
       return;
     }
+    await startMic();
+  }
+
+  /* ketuk mic buat mulai/berhenti; di keyboard: tahan SPASI */
+  async function startMic() {
+    if (!speechReady || ses.current) return;
     setErr(null);
     setRec(true);
     const mine = ++micTok.current;
@@ -99,6 +110,8 @@ export function Drill({
       setErr(errText(e));
     }
   }
+
+  useSpaceToTalk(speechReady && step > 0 && !result && !checking, () => void startMic(), () => void stopMic());
 
   async function check() {
     if (!said.trim() || result || checking) return;
@@ -198,7 +211,7 @@ export function Drill({
               autoCorrect="off"
               spellCheck={false}
               value={said}
-              placeholder={speechReady ? 'Ketik atau pakai mic' : 'Ketik kalimatnya'}
+              placeholder={speechReady ? 'Ketik, atau tahan SPASI buat ngomong' : 'Ketik kalimatnya'}
               disabled={!!result || checking}
               onChange={(e) => setSaid(e.target.value)}
               onKeyDown={(e) => {

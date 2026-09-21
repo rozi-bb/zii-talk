@@ -3,6 +3,7 @@ import { Icon } from '../components/icons';
 import { loadDuePhrases, reviewPhrase, type AppConfig, type ReviewResult, type SavedPhrase } from '../lib/api';
 import { initials, judge } from '../lib/match';
 import { linkTo, type Go } from '../lib/nav';
+import { useSpaceToTalk } from '../lib/useSpaceToTalk';
 
 type SpeechLib = typeof import('../lib/speech');
 
@@ -105,18 +106,27 @@ export function Review({
   }
 
   /* mic: ketuk buat mulai, ketuk lagi buat berhenti — bukan tahan, biar
-     tangannya bebas kayak ngisi kolom biasa */
+     tangannya bebas kayak ngisi kolom biasa. Di keyboard: tahan SPASI. */
+  async function stopMic() {
+    micTok.current++; // batalin `listen()` yang mungkin masih nyambung
+    const l = listener.current;
+    listener.current = null;
+    setRec(false);
+    const text = l ? await l.stop() : '';
+    if (text.trim()) setSaid(text.trim());
+  }
+
   async function mic() {
     if (!cfg.speech.ready) return;
     if (rec) {
-      micTok.current++; // batalin `listen()` yang mungkin masih nyambung
-      const l = listener.current;
-      listener.current = null;
-      setRec(false);
-      const text = l ? await l.stop() : '';
-      if (text.trim()) setSaid(text.trim());
+      await stopMic();
       return;
     }
+    await startMic();
+  }
+
+  async function startMic() {
+    if (!cfg.speech.ready || listener.current) return;
     setRec(true);
     setErr(null);
     const mine = ++micTok.current;
@@ -133,6 +143,8 @@ export function Review({
       setErr(errText(e));
     }
   }
+
+  useSpaceToTalk(cfg.speech.ready && !!card && !result && !checking, () => void startMic(), () => void stopMic());
 
   async function check() {
     if (!card || result || checking || !said.trim()) return;
@@ -246,7 +258,7 @@ export function Review({
                   autoCorrect="off"
                   spellCheck={false}
                   value={said}
-                  placeholder="Ketik atau pakai mic"
+                  placeholder={cfg.speech.ready ? 'Ketik, atau tahan SPASI buat ngomong' : 'Ketik kalimatnya'}
                   onChange={(e) => setSaid(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key !== 'Enter') return;

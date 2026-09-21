@@ -386,7 +386,8 @@ tanpa navigasi.
    persis: yang hampir sama langsung *pas* (dicocokin per kata, gratis);
    sisanya dinilai AI (`POST /api/grade`) plus alasan singkat dan versi rapi
    kalimatmu sendiri. AI gagal = balik ke pencocokan kata. Penilaiannya tetap
-   bisa ditimpa manual. Jumlah yang jatuh tempo nongol di beranda & Koleksi.
+   bisa ditimpa manual. Jawab pakai mic: ketuk tombol mic, atau **tahan SPASI**
+   (sama kayak di Bengkel) selama kolom jawabannya masih kosong. Jumlah yang jatuh tempo nongol di beranda & Koleksi.
 6. **Dashboard** — metrik kelancaran: menit ngomong, **koreksi per 10 jawaban**
    (makin kecil makin lancar), topik aktif, dan grafik 8 minggu terakhir
    (`GET /api/progress`).

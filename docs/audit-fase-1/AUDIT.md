@@ -290,6 +290,9 @@ lagi. Jadi akun pertama yang daftar tetap pemilik app, dan dia yang jadi admin.
   - Dites ke dua model: "1 espresso" vs "one espresso" = pas, kalimat
     berulang + suara nyasar dari mic = hampir, "I want order" = hampir,
     makna beda = belum.
+- Mic di `/ulang` dan "Latih dulu": ketuk tombol mic, atau **tahan SPASI**
+  kayak di Bengkel (`src/lib/useSpaceToTalk.ts`). Spasi cuma jadi mic kalau
+  kolom jawabannya masih kosong, jadi ngetik kalimat tetap normal.
 - `GET /api/phrases/due`, `POST /api/phrases/{id}/review`, dan `due` di
   `GET /api/state` — dipakai kartu "N frasa perlu diulang" di beranda dan
   tombol di Koleksi. Tiap frasa di Koleksi nampilin kotaknya.
