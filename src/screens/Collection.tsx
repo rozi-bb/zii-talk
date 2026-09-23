@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Icon } from '../components/icons';
-import { deletePhrase, loadPhrases, type AppConfig, type AppState, type SavedPhrase } from '../lib/api';
+import { deletePhrase, editPhrase, loadPhrases, type AppConfig, type AppState, type SavedPhrase } from '../lib/api';
 import { ago } from '../lib/format';
 import { linkTo, type Go } from '../lib/nav';
 
@@ -37,6 +37,8 @@ export function Collection({
   const [confirm, setConfirm] = useState<number | null>(null);
   const [busy, setBusy] = useState<number | null>(null);
   const [playing, setPlaying] = useState<number | null>(null);
+  /* betulin frasa langsung di kartunya (salah ketik / salah dengar) */
+  const [editing, setEditing] = useState<{ id: number; en: string; meaning: string } | null>(null);
   /* SDK Azure-nya gede, jadi baru di-import waktu frasa pertama didengerin */
   const lib = useRef<SpeechLib | null>(null);
   const tok = useRef(0);
@@ -111,6 +113,28 @@ export function Collection({
       setItems((list) => list?.filter((x) => x.id !== p.id) ?? null);
       setConfirm(null);
       onChanged(s);
+    } catch (e) {
+      setErr(errText(e));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  function startEdit(p: SavedPhrase) {
+    if (playing === p.id) stop();
+    setConfirm(null);
+    setErr(null);
+    setEditing({ id: p.id, en: p.en, meaning: p.meaning });
+  }
+
+  async function saveEdit() {
+    if (!editing || !editing.en.trim()) return;
+    setBusy(editing.id);
+    setErr(null);
+    try {
+      const fixed = await editPhrase(editing.id, { en: editing.en.trim(), meaning: editing.meaning.trim() });
+      setItems((list) => list?.map((x) => (x.id === fixed.id ? fixed : x)) ?? null);
+      setEditing(null);
     } catch (e) {
       setErr(errText(e));
     } finally {
@@ -205,52 +229,113 @@ export function Collection({
             <ul className="phr-list">
               {shown.map((p) => (
                 <li key={p.id} className="phr">
-                  <div className="phr-main">
-                    <b lang="en">{p.en}</b>
-                    {p.meaning && <span>{p.meaning}</span>}
-                    <small>
-                      {p.topicName ?? 'Tanpa topik'} · {ago(p.createdAt)}
-                      {/* jadwal latihan ulang: jatuh tempo ditandai, sisanya cukup kotaknya */}
-                      {Date.parse(p.nextReviewAt) <= Date.now() ? (
-                        <em className="phr-due">perlu diulang</em>
-                      ) : (
-                        <em className="phr-box">kotak {p.box}</em>
-                      )}
-                    </small>
-                  </div>
-                  <div className="phr-acts">
-                    {confirm === p.id ? (
-                      <>
-                        <button className="btn sm ghost" onClick={() => setConfirm(null)} disabled={busy === p.id}>
+                  {editing?.id === p.id ? (
+                    <form
+                      className="phr-edit"
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        void saveEdit();
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Escape' && busy !== p.id) {
+                          e.preventDefault();
+                          setEditing(null);
+                        }
+                      }}
+                    >
+                      <label className="fld">
+                        <span>Bahasa Inggris</span>
+                        <input
+                          autoFocus
+                          lang="en"
+                          spellCheck={false}
+                          value={editing.en}
+                          onChange={(e) => setEditing({ ...editing, en: e.target.value })}
+                          disabled={busy === p.id}
+                        />
+                      </label>
+                      <label className="fld">
+                        <span>Artinya</span>
+                        <input
+                          value={editing.meaning}
+                          placeholder="Boleh dikosongin"
+                          onChange={(e) => setEditing({ ...editing, meaning: e.target.value })}
+                          disabled={busy === p.id}
+                        />
+                      </label>
+                      <div className="phr-edit-acts">
+                        <small>Kotak & jadwal latihannya tetap.</small>
+                        <button
+                          type="button"
+                          className="btn sm ghost"
+                          onClick={() => setEditing(null)}
+                          disabled={busy === p.id}
+                        >
                           Batal
                         </button>
-                        <button className="btn sm danger" onClick={() => void remove(p)} disabled={busy === p.id}>
-                          {busy === p.id ? <span className="spin" /> : 'Hapus'}
+                        <button type="submit" className="btn sm primary" disabled={!editing.en.trim() || busy === p.id}>
+                          {busy === p.id ? <span className="spin" /> : 'Simpan'}
                         </button>
-                      </>
-                    ) : (
-                      <>
-                        {cfg.speech.ready && (
-                          <button
-                            className={`phr-btn${playing === p.id ? ' on' : ''}`}
-                            onClick={() => void listen(p)}
-                            aria-label={playing === p.id ? 'Stop' : `Dengerin "${p.en}"`}
-                            title={playing === p.id ? 'Stop' : 'Dengerin'}
-                          >
-                            <Icon name={playing === p.id ? 'stop' : 'speakerSmall'} size={17} />
-                          </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <>
+                      <div className="phr-main">
+                        <b lang="en">{p.en}</b>
+                        {p.meaning && <span>{p.meaning}</span>}
+                        <small>
+                          {p.topicName ?? 'Tanpa topik'} · {ago(p.createdAt)}
+                          {/* jadwal latihan ulang: jatuh tempo ditandai, sisanya cukup kotaknya */}
+                          {Date.parse(p.nextReviewAt) <= Date.now() ? (
+                            <em className="phr-due">perlu diulang</em>
+                          ) : (
+                            <em className="phr-box">kotak {p.box}</em>
+                          )}
+                        </small>
+                      </div>
+                      <div className="phr-acts">
+                        {confirm === p.id ? (
+                          <>
+                            <button className="btn sm ghost" onClick={() => setConfirm(null)} disabled={busy === p.id}>
+                              Batal
+                            </button>
+                            <button className="btn sm danger" onClick={() => void remove(p)} disabled={busy === p.id}>
+                              {busy === p.id ? <span className="spin" /> : 'Hapus'}
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            {cfg.speech.ready && (
+                              <button
+                                className={`phr-btn${playing === p.id ? ' on' : ''}`}
+                                onClick={() => void listen(p)}
+                                aria-label={playing === p.id ? 'Stop' : `Dengerin "${p.en}"`}
+                                title={playing === p.id ? 'Stop' : 'Dengerin'}
+                              >
+                                <Icon name={playing === p.id ? 'stop' : 'speakerSmall'} size={17} />
+                              </button>
+                            )}
+                            <button
+                              className="phr-btn"
+                              onClick={() => startEdit(p)}
+                              aria-label={`Betulin "${p.en}"`}
+                              title="Betulin"
+                            >
+                              <Icon name="pencil" size={16} />
+                            </button>
+                            <button
+                              className="phr-btn"
+                              onClick={() => setConfirm(p.id)}
+                              aria-label={`Hapus "${p.en}"`}
+                              title="Hapus"
+                            >
+                              <Icon name="x" size={16} />
+                            </button>
+                          </>
                         )}
-                        <button
-                          className="phr-btn"
-                          onClick={() => setConfirm(p.id)}
-                          aria-label={`Hapus "${p.en}"`}
-                          title="Hapus"
-                        >
-                          <Icon name="x" size={16} />
-                        </button>
-                      </>
-                    )}
-                  </div>
+                      </div>
+                    </>
+                  )}
                 </li>
               ))}
             </ul>

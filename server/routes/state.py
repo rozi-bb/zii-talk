@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import Any, Literal
 
+import psycopg
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
@@ -47,6 +48,11 @@ class PhraseIn(BaseModel):
     en: str = Field(min_length=1)
     id: str = ""
     topicId: str | None = None
+
+
+class PhraseEdit(BaseModel):
+    en: str = Field(min_length=1)
+    meaning: str = ""
 
 
 class PhraseOut(BaseModel):
@@ -271,3 +277,29 @@ async def delete_phrase(phrase_id: int, user: User = Depends(current_user)):
         if cur.rowcount == 0:
             return JSONResponse(status_code=404, content={"error": "Frasa nggak ketemu — mungkin udah dihapus"})
         return await _read(conn, user.id)
+
+
+@router.put("/phrases/{phrase_id}", response_model=PhraseOut, summary="Betulin kalimat / arti frasa di koleksi")
+async def edit_phrase(phrase_id: int, body: PhraseEdit, user: User = Depends(current_user)):
+    en = clean(body.en, 300)
+    if not en:
+        return JSONResponse(status_code=400, content={"error": "Kalimat Inggrisnya nggak boleh kosong"})
+    # Kotak Leitner & jadwalnya sengaja nggak diubah: ini buat betulin salah
+    # ketik / salah dengar, bukan frasa baru.
+    async with (await db.pool()).connection() as conn:
+        try:
+            cur = await conn.execute(
+                "UPDATE phrases SET en = %s, meaning = %s WHERE id = %s AND user_id = %s",
+                (en, clean(body.meaning, 300), phrase_id, user.id),
+            )
+        except psycopg.errors.UniqueViolation:
+            return JSONResponse(status_code=409, content={"error": "Kalimat ini udah ada di koleksimu"})
+        if cur.rowcount == 0:
+            return JSONResponse(status_code=404, content={"error": "Frasa nggak ketemu — mungkin udah dihapus"})
+        cur = await conn.execute(
+            f"SELECT {PHRASE_COLUMNS} FROM phrases p LEFT JOIN topics t ON t.id = p.topic_id WHERE p.id = %s",
+            (phrase_id,),
+        )
+        row = await cur.fetchone()
+        assert row is not None
+        return _phrase(row)

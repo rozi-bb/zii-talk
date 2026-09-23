@@ -98,7 +98,7 @@ kontras, ukuran teks, dan target sentuh. Sisa temuan di
 | Beranda ([2.1](#21-home), [4.2](#42-beranda-latihan-dirancang-buat-100-topik)) | **Beres** | Rekomendasi hari ini (rotasi harian), Terakhir dilatih, Belum pernah dicoba, Waktunya diulang, Jelajah kategori, kartu "frasa perlu diulang"; model & suara pindah ke Pengaturan | — |
 | Navigasi ([4.1](#41-arsitektur-informasi--navigasi)) | **Beres** | 5 tujuan: Latihan, Topik, Koleksi, Dashboard, Pengaturan. Sidebar di laptop, tab bar 5 menu di HP, disembunyiin saat sesi | — |
 | Topik ([4.3](#43-halaman-topik-perpustakaan)) | **Sebagian** | Cari, filter kategori & status, 5 urutan, filter ikut URL, daftar ringkas, tambah kategori dari app | Edit, arsip, sematkan topik (`archived_at`, `pinned`, `PATCH`); ikon kategori |
-| Koleksi frasa ([4.6](#46-koleksi-frasa--latihan-ulang-fitur-yang-hilang)) | **Beres** | Halaman `/koleksi` (daftar, cari, filter topik, dengerin, hapus) + halaman `/ulang`: kotak Leitner 1/3/7/14/30 hari, jawab ketik atau mic, penilaian berdasarkan makna (AI) & bisa ditimpa manual | Latihan ulang belum bisa dibatasi per topik |
+| Koleksi frasa ([4.6](#46-koleksi-frasa--latihan-ulang-fitur-yang-hilang)) | **Beres** | Halaman `/koleksi` (daftar, cari, filter topik, dengerin, betulin, hapus) + halaman `/ulang`: kotak Leitner 1/3/7/14/30 hari, jawab ketik atau mic, penilaian berdasarkan makna (AI) & bisa ditimpa manual | Latihan ulang belum bisa dibatasi per topik |
 | Pengaturan ([4.8](#48-pengaturan--onboarding)) | **Sebagian** | Suara + contoh, model AI, aturan sesi, status sistem (LLM, Azure, LangSmith) | Kecepatan bicara, ekspresi on/off, koreksi on/off, target jawaban, status database, onboarding |
 | Dashboard → Progres ([2.4](#24-dashboard--tambah-topik), [4.7](#47-progres-pengganti-dashboard)) | **Beres** | Ringkasan, istilah "sesi", bagian **Kelancaran**: menit ngomong minggu ini, koreksi per 10 jawaban (+ beda sama minggu lalu), topik aktif, grafik 8 minggu | Riwayat lintas topik dalam satu daftar |
 | Kontras ([3.1](#31-kontras-warna-wcag-aa-teks-normal--451)) | **Beres** | Semua layar. Token baru `--ink-mute`, `--tang-ink`/`--tang-deep`, `--sky-ink`/`--sky-deep`; tombol "Tangkap frasa" pakai tinta gelap; `--muted` dihapus | — |
@@ -168,6 +168,10 @@ minimal 40–44px, favicon.
   topik, kapan disimpan.
 - Cari (frasa + arti), filter per topik, dengerin pakai suara Zii, hapus dengan
   konfirmasi dua langkah (bukan dialog bawaan browser).
+- **Betulin frasa** (ikon pensil): kalimat Inggris & artinya diedit langsung di
+  kartunya — Enter simpan, Esc batal. Buat salah ketik / salah dengar mic, jadi
+  kotak Leitner & jadwal latihannya sengaja nggak direset. `PUT
+  /api/phrases/{id}`; kalimat yang bentrok sama frasa lain ditolak (409).
 - API baru `GET /api/phrases` dan `DELETE /api/phrases/{id}`. Angka frasa di
   sidebar ikut turun habis hapus.
 

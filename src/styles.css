@@ -1184,3 +1184,8 @@ svg { transition: transform 0.2s ease; }
 .rv-better { display: flex; flex-direction: column; gap: 2px; margin-top: 12px; padding: 12px 14px; border-radius: 14px; border: 1.5px dashed var(--line, #e6dccf); }
 .rv-better small { font-size: 12px; font-weight: 700; color: var(--ink-mute); }
 .rv-better b { font-family: var(--dsp); font-size: 17px; font-weight: 700; line-height: 1.3; overflow-wrap: anywhere; }
+/* betulin frasa di tempat — gantiin isi kartunya, nggak pakai dialog */
+.phr-edit { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.phr-edit .fld input { width: 100%; }
+.phr-edit-acts { display: flex; align-items: center; gap: 8px; }
+.phr-edit-acts small { flex: 1; font-size: 12px; font-weight: 600; color: var(--ink-mute); }

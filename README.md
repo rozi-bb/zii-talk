@@ -359,7 +359,7 @@ tanpa navigasi.
 |---|---|
 | **Latihan** `/` | rekomendasi hari ini, topik terakhir dilatih, beberapa topik yang belum dicoba / waktunya diulang, dan jalan pintas per kategori. Sengaja **bukan** daftar semua topik |
 | **Topik** `/topik` | semua topik: cari (tekan `/`), filter kategori & status, urutkan, tambah topik & kategori. Filternya ikut di URL, jadi bisa di-bookmark |
-| **Koleksi** `/koleksi` | frasa yang ditangkap dari kartu koreksi & disimpan dari Bengkel: cari, filter per topik, dengerin, hapus |
+| **Koleksi** `/koleksi` | frasa yang ditangkap dari kartu koreksi & disimpan dari Bengkel: cari, filter per topik, dengerin, betulin (salah ketik / salah dengar — kotak latihannya tetap), hapus |
 | **Latihan ulang** `/ulang` | frasa yang jatuh tempo: artinya ditampilin, kamu yang nyusun kalimat Inggrisnya (ketik atau mic) |
 | **Dashboard** `/dashboard` | ringkasan, status tes per topik, riwayat tes + transkrip, tombol **Retest** |
 | **Pengaturan** `/pengaturan` | akun & tombol keluar, suara Zii, model AI, aturan sesi, status sistem (API key, Azure, tracing) |

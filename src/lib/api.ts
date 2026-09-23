@@ -140,6 +140,9 @@ export type SavedPhrase = {
 };
 export const loadPhrases = () => get<SavedPhrase[]>('/api/phrases');
 export const deletePhrase = (id: number) => call<AppState>('DELETE', `/api/phrases/${id}`);
+/* betulin salah ketik / salah dengar — kotak & jadwal latihannya tetap */
+export const editPhrase = (id: number, p: { en: string; meaning: string }) =>
+  call<SavedPhrase>('PUT', `/api/phrases/${id}`, p);
 export const loadDuePhrases = (limit = 20) => get<SavedPhrase[]>(`/api/phrases/due?limit=${limit}`);
 export const reviewPhrase = (id: number, result: ReviewResult) =>
   post<{ phrase: SavedPhrase; due: number }>(`/api/phrases/${id}/review`, { result });
