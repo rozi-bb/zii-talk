@@ -359,7 +359,7 @@ tanpa navigasi.
 |---|---|
 | **Latihan** `/` | rekomendasi hari ini, topik terakhir dilatih, beberapa topik yang belum dicoba / waktunya diulang, dan jalan pintas per kategori. Sengaja **bukan** daftar semua topik |
 | **Topik** `/topik` | semua topik: cari (tekan `/`), filter kategori & status, urutkan, tambah topik & kategori. Filternya ikut di URL, jadi bisa di-bookmark |
-| **Koleksi** `/koleksi` | frasa yang ditangkap dari kartu koreksi & disimpan dari Bengkel: cari, filter per topik, dengerin, betulin (salah ketik / salah dengar — kotak latihannya tetap), hapus |
+| **Koleksi** `/koleksi` | frasa yang ditangkap dari kartu koreksi & disimpan dari Bengkel: cari, filter per topik, dengerin, betulin (salah ketik / salah dengar — kotak latihannya tetap), hapus, **pilih frasa buat dilatih** (centang satu-satu atau semua yang tampil) |
 | **Latihan ulang** `/ulang` | frasa yang jatuh tempo: artinya ditampilin, kamu yang nyusun kalimat Inggrisnya (ketik atau mic) |
 | **Dashboard** `/dashboard` | ringkasan, status tes per topik, riwayat tes + transkrip, tombol **Retest** |
 | **Pengaturan** `/pengaturan` | akun & tombol keluar, suara Zii, model AI, aturan sesi, status sistem (API key, Azure, tracing) |
@@ -387,7 +387,11 @@ tanpa navigasi.
    sisanya dinilai AI (`POST /api/grade`) plus alasan singkat dan versi rapi
    kalimatmu sendiri. AI gagal = balik ke pencocokan kata. Penilaiannya tetap
    bisa ditimpa manual. Jawab pakai mic: ketuk tombol mic, atau **tahan SPASI**
-   (sama kayak di Bengkel) selama kolom jawabannya masih kosong. Jumlah yang jatuh tempo nongol di beranda & Koleksi.
+   (sama kayak di Bengkel) selama kolom jawabannya masih kosong. Jumlah yang
+   jatuh tempo nongol di beranda & Koleksi. Mau latihan di luar jadwal: **Pilih
+   buat latihan** di Koleksi, centang frasanya. Yang belum waktunya diulang
+   dihitung latihan tambahan — pas/hampir nggak ngubah jadwal, belum = balik ke
+   kotak 1.
 6. **Dashboard** — metrik kelancaran: menit ngomong, **koreksi per 10 jawaban**
    (makin kecil makin lancar), topik aktif, dan grafik 8 minggu terakhir
    (`GET /api/progress`).

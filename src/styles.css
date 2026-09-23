@@ -1189,3 +1189,15 @@ svg { transition: transform 0.2s ease; }
 .phr-edit .fld input { width: 100%; }
 .phr-edit-acts { display: flex; align-items: center; gap: 8px; }
 .phr-edit-acts small { flex: 1; font-size: 12px; font-weight: 600; color: var(--ink-mute); }
+/* mode pilih buat latihan: kartunya jadi kotak centang, bar aksi nempel di bawah */
+.phr-pick { flex: 1; min-width: 0; display: flex; align-items: center; gap: 14px; cursor: pointer; }
+.phr-pick input { flex-shrink: 0; width: 22px; height: 22px; margin: 0; accent-color: var(--violet); cursor: pointer; }
+.phr.picked { background: #fbf8ff; }
+/* halamannya dipanjangin setinggi layar, jadi bar-nya selalu nempel di bawah —
+   nggak ngambang di tengah waktu frasanya sedikit */
+.page:has(> .pick-bar) { min-height: 100%; display: flex; flex-direction: column; padding-bottom: 12px; }
+.pick-bar { position: sticky; bottom: 12px; z-index: 1; display: flex; align-items: center; gap: 8px; margin-top: auto; padding: 10px 10px 10px 16px; border-radius: 18px; background: var(--card); border: 1px solid var(--line-soft); box-shadow: 0 8px 28px rgba(60, 30, 100, 0.14); }
+.page:has(> .pick-bar) > .phr-list, .page:has(> .pick-bar) > .empty { margin-bottom: 16px; }
+.pick-bar span { flex: 1; min-width: 0; font-size: 14px; font-weight: 700; color: var(--ink-soft); }
+.lib-meta button.link { background: none; border: 0; padding: 0; cursor: pointer; font-family: inherit; }
+.rv-extra { border-radius: 99px; padding: 1px 8px; background: var(--amber-wash); color: var(--amber-ink); }

@@ -37,6 +37,10 @@ export function Collection({
   const [confirm, setConfirm] = useState<number | null>(null);
   const [busy, setBusy] = useState<number | null>(null);
   const [playing, setPlaying] = useState<number | null>(null);
+  /* mode pilih: centang frasa tertentu, terus latihan cuma frasa itu.
+     `/koleksi?pilih` langsung kebuka di mode ini (dari halaman latihan ulang). */
+  const [picking, setPicking] = useState(() => new URLSearchParams(location.search).has('pilih'));
+  const [picked, setPicked] = useState<Set<number>>(() => new Set());
   /* betulin frasa langsung di kartunya (salah ketik / salah dengar) */
   const [editing, setEditing] = useState<{ id: number; en: string; meaning: string } | null>(null);
   /* SDK Azure-nya gede, jadi baru di-import waktu frasa pertama didengerin */
@@ -142,7 +146,25 @@ export function Collection({
     }
   }
 
+  function startPicking() {
+    stop();
+    setEditing(null);
+    setConfirm(null);
+    setPicking(true);
+  }
+
+  function togglePick(id: number) {
+    setPicked((s) => {
+      const n = new Set(s);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  }
+
   const filtered = q.trim() !== '' || topic !== 'all';
+  /* "pilih semua" ngikutin pencarian & filter topik — jadi sekalian latihan per topik */
+  const allShownPicked = shown.length > 0 && shown.every((p) => picked.has(p.id));
 
   return (
     <div className="page narrow">
@@ -151,7 +173,13 @@ export function Collection({
           <h1>Koleksi frasa</h1>
           <p>Kalimat yang kamu tangkap dari kartu koreksi & simpan dari Bengkel Kalimat.</p>
         </div>
-        {due > 0 && (
+        {!picking && !!items?.length && (
+          <button className={`btn ${due > 0 ? 'ghost' : 'primary'}`} onClick={startPicking}>
+            <Icon name="check" size={16} />
+            Pilih buat latihan
+          </button>
+        )}
+        {due > 0 && !picking && (
           <a className="btn primary" {...linkTo('/ulang', go)}>
             <Icon name="replay" size={16} />
             Latihan ulang · {due}
@@ -209,6 +237,24 @@ export function Collection({
 
           <div className="lib-meta">
             <span>{shown.length === items.length ? `${items.length} frasa` : `${shown.length} dari ${items.length} frasa`}</span>
+            {picking && shown.length > 0 && (
+              <button
+                type="button"
+                className="link"
+                onClick={() =>
+                  setPicked((s) => {
+                    const n = new Set(s);
+                    for (const p of shown) {
+                      if (allShownPicked) n.delete(p.id);
+                      else n.add(p.id);
+                    }
+                    return n;
+                  })
+                }
+              >
+                {allShownPicked ? 'Kosongin' : filtered ? `Pilih ${shown.length} yang tampil` : 'Pilih semua'}
+              </button>
+            )}
             {topics.length > 1 && (
               <label className="sort">
                 <span>Topik</span>
@@ -228,8 +274,18 @@ export function Collection({
           {shown.length > 0 ? (
             <ul className="phr-list">
               {shown.map((p) => (
-                <li key={p.id} className="phr">
-                  {editing?.id === p.id ? (
+                <li key={p.id} className={`phr${picking && picked.has(p.id) ? ' picked' : ''}`}>
+                  {picking ? (
+                    <label className="phr-pick">
+                      <input
+                        type="checkbox"
+                        checked={picked.has(p.id)}
+                        onChange={() => togglePick(p.id)}
+                        aria-label={`Pilih "${p.en}"`}
+                      />
+                      <PhraseText p={p} />
+                    </label>
+                  ) : editing?.id === p.id ? (
                     <form
                       className="phr-edit"
                       onSubmit={(e) => {
@@ -280,19 +336,7 @@ export function Collection({
                     </form>
                   ) : (
                     <>
-                      <div className="phr-main">
-                        <b lang="en">{p.en}</b>
-                        {p.meaning && <span>{p.meaning}</span>}
-                        <small>
-                          {p.topicName ?? 'Tanpa topik'} · {ago(p.createdAt)}
-                          {/* jadwal latihan ulang: jatuh tempo ditandai, sisanya cukup kotaknya */}
-                          {Date.parse(p.nextReviewAt) <= Date.now() ? (
-                            <em className="phr-due">perlu diulang</em>
-                          ) : (
-                            <em className="phr-box">kotak {p.box}</em>
-                          )}
-                        </small>
-                      </div>
+                      <PhraseText p={p} />
                       <div className="phr-acts">
                         {confirm === p.id ? (
                           <>
@@ -354,8 +398,49 @@ export function Collection({
               </button>
             </div>
           )}
+
+          {picking && (
+            <div className="pick-bar">
+              <span>{picked.size ? `${picked.size} frasa dipilih` : 'Centang frasa yang mau dilatih'}</span>
+              <button
+                className="btn ghost"
+                onClick={() => {
+                  setPicking(false);
+                  setPicked(new Set());
+                }}
+              >
+                Batal
+              </button>
+              <button
+                className="btn primary"
+                disabled={!picked.size}
+                onClick={() => go(`/ulang?pilih=${[...picked].join(',')}`)}
+              >
+                <Icon name="replay" size={16} />
+                Latih
+              </button>
+            </div>
+          )}
         </>
       )}
+    </div>
+  );
+}
+
+function PhraseText({ p }: { p: SavedPhrase }) {
+  return (
+    <div className="phr-main">
+      <b lang="en">{p.en}</b>
+      {p.meaning && <span>{p.meaning}</span>}
+      <small>
+        {p.topicName ?? 'Tanpa topik'} · {ago(p.createdAt)}
+        {/* jadwal latihan ulang: jatuh tempo ditandai, sisanya cukup kotaknya */}
+        {Date.parse(p.nextReviewAt) <= Date.now() ? (
+          <em className="phr-due">perlu diulang</em>
+        ) : (
+          <em className="phr-box">kotak {p.box}</em>
+        )}
+      </small>
     </div>
   );
 }

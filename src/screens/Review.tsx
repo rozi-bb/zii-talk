@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Icon } from '../components/icons';
-import { loadDuePhrases, reviewPhrase, type AppConfig, type ReviewResult, type SavedPhrase } from '../lib/api';
+import { loadDuePhrases, loadPhrases, reviewPhrase, type AppConfig, type ReviewResult, type SavedPhrase } from '../lib/api';
 import { initials, judge } from '../lib/match';
 import { linkTo, type Go } from '../lib/nav';
 import { useSpaceToTalk } from '../lib/useSpaceToTalk';
@@ -15,6 +15,32 @@ const NEXT: Record<ReviewResult, string> = {
   hampir: 'Diulang lagi besok.',
   belum: 'Balik ke kotak 1, diulang besok.',
 };
+/* frasa pilihan yang belum waktunya: dilatih lebih cepat nggak boleh bikin
+   jaraknya melonjak, jadi pas/hampir nggak ngubah jadwal. Belum nyantol =
+   bukti lupa, itu tetap balik ke kotak 1. */
+const EXTRA: Record<ReviewResult, string> = {
+  pas: 'Latihan tambahan — jadwalnya tetap.',
+  hampir: 'Latihan tambahan — jadwalnya tetap.',
+  belum: 'Balik ke kotak 1, diulang besok.',
+};
+
+/* `/ulang?pilih=3,8,12` = latihan frasa pilihan dari Koleksi */
+function pickedIds(): number[] {
+  const raw = new URLSearchParams(location.search).get('pilih') ?? '';
+  return raw
+    .split(',')
+    .map(Number)
+    .filter((n) => Number.isInteger(n) && n > 0);
+}
+
+function shuffle<T>(xs: T[]): T[] {
+  const a = [...xs];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 
 /* Latihan ulang frasa: artinya yang ditampilin, kamu yang nyusun kalimat
    Inggrisnya — recall dulu, baru lihat jawabannya. Jadwalnya kotak Leitner
@@ -35,6 +61,8 @@ export function Review({
   onDue: (due: number) => void;
 }) {
   const [items, setItems] = useState<SavedPhrase[] | null>(null);
+  /* dibaca sekali: pindah halaman = komponen baru */
+  const [picked] = useState(pickedIds);
   const [err, setErr] = useState<string | null>(null);
   const [at, setAt] = useState(0);
   const [said, setSaid] = useState('');
@@ -78,7 +106,11 @@ export function Review({
     setNote(null);
     gradeTok.current++;
     setTally({ pas: 0, hampir: 0, belum: 0 });
-    loadDuePhrases()
+    /* pilihan diacak biar nggak hafal urutan, bukan hafal kalimatnya */
+    const req = picked.length
+      ? loadPhrases().then((all) => shuffle(all.filter((p) => picked.includes(p.id))))
+      : loadDuePhrases();
+    req
       .then((list) => {
         setItems(list);
         setErr(null);
@@ -90,6 +122,7 @@ export function Review({
 
   const card = items?.[at] ?? null;
   const done = !!items && at >= items.length;
+  const early = !!card && Date.parse(card.nextReviewAt) > Date.now();
 
   async function play(text: string) {
     if (!cfg.speech.ready || playing) return;
@@ -171,8 +204,10 @@ export function Review({
     if (!card || !result) return;
     setBusy(true);
     try {
-      const r = await reviewPhrase(card.id, result);
-      onDue(r.due);
+      if (!early || result === 'belum') {
+        const r = await reviewPhrase(card.id, result);
+        onDue(r.due);
+      }
       setTally((t) => ({ ...t, [result]: t[result] + 1 }));
       setAt((i) => i + 1);
       setSaid('');
@@ -191,7 +226,7 @@ export function Review({
     <div className="page narrow">
       <header className="page-head">
         <div>
-          <h1>Latihan ulang</h1>
+          <h1>{picked.length ? 'Latihan pilihan' : 'Latihan ulang'}</h1>
           <p>Baca artinya, susun kalimat Inggrisnya sendiri — baru lihat jawabannya.</p>
         </div>
         <a className="btn ghost" {...linkTo('/koleksi', go)}>
@@ -208,17 +243,35 @@ export function Review({
         </div>
       )}
 
-      {items?.length === 0 && (
+      {items?.length === 0 && picked.length > 0 && (
+        <div className="empty">
+          <b>Frasa pilihanmu nggak ketemu</b>
+          <span>Mungkin udah dihapus dari koleksi. Pilih lagi yang lain.</span>
+          <a className="btn primary" {...linkTo('/koleksi?pilih', go)}>
+            <Icon name="check" size={16} />
+            Pilih frasa
+          </a>
+        </div>
+      )}
+
+      {items?.length === 0 && !picked.length && (
         <div className="empty">
           <b>Belum ada yang perlu diulang</b>
           <span>
             Frasa baru langsung masuk antrean, dan yang udah dilatih balik lagi sesuai jadwalnya (1, 3, 7, 14, lalu
             30 hari).
           </span>
-          <a className="btn primary" {...linkTo('/', go)}>
-            <Icon name="mic" size={16} />
-            Mulai sesi
-          </a>
+          <div className="rv-done-acts">
+            <a className="btn primary" {...linkTo('/', go)}>
+              <Icon name="mic" size={16} />
+              Mulai sesi
+            </a>
+            {/* nggak ada yang jatuh tempo tapi pengin latihan: pilih sendiri */}
+            <a className="btn ghost" {...linkTo('/koleksi?pilih', go)}>
+              <Icon name="check" size={16} />
+              Pilih frasa buat dilatih
+            </a>
+          </div>
         </div>
       )}
 
@@ -238,6 +291,7 @@ export function Review({
               <span className="rv-box">Kotak {card.box}</span>
               {card.topicName && <span>{card.topicName}</span>}
               {card.reviews === 0 && <span>belum pernah diulang</span>}
+              {early && <span className="rv-extra">latihan tambahan</span>}
             </div>
 
             <p className="rv-ask">{card.meaning || 'Ingat kalimat yang kamu simpan ini'}</p>
@@ -302,7 +356,7 @@ export function Review({
                 <div className={`rv-res ${result}`}>
                   <b>{LABEL[result]}</b>
                   {note?.why && <p className="rv-why">{note.why}</p>}
-                  <span>{NEXT[result]}</span>
+                  <span>{(early ? EXTRA : NEXT)[result]}</span>
                 </div>
 
                 {note?.better && (
@@ -356,7 +410,7 @@ export function Review({
           <div className="rv-done-acts">
             <button className="btn primary" onClick={load}>
               <Icon name="replay" size={16} />
-              Cek lagi
+              {picked.length ? 'Ulangi pilihan ini' : 'Cek lagi'}
             </button>
             <a className="btn ghost" {...linkTo('/koleksi', go)}>
               Buka koleksi
